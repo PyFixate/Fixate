@@ -9,7 +9,7 @@ BASE_LOCATION = os.path.abspath(os.path.dirname(__file__))
 
 VERSION_FILE = os.path.join(BASE_LOCATION, 'src', 'fixate', '__init__.py')
 REQUIRES_FILE = 'requirements.txt'
-DEPENDENCIES_FILE = 'REQUIREMENTS_LINKS'
+DEPENDENCIES_FILE = None
 
 
 def filter_comments(fd):
@@ -65,6 +65,6 @@ setup(
     packages=find_packages('src'),
     version=get_version(),
     install_requires=get_requires(),
-    dependency_links=get_dependencies(),
+    dependency_links=[],
     include_package_data=True,
     zip_safe=False)
