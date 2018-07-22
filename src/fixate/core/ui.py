@@ -198,7 +198,6 @@ def _ten_digit_serial(response):  # input_type argument added due to input_type=
 
 def user_serial(msg, target=_ten_digit_serial, attempts=5):
     serial = _user_req_input(msg, attempts=attempts, target=target)
-    chk_log_value(serial[1])
     return serial
 
 

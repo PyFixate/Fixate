@@ -108,17 +108,18 @@ class RigolDG1022(FuncGen):
             ("channel1.waveform.noise", self.store_and_write, ("FUNC NOIS", {"ch1_waveform_handler": None})),
             ("channel1.waveform.dc", self.store_and_write, ("FUNC DC", {"ch1_waveform_handler": None})),
             # Channel 2:
-            ("channel2.waveform.sin", self.store_and_write, ("FUNC SIN",  # base_str
+            ("channel2.waveform.sin", self.store_and_write, ("FUNC:CH2 SIN",  # base_str
                                                              {"ch2_waveform_handler": None})),  # handler
-            ("channel2.waveform.square", self.store_and_write, ("FUNC SQU\r\nFUNC:SQU:DCYC {self._store[ch2_duty]}",
-                                                                {"ch2_waveform_handler": "channel2.waveform.square"})),
-            ("channel2.waveform.ramp", self.store_and_write, ("FUNC RAMP", {"ch2_waveform_handler": None})),
-            ("channel2.waveform.pulse", self.store_and_write, ("FUNC PULS\r\nPULS:DCYC {self._store[ch2_duty]}",
+            ("channel2.waveform.square", self.store_and_write,
+             ("FUNC:CH2 SQU\r\nFUNC:SQU:DCYC:CH2 {self._store[ch2_duty]}",
+              {"ch2_waveform_handler": "channel2.waveform.square"})),
+            ("channel2.waveform.ramp", self.store_and_write, ("FUNC:CH2 RAMP", {"ch2_waveform_handler": None})),
+            ("channel2.waveform.pulse", self.store_and_write, ("FUNC:CH2 PULS\r\nPULS:DCYC {self._store[ch2_duty]}",
                                                                {"ch2_waveform_handler": "channel2.waveform.pulse"})),
-            ("channel2.waveform.arb", self.store_and_write, ("FUNC USER", {"ch2_waveform_handler": None})),
-            ("channel2.waveform.triangle", self.store_and_write, ("FUNC TRI", {"ch2_waveform_handler": None})),
-            ("channel2.waveform.noise", self.store_and_write, ("FUNC NOIS", {"ch2_waveform_handler": None})),
-            ("channel2.waveform.dc", self.store_and_write, ("FUNC DC", {"ch2_waveform_handler": None})),
+            ("channel2.waveform.arb", self.store_and_write, ("FUNC:CH2 USER", {"ch2_waveform_handler": None})),
+            ("channel2.waveform.triangle", self.store_and_write, ("FUNC:CH2 TRI", {"ch2_waveform_handler": None})),
+            ("channel2.waveform.noise", self.store_and_write, ("FUNC:CH2 NOIS", {"ch2_waveform_handler": None})),
+            ("channel2.waveform.dc", self.store_and_write, ("FUNC:CH2 DC", {"ch2_waveform_handler": None})),
             # CHANNEL CONFIGURATION:
             # Channel 1:
             ("channel1.vrms", self.write, "VOLT:UNIT VRMS\r\nVOLT {value}"),
@@ -138,7 +139,7 @@ class RigolDG1022(FuncGen):
             ("channel2.frequency", self.write, "FREQ:CH2 {value}"),
             # CHANNEL ACTIVATION:
             ("channel1._call", self.write, "OUTP {value}"),  # True won't work here needs to be ON or 1, OFF or 0
-            ("channel2._call", self.write, "OUTP {value}"),  # True won't work here needs to be ON or 1, OFF or 0
+            ("channel2._call", self.write, "OUTP:CH2 {value}"),  # True won't work here needs to be ON or 1, OFF or 0
             # SYNC CONFIGURATION:
             ("sync.polarity.normal", self.write, ""),
             ("sync.mode.normal", self.write, ""),
@@ -214,8 +215,8 @@ class RigolDG1022(FuncGen):
             ("channel1.load._call", self.write, "OUTP:LOAD {ohms}"),
             ("channel1.load.infinite", self.write, "OUTP:LOAD INF"),
             # channel2:
-            ("channel2.load._call", self.write, "OUTP:LOAD {ohms}"),
-            ("channel2.load.infinite", self.write, "OUTP:LOAD INF"),
+            ("channel2.load._call", self.write, "OUTP:LOAD:CH2 {ohms}"),
+            ("channel2.load.infinite", self.write, "OUTP:LOAD:CH2 INF"),
 
         ]
 
@@ -538,7 +539,7 @@ class RigolDG1022(FuncGen):
                         nkwargs[k] = "ON"
                     else:
                         nkwargs[k] = "OFF"
-            handler(base_str, **nkwargs)
+            return handler(base_str, **nkwargs)
 
         return update_wrapper(temp_func, func)
         # ------------------------------------------------------------------------------------------

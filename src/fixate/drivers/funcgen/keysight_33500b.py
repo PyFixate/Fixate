@@ -343,7 +343,7 @@ class Keysight33500B(FuncGen):
                         nkwargs[k] = "OFF"
             # new_str = base_str.format(**nkwargs)
             # handler(self, new_str)
-            handler(base_str, **nkwargs)
+            return handler(base_str, **nkwargs)
 
         return update_wrapper(temp_func, func)
 

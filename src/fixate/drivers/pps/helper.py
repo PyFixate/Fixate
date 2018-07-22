@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import fixate.config
-from fixate.core.discover import discover_serial, filter_connected
+from fixate.core.discover import discover_serial, filter_connected, open_visa_instrument
 from fixate.core.exceptions import InstrumentNotConnected
 
 
@@ -13,6 +13,11 @@ def open(restrictions=None):
     # All config values for implemented instruments should be called
     if restrictions is None:
         restrictions = {}
+
+    visa = open_visa_instrument("PPS", restrictions)
+    if visa:
+        return visa
+    # Else discover the com port variants
     com_ports = restrictions.get('com_ports', None)
     baud_rates = restrictions.get('baud_rates', None)
     instruments = fixate.config.INSTRUMENTS.get("serial")

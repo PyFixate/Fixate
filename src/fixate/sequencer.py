@@ -104,6 +104,7 @@ class Sequencer:
         self.context_data = {}
         self.loop = asyncio.get_event_loop()
         self.retry_type = TestClass.RT_RETRY
+        self.end_status = "N/A"
         # self.retry_type = TestClass.RT_PROMPT
 
     def levels(self):
@@ -133,22 +134,22 @@ class Sequencer:
             elif val in ["Aborted", "Finished"]:
                 self._status = val
                 if self.tests_errored or val == "Aborted":
-                    end_status = "ERROR"
+                    self.end_status = "ERROR"
                 elif self.tests_failed:
-                    end_status = "FAILED"
+                    self.end_status = "FAILED"
                 else:
-                    end_status = "PASSED"
+                    self.end_status = "PASSED"
                 # This notifies other sections on the final
-                pub.sendMessage('Sequence_Complete', status=end_status, passed=self.tests_passed,
+                pub.sendMessage('Sequence_Complete', status=self.end_status, passed=self.tests_passed,
                                 failed=self.tests_failed, error=self.tests_errored, skipped=self.tests_skipped,
                                 sequence_status=self._status)
             else:
                 self._status = val
 
     def load(self, val):
-        self.context_data.clear()
         self.tests.append(val)
         self.context.push(self.tests)
+        self.end_status = "N/A"
 
     def clear_tests(self):
         if self.status == "Running":
@@ -156,6 +157,7 @@ class Sequencer:
         self.tests[:] = []
         self.context[:] = []
         self.context_data.clear()
+        self.end_status = "N/A"
 
     def run_sequence(self):
         """
@@ -324,7 +326,8 @@ class Sequencer:
         self.context[:] = []
         self.context.push(self.tests)
         self.context_data.clear()
-
+        self.end_status = "N/A"
+        
     def check(self, chk, result):
         if result:
             self.chk_pass += 1

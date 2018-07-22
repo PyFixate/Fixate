@@ -1,10 +1,11 @@
 """
 CSV Definitions
-REPORT_FORMAT_VERSION = 1
+REPORT_FORMAT_VERSION = 2
 
 First Line
 <Time Elapsed (s)>,Sequence,started=<YYYYMMDD-hhmmss>,fixate-version=<version>,test-script-name=<script>,
-test_script-version=<script.__version__,report-format=<csv.REPORT_FORMAT_VERSION>
+test_script-version=<script.__version__,report-format=<csv.REPORT_FORMAT_VERSION>, part_number=<part_number>,
+module=<module>, serial_number=<serial_number>
 
 Last Line
 <Time Elapsed (s)>,Sequence,ended=<YYYYMMDD - hhmmss>,<FAILED ABORTED PASSED>,tests-passed=<passed>,
@@ -40,7 +41,7 @@ import time
 
 from pubsub import pub
 
-from queue import Queue
+from queue import Queue, Empty
 from fixate.core.common import TestClass
 from fixate.core.common import ExcThread
 import fixate
@@ -57,7 +58,7 @@ class TestClassImp(TestClass):
         pass
 
 
-REPORT_FORMAT_VERSION = 1
+REPORT_FORMAT_VERSION = 2
 
 
 class CSVWriter:
@@ -108,12 +109,16 @@ class CsvReporting:
     def sequence_update(self, status):
         # Do Start Sequence Reporting
         if status in ["Running"]:
+            sequencer = fixate.config.RESOURCES["SEQUENCER"]
             # Create new csv path
             self.now = '{0:%Y}{0:%m}{0:%d}-{0:%H}{0:%M}{0:%S}'.format(datetime.datetime.now())
             self.test_module = sys.modules["module.loaded_tests"]
-            self.csv_path = '{}-{}.csv'.format(os.path.join(self.csv_dir,
-                                                            os.path.basename(self.test_module.__file__)[:-3]),
-                                               self.now)
+            self.csv_path = os.path.join(self.csv_dir,
+                                         '{part_number}-{module}-{serial_number}-{self.now}.csv'.format(
+                                             part_number=sequencer.context_data.get("part_number"),
+                                             module=sequencer.context_data.get("module"),
+                                             serial_number=sequencer.context_data["serial_number"],
+                                             self=self))
             # Check if using installed version of fixate
             if 'site-packages' not in __file__:
                 version = 'dev'
@@ -125,8 +130,12 @@ class CsvReporting:
                                      "started={}".format(self.now),
                                      "fixate-version={}{}".format(fixate.__version__, version),
                                      "test-script-name={}".format(os.path.basename(self.test_module.__file__)[:-3]),
-                                     "test_script-version={}".format(self.test_module.__version__),
-                                     "report-format={}".format(REPORT_FORMAT_VERSION)])
+                                     "test_script-version={}".format(sequencer.context_data.get("version")),
+                                     "report-format={}".format(REPORT_FORMAT_VERSION),
+                                     "part_number={}".format(sequencer.context_data.get("part_number")),
+                                     "module={}".format(sequencer.context_data.get("module")),
+                                     "serial_number={}".format(sequencer.context_data.get("serial_number")),
+                                     "index_string={}".format(sequencer.context_data.get("index"))])
 
     def sequence_complete(self, status, passed, failed, error, skipped, sequence_status):
         self._write_line_to_csv(["{:.2f}".format(time.clock() - self.start_time),
@@ -225,12 +234,24 @@ class CsvReporting:
         """
         global writer
         writer.csv_queue.put(line)
+        # try:
+        #     os.makedirs(self.csv_dir)
+        # except OSError:
+        #     pass
+        # with open(self.csv_path, 'a+', newline='') as f:
+        #     writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
+        #     writer.writerow(line)
 
 
 writer = None
 
 
 def register_csv(csv_dir):
+    """
+    :param csv_dir: Base directory for for csv file
+    :param args: Args as parsed into the command line interface
+    :return:
+    """
     global writer
     writer = CSVWriter(csv_dir)
     writer.install()

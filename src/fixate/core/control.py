@@ -1,4 +1,5 @@
-from fixate.core.exceptions import ParameterError, InstrumentError
+import time
+from fixate.lib.exceptions import ParameterError, InstrumentError
 
 
 def _range_gen(value=None):
@@ -132,112 +133,86 @@ def converge_amplitude_scalar(dmm, funcgen_or_ps, set_point, cur_amplitude,
             # pass
 
 
-def converge_scalar(control_func, feedback_func, set_point, controlled_param,
-                    control_args=None, control_kwargs=None,
-                    feedback_args=None, feedback_kwargs=None,
-                    retries=None, timeout=None,
-                    settle_min=None, settle_max=None, settle_number=1,
-                    feedback_return_index=None):
+def converge_scalar(control_func, feedback_func, set_point, initial_state, settle_min, settle_max,
+                    limit_control=(None, None), timeout=10, settle_number=1):
     """
     Uses a linear scalar controller to converge two functions.
     Best used in a linear system and with an informed starting point.
-    Usage;
-    converge_scalar(control_func = _funcgen.function,
-                    feedback_func = dmm.measure,
-                    set_point = 5.0
-                    controlled_param = ('amplitude', 8.0),
-                    control_args = 'sin',
-                    control_kwargs = {'freq':1000, 'offset':0},
-                    settle_min = 4.95,
-                    settle_max = 5.05,
-                    settle_number = 3,
-                    feedback_func_return_special = 0)
+    Usage example;
+    >>>dm.funcgen.channel1.waveform.sin()
+    >>>dm.funcgen.channel1.frequency(1000)
+    >>>dm.funcgen.channel1.vrms(0.1)
+    >>>dm.dmm.voltage_ac()
+    >>>dm.funcgen.channel1(True)
+    >>>converged = converge_scalar(control_func = dm.funcgen.channel1.vrms,
+    >>>                            feedback_func = dm.dmm.measurement,
+    >>>                            set_point = 5.0,
+    >>>                            initial_state = 0.1,
+    >>>                            settle_min = 4.95,
+    >>>                            settle_max = 5.05,
+    >>>                            settle_number = 1)
     This will converge the function generator (sin 1kHz) so that the multimeter reading will read
     between 4.95 and 5.05 at least 3 times before returning.
 
-    :param control_func:
-    the function that needs to be called to control remove ()
-    eg. _funcgen.function
-    :param feedback_func:
-    The function that feeds back into the controller remove ()
-    eg. dmm.measure
-    :param set_point:
+    :param control_func: function
+    the function that needs to be called to control
+    eg. funcgen.channel1.vpp
+    Must accept a single parameter which is the control value.
+    ie. control_func(value)
+    :param feedback_func: function
+    The function that reads the value to compare to the set point
+    Must work without accepting any parameters
+    eg. dmm.measurement
+    :param set_point: [float, int]
     The desired endpoint for the function. Must be a number
     eg. 5.0
-    :param controlled_param:
-    The paramter that is varied to control. Must be a tuple of form
-    (<name_of_param>, <starting_value>)
-    eg.
-    ('amplitude', 8.0)
-    :param control_args
-    :param control_kwargs:
-    The parameters that need to be parsed to the control function that is needed to update the control effort.
-    Excludes the controlled_param
-
-    :param feedback_args
-    :param feedback_kwargs:
-    The parameters that need to be parsed to the control function that is needed to update the control effort.
-
-    :param retries:
-    The amount of times the control is updated if it is not successful in converging first.
-    Function will return True if all retries are attempted and settle parameters are not set
-    Function will return False if all retries are attempted and settle parameters are set
-
-    :param timeout:
-    The amount of time the control will be updated if it is not successful in converging first or all retries attempted.
-    Function will return True if timeout is reached and retries and settle parameters are not set
-    Function will return False if timeout occurs and retries are set and settle parameters are set
-
-    :param feedback_return_index:
-    This is the index used from the return value.
-    eg. dmm.measure()[0] would have feedback_return_index = 0
-    eg. dmm.measure()["data"] would have feedback_return_index = 'data'
-
-    :param settle_min:
+    :param initial_state: [float, int]
+    The value that has already been parsed into the control function before entering the function. This acts as an
+    initial state of the controlled input for the output controller.
+    :param timeout: [float, int]
+    Maximum time allowed in seconds for the control to complete its task. Will wait until calling functions are completed
+    before timing out. ie. This will not account for timeouts on the control function and feedback function.
+    :param settle_min: [float, int]
     The minimum value that is considered to be at an acceptable settle point
-    :param settle_max:
+    :param settle_max: [float, int]
     The maximum value that is considered to be at an acceptable settle point
-    :param settle_number:
+    :param settle_number: [float, int]
     The number of consecutive measurements in a that are within settle_min <= value <= settle_max
     before the function returns True
-
+    :param limit_control: (minimum: [float, int], maximum: [float, int])
+    Limits that the control is allowed to reach before aborting. None for each parameter places no limits.
+    Values smaller than minimum and numbers greater than maximum are aborted.
     :return:
     True if converged
-    False if not completed before retries or timeout
+    False if not completed before timeout
     Parameter error if parsed parameters are incompatible
     Calling functions exceptions are not handled
     """
-    # TODO Setup Timeout
-    contr_name, contr_val = controlled_param
+    contr_val = initial_state
     p = LinearScalarControl(contr_val)
     p.set_point(set_point)
     settle_cnt = 0
-    new_kwargs = control_kwargs
-
-    for _ in _range_gen(retries):
-        if not feedback_kwargs:
-            feedback_kwargs = {}
-        if not feedback_args:
-            feedback_args = []
-        test_val = feedback_func(*feedback_args, **feedback_kwargs)
-        try:
-            test_val = test_val[feedback_return_index]
-        except TypeError:
-            pass
+    time_start = time.time()
+    minimum, maximum = limit_control
+    while True:
+        test_val = feedback_func()
         # Test in range
-        if settle_min is not None and settle_max is not None:
-            if settle_min <= test_val <= settle_max:
-                settle_cnt += 1
-            else:
-                settle_cnt = 0
-            if settle_cnt >= settle_number:
-                return True
+        if settle_min <= test_val <= settle_max:
+            settle_cnt += 1
+        else:
+            settle_cnt = 0
+        if settle_cnt >= settle_number:
+            return True
+        if time.time() - time_start > timeout:
+            return False
         # Get the control value from controller
         contr_val = p.update(test_val)
-
-        # Put the control value into the kwargs for the control function
-        new_kwargs.update(dict([(contr_name, contr_val)]))
-        control_func(*control_args, **new_kwargs)
+        # Bounds checks
+        if minimum is not None and contr_val < minimum:
+            return False
+        if maximum is not None and contr_val > maximum:
+            return False
+        control_func(contr_val)
 
 
 class LinearScalarControl:

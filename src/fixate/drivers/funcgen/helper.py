@@ -960,8 +960,6 @@ if __name__ == "__main__":
                 for parent in parents:
                     parent_obj = getattr(parent_obj, parent)
                 func_obc = getattr(parent_obj, func)
-                if func_str == "channel1.burst.gated.__call__":
-                    pass
                 setattr(parent_obj, func, self.prepare_string(func_obc, handler, base_str))
 
         def prepare_string(self, func, handler, base_str, *args, **kwargs):

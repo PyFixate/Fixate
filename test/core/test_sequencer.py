@@ -65,7 +65,7 @@ class TestSequencerTests(unittest.TestCase):
     async = False
 
     def setUp(self):
-        self.test_cls = fixate.sequencer
+        self.test_cls = fixate.config.RESOURCES["SEQUENCER"]
         pub.subscribe(self.abort_on_error, "UI_req")
 
     def abort_on_error(self, msg, q, target=None, attempts=5, kwargs=None):

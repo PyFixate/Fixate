@@ -507,9 +507,9 @@ class RelayMatrixMux(VirtualMux):
 
     def multiplex(self, signal_output, trigger_update=True):
         assert trigger_update, "A RelayMatrixMux will immediately update when a new signal is selected"
-
-        self.update_callback([(pin, False) for pin in self.pin_mask], True)
-        time.sleep(self.clearing_time)
+        if self.state != signal_output:
+            self.update_callback([(pin, False) for pin in self.pin_mask], True)
+            time.sleep(self.clearing_time)
         super().multiplex(signal_output, True)
 
 
