@@ -64,17 +64,19 @@ setup(
     description="Framework for hardware test fixtures and automated test environments",
     package_dir={'': 'src'},
     packages=find_packages('src'),
+    scripts=[],
     url="http://pyfixate.com/",
     version=get_version(),
     install_requires=get_requires(),
+    python_requires='~=3.4',
     dependency_links=[],
     include_package_data=True,
     zip_safe=False,
-    classifiers=(
+    classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Manufacturing",
         "License :: OSI Approved :: MIT License",
         "Operating System :: Microsoft :: Windows",
         "Programming Language :: Python :: 3 :: Only"
-    )
+    ]
 )
