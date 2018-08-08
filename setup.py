@@ -77,3 +77,4 @@ setup(
         "Operating System :: Microsoft :: Windows",
         "Programming Language :: Python :: 3 :: Only"
     )
+)
