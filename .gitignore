@@ -3,3 +3,6 @@
 *.csv
 *.pyc
 *.pyc
+build/*
+dist/*
+src/fixate.egg-info/
