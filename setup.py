@@ -61,10 +61,19 @@ setup(
     name="fixate",
     author="Ryan Parry-Jones",
     author_email="ryanspj+github@gmail.com",
+    description="Framework for hardware test fixtures and automated test environments",
     package_dir={'': 'src'},
     packages=find_packages('src'),
+    url="http://pyfixate.com/",
     version=get_version(),
     install_requires=get_requires(),
     dependency_links=[],
     include_package_data=True,
-    zip_safe=False)
+    zip_safe=False,
+    classifiers=(
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Manufacturing",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: Microsoft :: Windows",
+        "Programming Language :: Python :: 3 :: Only"
+    )
