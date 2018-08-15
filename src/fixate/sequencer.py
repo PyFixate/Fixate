@@ -159,6 +159,32 @@ class Sequencer:
         self.context_data.clear()
         self.end_status = "N/A"
 
+    def count_tests(self):
+        """Get the total number of tests"""
+        return sum(1 for test in test_list_repr(self.context[0].testlist) if test.get('test_type') == 'test')
+
+
+    def tests_completed(self):
+        """Count the number of tests remaining"""
+        current_index = "0"
+        search_index = 0
+
+        for index, test in enumerate(self.context):
+            if index == 0:
+                pass
+            elif index == 1:
+                current_index = str(test.index+1)
+            else:
+                current_index += "."+str(test.index+1)
+
+        for index, test in enumerate(test_list_repr(self.context[0].testlist)):
+            if test.get('test_type') == 'test':
+                search_index += 1
+            if test.get('level') == current_index:
+                return search_index
+
+        return 0
+
     def run_sequence(self):
         """
         Runs the sequence from the beginning to end once
