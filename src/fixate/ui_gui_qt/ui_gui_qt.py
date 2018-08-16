@@ -20,6 +20,18 @@ wrapper.break_long_words = False
 
 wrapper.drop_whitespace = True
 
+ERROR_STYLE = """
+QProgressBar{
+    padding: 1px;
+    margin-right: 32px;
+}
+QProgressBar::chunk{
+    background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                      stop: 0 #f3baba, stop: 0.6 #d30505);
+    margin: 0px;
+    width: 1px;
+}"""
+
 
 def kb_hit_monitor(cmd_q):
     while True:
@@ -62,62 +74,66 @@ class KeyboardHook:
 
 key_hook = KeyboardHook()
 
-def exception_hook(exctype, value, traceback):
+def exception_hook(exctype, value, traceback):  #   TODO DEBUG REMOVE
     # logger.error("{}:{}:{}".format(exctype, value, traceback))
     sys.__excepthook__(exctype, value, traceback)
     sys.exit(1)
 
-class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
+class SequencerThread(QObject):
 
+    def __init__(self, worker):
+        super(QObject, self).__init__()
+        self.worker = worker
+
+    def run_thread(self):
+        pub.sendMessage('Finish', code=self.worker.ui_run())
+
+class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
+    
     input_signal = pyqtSignal(str, tuple)
     output_signal = pyqtSignal(str, QtGui.QColor)
     label_update = pyqtSignal(str)
     progress = pyqtSignal()
+    finish = pyqtSignal()
 
     """Class Constructor and destructor"""
     def __init__(self,  worker, application):
         super(FixateGUI, self).__init__(None)
+        self.application = application
         self.register_events()
         self.setupUi(self)
-        self.worker = worker
-        self.application = application
-        sys.excepthook = exception_hook
+
+        self.status_code = -1   #   Default status code used to check for unusual exit
+        self.inputQueue = Queue()
+        self.worker = SequencerThread(worker)
         self.worker_thread = QThread()
         self.worker.moveToThread(self.worker_thread)
-        self.worker_thread.finished.connect(self.finish)
-        self.worker.destroyed.connect(self.finish)
-        self.destroyed.connect(self.finish)
-        self.worker_thread.started.connect(self.worker.ui_run)
-        self.worker_thread.start()
+
+        self.worker_thread.started.connect(self.worker.run_thread)
+
+        self.finish.connect(self.clean_up)                  #   Normal termination
+
         self.Button_1.clicked.connect(self.button_1_click)
         self.Button_2.clicked.connect(self.button_2_click)
         self.Button_3.clicked.connect(self.button_3_click)
+
         self.input_signal.connect(self.get_input)
         self.output_signal.connect(self.display_output)
         self.label_update.connect(self.display_test)
         self.progress.connect(self.progress_update)
-        self.inputQueue = Queue()
 
-    def __del__(self):
-        self.release()
+        sys.excepthook = exception_hook #   TODO DEBUG REMOVE
 
-    def release(self):
-        print("D1")
-        self.unregister_events()
-        print("D2")
-        self.worker.stop()
-        print("D3")
-        self.worker_thread.terminate()  # This is now safe, as self.worker.stop ensures resources have been released
-        print("D4")
+    def run_sequencer(self):
+        self.worker_thread.start()
+
+    def closeEvent(self, event):
+        """ This function overrides closeEvent from the MainWindow class, called in case of unusual termination"""
+
+        event.ignore()
         self.hide()
-        print("D5")
+        self.clean_up()
 
-    def finish(self):
-        print("FINISH")
-        try:
-            self.application.exit(self.worker.get_status())
-        except BaseException:
-            self.application.exit(11)
 
     """Pubsub handlers for setup and teardown
        These are run in the main thread"""
@@ -136,6 +152,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         pub.subscribe(self._print_test_skip, 'Test_Skip')
         pub.subscribe(self._print_test_retry, 'Test_Retry')
         pub.subscribe(self._user_action, 'UI_action')
+        pub.subscribe(self._completion_code, 'Finish')
         key_hook.install()
         return
 
@@ -156,9 +173,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.Events.verticalScrollBar().setValue(self.Events.verticalScrollBar().maximum());
 
     def progress_update(self):
-        self.ProgressBar.setValue(self.worker.get_current_task())
-        print(self.ProgressBar.styleSheet())
-        # if self.worker.sequencer.tests_failed > 0 or self.worker.sequencer.tests_errored > 0:
+        self.ProgressBar.setValue(self.worker.worker.get_current_task())
+        if self.worker.worker.sequencer.tests_failed > 0 or self.worker.worker.sequencer.tests_errored > 0:
+            self.ProgressBar.setStyleSheet(ERROR_STYLE)
 
 
     def get_input(self, message, choices):
@@ -182,6 +199,31 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             self.Button_2.setEnabled(True)
             self.Button_3.setText(choices[2])
             self.Button_3.setEnabled(True)
+
+    def clean_up(self):
+        """This function is the second one called for normal termination, and the first one called for unusual termination.
+           Check for abnormal termination, and stop the sequencer if required; then stop and delete the thread"""
+
+        if self.worker_thread == None:  #   This function has already run, therefore main already has the status code
+            return
+
+        #   The following actions must be done in a specific order, be careful when making changes to this section
+
+        if self.status_code == -1:  # Unusual termination - The sequencer hasn't finished yet, stop it
+            self.status_code = self.worker.worker.stop()
+
+        self.worker.deleteLater()                   #   Schedule the thread worker for deletion
+        self.worker = None                          #   Remove the reference to allow the GC to clean up
+
+        self.worker_thread.exit(self.status_code)   #   Exit the thread
+        self.worker_thread.wait(2000)               #   2 seconds for the thread to exit
+        self.worker_thread.terminate()              #   Force quit the thread if it is still running
+        self.worker_thread.deleteLater()            #   Schedule the thread for deletion
+        self.worker_thread = None                   #   Remove the reference to allow the GC to clean up
+
+        #   Now close the GUI thread, return to the controller in main
+        self.application.exit(self.status_code)
+
 
     """User IO handlers, emit signals to trigger main thread updates via slots.
        These are run in the sequencer thread"""
@@ -218,6 +260,14 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.Button_1.setDefault(False)
         self.Button_2.setDefault(False)
         self.Button_3.setDefault(False)
+
+
+    """Thread listener, called from the sequencer thread"""
+    def _completion_code(self, code):
+        """This function is the first one called when the sequencer completes normally.
+           Set the exit code, and signal the main thread."""
+        self.status_code = code
+        self.finish.emit()
 
 
     """UI Callables, called from the sequencer thread"""
@@ -402,7 +452,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.progress.emit()
 
     def _print_test_seq_start(self, data, test_index):
-        self.ProgressBar.setMaximum(self.worker.task_count)
+        self.ProgressBar.setMaximum(self.worker.worker.get_task_count())
         self.progress.emit()
         self._print_test_start(data, test_index)
 

@@ -27,6 +27,11 @@ class Ui_FixateUI(object):
         FixateUI.setInputMethodHints(QtCore.Qt.ImhNone)
         FixateUI.setTabShape(QtWidgets.QTabWidget.Rounded)
         self.MainWindow = QtWidgets.QWidget(FixateUI)
+        self.MainWindow.setToolTip("")
+        self.MainWindow.setStatusTip("")
+        self.MainWindow.setWhatsThis("")
+        self.MainWindow.setAccessibleName("")
+        self.MainWindow.setAccessibleDescription("")
         self.MainWindow.setObjectName("MainWindow")
         self.gridLayout = QtWidgets.QGridLayout(self.MainWindow)
         self.gridLayout.setObjectName("gridLayout")
@@ -152,13 +157,27 @@ class Ui_FixateUI(object):
         self.Events.setObjectName("Events")
         self.gridLayout.addWidget(self.Events, 3, 0, 1, 1)
         self.ProgressBar = QtWidgets.QProgressBar(self.MainWindow)
+        self.ProgressBar.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
         self.ProgressBar.setToolTip("")
         self.ProgressBar.setStatusTip("")
         self.ProgressBar.setWhatsThis("")
         self.ProgressBar.setAccessibleName("")
         self.ProgressBar.setAccessibleDescription("")
+        self.ProgressBar.setAutoFillBackground(False)
+        self.ProgressBar.setStyleSheet("QProgressBar{\n"
+"    padding: 1px;\n"
+"    margin-right: 32px;\n"
+"}\n"
+"\n"
+"QProgressBar::chunk{\n"
+"    background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,\n"
+"                                      stop: 0 #baf3bc, stop: 0.6 #05d431);\n"
+"    margin: 0px;\n"
+"    width: 1px;\n"
+"}")
         self.ProgressBar.setProperty("value", 0)
-        self.ProgressBar.setTextVisible(False)
+        self.ProgressBar.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.ProgressBar.setTextVisible(True)
         self.ProgressBar.setObjectName("ProgressBar")
         self.gridLayout.addWidget(self.ProgressBar, 4, 0, 1, 1)
         FixateUI.setCentralWidget(self.MainWindow)

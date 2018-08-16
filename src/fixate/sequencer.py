@@ -234,8 +234,10 @@ class Sequencer:
                     pub.sendMessage("Sequence_Abort", exception=e)
                     self._handle_sequence_abort()
                     return
-            else:
+            elif self.status != "Aborted":
                 time.sleep(0.1)
+            else:
+                return
         self.status = "Finished"
 
     def run_test(self):

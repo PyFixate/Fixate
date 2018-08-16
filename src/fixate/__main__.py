@@ -14,10 +14,8 @@ from fixate.config import ASYNC_TASKS, RESOURCES
 from fixate.core.ui import user_ok, user_input, user_serial, user_info
 from fixate.reporting import register_csv, unregister_csv
 from fixate.ui_cmdline import register_cmd_line, unregister_cmd_line
-import fixate.ui_gui_qt as gui
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from fixate.core.exceptions import ScriptError, SequenceAbort
+from pubsub import pub
 
 try:
     asyncio.ensure_future
@@ -80,6 +78,7 @@ parser.add_argument('--script-params',
 parser.add_argument('--serial_number',
                     help=("Serial number of the DUT."))
 
+
 def load_test_suite(script_path, zip_path, zip_selector):
     """
     Attempts to load a Fixate Script file from an absolute path.
@@ -107,91 +106,106 @@ def load_test_suite(script_path, zip_path, zip_selector):
     return loaded_script
 
 
-def init_ui(test_script_path, csv_output_path, args):
-    fixateApp = QtWidgets.QApplication(sys.argv)
-    worker = fixate_worker(test_script_path, csv_output_path, args)
-    fixateApp.aboutToQuit.connect(worker.stop)
-    fixateDisplay = gui.FixateGUI(worker, fixateApp)
-    fixateDisplay.show()
-    exit_code = 11
-    exit_code = fixateApp.exec()
-    print("DEBUG")
-    fixateDisplay.release()
-    print("DEBUG 2")
-    fixateApp.closeAllWindows()
-    print("DEBUG 3")
-    exit(exit_code)
+class FixateController:
+    """This class acts as the base controller for the command line interface. It may be subclassed for different execution environments"""
+
+    def __init__(self, sequencer, test_script_path, csv_output_path, args, loop):
+        register_cmd_line()
+        # self.register()
+        self.worker = FixateWorker(sequencer=sequencer, test_script_path=test_script_path,
+                                   csv_output_path=csv_output_path, args=args, loop=loop)
+
+    def fixate_exec(self):
+        exit_code = self.worker.ui_run()
+        unregister_cmd_line()
+        # self.unregister()
+        return exit_code
 
 
-def run_cmd_line(test_script_path=None, csv_output_path=None, args=None):
-    ui_run(test_script_path, csv_output_path, args, register_cmd_line, unregister_cmd_line)
-
+class FixateSupervisor:
     def __init__(self, test_script_path, csv_output_path, args):
-        super(fixate_worker, self).__init__()
+
+        # General setup
         self.test_script_path = test_script_path
         self.csv_output_path = csv_output_path
         self.args = args
-        self.status_code = 11
         self.loop = asyncio.get_event_loop()
-        self.task_count = 100
-        self.current_task = 0
-        self.sequencer = sequencer = RESOURCES["SEQUENCER"]
+        self.sequencer = RESOURCES["SEQUENCER"]
 
-def ui_run(test_script_path, csv_output_path, args, register_ui, unregister_ui):
-    """Common tasks for each UI"""
-    sequencer = RESOURCES["SEQUENCER"]
-    try:
-        # args = parser.parse_args()
-        if args.dev:
-            fixate.config.DEBUG = True
-        register_ui()  # subscribe to pub messages
-        if args.index is None:
-            args.index = user_input("Please enter test selector string")[1]
-        if args.serial_number is None:
-            sequencer.context_data["serial_number"] = user_serial("Please enter serial number")[1]
-        else:
-            sequencer.context_data["serial_number"] = args.serial_number
-        if test_script_path is None:
-            test_script_path = args.path
-        # parse script params
-        for param in args.script_params:
-            k, v = param.split("=")
-            sequencer.context_data[k] = v
+        # Environment specific setup
+        if self.args.qtgui:  # Run with the QT GUI
+            self.loop = asyncio.new_event_loop()
 
-        sequencer.context_data["index"] = args.index
-        # Load test suite
-        test_suite = load_test_suite(args.path, args.zip, args.zip_selector)
-        test_data = retrieve_test_data(test_suite, args.index)
-        sequencer.load(test_data)
-        if args.local_log:
-            csv_output_path = os.path.join(os.path.dirname(test_script_path))
-        if csv_output_path is None:
-            csv_output_path = os.path.join(base_csv_path, sequencer.context_data.get("part_number", ""),
-                                           sequencer.context_data.get("module", ""))
-        register_csv(csv_output_path)
-        sequencer.status = 'Running'
-        loop = asyncio.get_event_loop()
+            class QTController(FixateController):
+                def __init__(self, sequencer, test_script_path, csv_output_path, args, loop):
+                    from PyQt5 import QtWidgets
+                    import fixate.ui_gui_qt as gui
 
-        def init_tasks():
-            pass
+                    self.worker = FixateWorker(test_script_path=test_script_path, csv_output_path=csv_output_path,
+                                               args=args, loop=loop, sequencer=sequencer)
 
-        def cancel_tasks():
-            for task in ASYNC_TASKS:
-                task.cancel()
+                    self.fixateApp = QtWidgets.QApplication(sys.argv)
+                    self.fixateApp.setQuitOnLastWindowClosed(False)
+                    self.fixateDisplay = gui.FixateGUI(self.worker, self.fixateApp)
+                    self.fixateApp.aboutToQuit.connect(self.fixateDisplay.clean_up)  # Duplicate call except in the case where termination is caused by logoff/shutdown
+                    self.fixateDisplay.show()
 
-        def finished_test_run_response(future):
-            future.result()
-            loop.call_soon(cancel_tasks)
-            loop.call_later(1, loop.stop)  # Max 1 second to clean up tasks before aborting
+                def fixate_exec(self):
+                    self.fixateDisplay.run_sequencer()
+                    exit_code = self.fixateApp.exec()
 
-        def finished_test_run(future):
-            loop.call_soon(cancel_tasks)
-            if sequencer.status in ["Finished", "Aborted"]:
-                f = functools.partial(user_ok, "Finished testing")
-                loop.run_in_executor(None, f).add_done_callback(finished_test_run_response)
+                    # Cleanup won't run in the case of Windows logoff/shutdown, but it doesn't need to, Windows will take care of it in that case
+                    self.fixateApp.closeAllWindows()
+                    return exit_code
 
-        init_tasks()
-        loop.run_in_executor(None, sequencer.run_sequence).add_done_callback(finished_test_run)
+            self.controller = QTController(sequencer=self.sequencer, test_script_path=test_script_path,
+                                           csv_output_path=csv_output_path, args=args, loop=self.loop)
+        else:  # Command line execution
+            self.controller = FixateController(sequencer=self.sequencer, test_script_path=test_script_path,
+                                               csv_output_path=csv_output_path, args=args, loop=self.loop)
+
+    def run_fixate(self):
+        return self.controller.fixate_exec()
+
+
+class FixateWorker():
+    def __init__(self, sequencer, test_script_path, csv_output_path, args, loop):
+        self.sequencer = sequencer
+        self.test_script_path = test_script_path
+        self.csv_output_path = csv_output_path
+        self.args = args
+        self.loop = loop
+        self.start = False
+        self.clean = False
+
+    def get_task_count(self):
+        return self.sequencer.count_tests()
+
+    def get_current_task(self):
+        return self.sequencer.tests_completed()
+
+    def stop(self):
+        """This function is called in case of unusual termination, and runs in the main thread"""
+        self.sequencer._handle_sequence_abort()
+        pub.sendMessage("Sequence_Abort", exception=SequenceAbort("Application closing"))
+        self.loop.stop()
+
+        for _ in range(15):
+            if self.loop.is_running():  # Wait max 15 seconds for loop to end
+                sleep(1)
+            else:
+                break
+        try:
+            self.loop.close()
+        except Exception:
+            pass  # If the thread has hung, or reached an uninterruptable state, ignore it, it'll be force terminated at the end anyway
+
+        return 11
+
+    def ui_run(self):
+
+        asyncio.set_event_loop(self.loop)
+        self.start = True
 
         try:
             # args = parser.parse_args()
@@ -222,7 +236,6 @@ def ui_run(test_script_path, csv_output_path, args, register_ui, unregister_ui):
                                                     self.sequencer.context_data.get("module", ""))
             register_csv(self.csv_output_path)
             self.sequencer.status = 'Running'
-            self.task_count = self.get_task_count()
 
             def init_tasks():
                 pass
@@ -254,23 +267,18 @@ def ui_run(test_script_path, csv_output_path, args, register_ui, unregister_ui):
             input(traceback.print_exc())
             raise
         finally:
-            if not self.args.qtgui:
-                unregister_cmd_line()
             unregister_csv()
             save_local_config()
+            self.clean = True  # Let the supervisor know that the program is finishing normally
             if self.sequencer.end_status == "FAILED":
-                self.status_code = 10
-                exit(10)
+                return 10
             elif self.sequencer.status == "Aborted":
-                self.status_code = 11
-                exit(11)
+                return 11
             elif self.sequencer.end_status == "ERROR":
-                self.status_code = 12
-                exit(11)
+                return 12
             else:
                 # Else Passed is exit(0)
-                self.status_code = 0
-                exit(0)
+                return 0
 
 
 def retrieve_test_data(test_suite, index):
@@ -294,11 +302,8 @@ def retrieve_test_data(test_suite, index):
 
 def run_main_program(test_script_path=None, csv_output_path=None):
     args, unknown = parser.parse_known_args()
-    if not args.qtgui:
-        worker = fixate_worker(test_script_path, csv_output_path, args)
-        exit(worker.ui_run())
-    else:
-        init_ui(test_script_path, csv_output_path, args)
+    supervisor = FixateSupervisor(test_script_path, csv_output_path, args)
+    exit(supervisor.run_fixate())
 
 
 # Default directory if none is provided
