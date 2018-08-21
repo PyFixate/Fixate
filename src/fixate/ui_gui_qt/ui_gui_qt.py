@@ -6,11 +6,11 @@ import textwrap
 from queue import Empty
 from pubsub import pub
 from queue import Queue
-from fixate.core.exceptions import UserInputError
+from fixate.core.exceptions import UserInputError, SequenceAbort
 from fixate.core.common import ExcThread
 from fixate.config import RESOURCES
 import fixate.config
-from PyQt5 import QtCore,QtGui,QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from . import layout
 
@@ -31,6 +31,18 @@ QProgressBar::chunk{
     margin: 0px;
     width: 1px;
 }"""
+
+STATUS_PRIORITY = ("Aborted", "In Progress", "Error", "Failed", "Passed", "Skipped")
+STATUS_COLOUR = ((QtGui.QBrush(QtGui.QColor(128, 128, 128)), QtGui.QBrush(QtGui.QColor(255, 255, 255))),
+                 (QtGui.QBrush(QtGui.QColor(255, 255, 128)), QtGui.QBrush(QtGui.QColor(0, 0, 0))),
+                 (QtGui.QBrush(QtGui.QColor(255, 0, 0)), QtGui.QBrush(QtGui.QColor(255, 255, 255))),
+                 (QtGui.QBrush(QtGui.QColor(255, 0, 0)), QtGui.QBrush(QtGui.QColor(255, 255, 255))),
+                 (QtGui.QBrush(QtGui.QColor(0, 255, 0)), QtGui.QBrush(QtGui.QColor(0, 0, 0))),
+                 (QtGui.QBrush(QtGui.QColor(90, 255, 255)), QtGui.QBrush(QtGui.QColor(0, 0, 0))))
+
+
+def get_status_colour(status):
+    return [STATUS_COLOUR[STATUS_PRIORITY.index(status)][0], STATUS_COLOUR[STATUS_PRIORITY.index(status)][1]]
 
 
 def kb_hit_monitor(cmd_q):
@@ -74,13 +86,14 @@ class KeyboardHook:
 
 key_hook = KeyboardHook()
 
-def exception_hook(exctype, value, traceback):  #   TODO DEBUG REMOVE
+
+def exception_hook(exctype, value, traceback):  # TODO DEBUG REMOVE
     # logger.error("{}:{}:{}".format(exctype, value, traceback))
     sys.__excepthook__(exctype, value, traceback)
     sys.exit(1)
 
-class SequencerThread(QObject):
 
+class SequencerThread(QObject):
     def __init__(self, worker):
         super(QObject, self).__init__()
         self.worker = worker
@@ -88,22 +101,32 @@ class SequencerThread(QObject):
     def run_thread(self):
         pub.sendMessage('Finish', code=self.worker.ui_run())
 
+
 class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
-    
     input_signal = pyqtSignal(str, tuple)
-    output_signal = pyqtSignal(str, QtGui.QColor)
-    label_update = pyqtSignal(str)
+    output_signal = pyqtSignal(str, QtGui.QColor, bool)
+    label_update = pyqtSignal(str, str)
+    tree_init = pyqtSignal(list)
+    tree_update = pyqtSignal(str, str)
+
     progress = pyqtSignal()
     finish = pyqtSignal()
 
     """Class Constructor and destructor"""
-    def __init__(self,  worker, application):
+
+    def __init__(self, worker, application):
         super(FixateGUI, self).__init__(None)
         self.application = application
         self.register_events()
         self.setupUi(self)
+        self.treeSet = False
 
-        self.status_code = -1   #   Default status code used to check for unusual exit
+        # Extra GUI setup not supported in the designer
+        self.TestTree.setColumnWidth(1, 80)
+        self.TestTree.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        self.TestTree.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Fixed)
+
+        self.status_code = -1  # Default status code used to check for unusual exit
         self.inputQueue = Queue()
         self.worker = SequencerThread(worker)
         self.worker_thread = QThread()
@@ -111,7 +134,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         self.worker_thread.started.connect(self.worker.run_thread)
 
-        self.finish.connect(self.clean_up)                  #   Normal termination
+        self.finish.connect(self.clean_up)  # Normal termination
 
         self.Button_1.clicked.connect(self.button_1_click)
         self.Button_2.clicked.connect(self.button_2_click)
@@ -120,9 +143,11 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.input_signal.connect(self.get_input)
         self.output_signal.connect(self.display_output)
         self.label_update.connect(self.display_test)
+        self.tree_init.connect(self.display_tree)
+        self.tree_update.connect(self.update_tree)
         self.progress.connect(self.progress_update)
 
-        sys.excepthook = exception_hook #   TODO DEBUG REMOVE
+        sys.excepthook = exception_hook  # TODO DEBUG REMOVE
 
     def run_sequencer(self):
         self.worker_thread.start()
@@ -134,9 +159,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.hide()
         self.clean_up()
 
-
     """Pubsub handlers for setup and teardown
        These are run in the main thread"""
+
     def register_events(self):
         pub.subscribe(self._print_test_start, 'Test_Start')
         pub.subscribe(self._print_test_seq_start, 'TestList_Start')
@@ -156,88 +181,200 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         key_hook.install()
         return
 
-
     def unregister_events(self):
         pub.unsubAll()
         key_hook.uninstall()
         return
 
-
     """Slot handlers for thread-gui interaction
        These are run in the main thread"""
-    def display_test(self, test_index):
-        self.ActiveTest.setText("Test {} running".format(test_index))
 
-    def display_output(self, message, colour):
+    def display_tree(self, tree):
+
+        # Make sure this function is only run once
+        if self.treeSet:
+            return
+        self.treeSet = True
+
+        levelStack = []
+        for item in tree:
+            # Check Level
+            if item[0].count('.') + 1 <= len(levelStack):  # Case 1: Going out one or more levels or same level
+                for _ in range(len(levelStack) - item[0].count('.')):
+                    levelStack.pop()
+            elif item[0].count('.') + 1 > len(levelStack):  # Case 2: Going in one or more levels
+                for index in range(item[0].count('.') + 1 - len(levelStack), 0, -1):
+                    split_index = item[0].split('.')
+                    if index > 1:  # More than one level, append dummy items as required
+                        dummy = QtWidgets.QTreeWidgetItem()
+                        dummy.setText(0, '.'.join(split_index[:-(index - 1)]))
+                        dummy.setText(1, 'Queued')
+                        dummy.setTextAlignment(1, QtCore.Qt.AlignRight)
+                        levelStack.append(dummy.clone())
+
+            tree_item = QtWidgets.QTreeWidgetItem()
+            tree_item.setText(0, item[0] + '. ' + item[1])
+            tree_item.setTextAlignment(1, QtCore.Qt.AlignRight)
+            tree_item.setText(1, 'Queued')
+
+            levelStack.append(tree_item.clone())
+            if len(levelStack) > 1:  # Child Add
+                levelStack[-2].addChild(levelStack[-1])
+            else:  # Top Level
+                self.TestTree.addTopLevelItem(levelStack[-1])
+
+    def update_tree(self, test_index, status):
+
+        if len(test_index) == 0:
+            return
+
+        colours = get_status_colour(status)
+        test_index = test_index.split('.')
+
+        #   Find the test in the tree
+        current_test = self.TestTree.findItems(test_index[0], QtCore.Qt.MatchStartsWith, 0)[0]
+        while len(test_index) > 1:
+            test_index[0:2] = [''.join(test_index[0] + '.' + test_index[1])]
+            for child_index in range(current_test.childCount()):
+                if current_test.child(child_index).text(0).startswith(test_index[0]):
+                    current_test = current_test.child(child_index)
+                    break
+
+        # Update the test
+        for i in range(2):
+            current_test.setBackground(i, colours[0])
+            current_test.setForeground(i, colours[1])
+        current_test.setText(1, status)
+
+        # In case of an abort, update all remaining tests
+        if STATUS_PRIORITY.index(status) == 0:
+            sub_finish = False
+            while current_test is not None:
+                for i in range(2):
+                    current_test.setBackground(i, colours[0])
+                    current_test.setForeground(i, colours[1])
+                current_test.setText(1, status)
+                if current_test.childCount() > 0 and not sub_finish:  # Go in a level
+                    current_test = current_test.child(0)
+                    sub_finish = False
+                elif current_test.parent() is not None:
+                    if current_test.parent().indexOfChild(
+                            current_test) >= current_test.parent().childCount() - 1:  # Come out a level
+                        sub_finish = True
+                        current_test = current_test.parent()
+                    else:
+                        current_test = current_test.parent().child(
+                            current_test.parent().indexOfChild(current_test) + 1)  # Same level
+                        sub_finish = False
+                else:  # Top level test, go to next test
+                    current_test = self.TestTree.topLevelItem(self.TestTree.indexOfTopLevelItem(current_test) + 1)
+                    sub_finish = False
+            return
+
+        # Check for last test in group
+        while current_test.parent() is not None and current_test.parent().indexOfChild(
+                current_test) >= current_test.parent().childCount() - 1:
+            parent_status = current_test.text(1)
+            current_test = current_test.parent()
+            for child_index in range(current_test.childCount()):  # Check status of all child tests
+                check_status = current_test.child(child_index).text(1)
+                if STATUS_PRIORITY.index(check_status) < STATUS_PRIORITY.index(parent_status):
+                    parent_status = check_status
+            colours = get_status_colour(parent_status)
+            for i in range(2):
+                current_test.setBackground(i, colours[0])
+                current_test.setForeground(i, colours[1])
+            current_test.setText(1, parent_status)
+
+    def display_test(self, test_index, description):
+        self.ActiveTest.setText("Test {}:".format(test_index))
+        self.TestDescription.setText("{}".format(description))
+
+    def display_output(self, message, colour, status):
         self.Events.append(message)
+        self.ActiveEvent.append(message)
         self.Events.verticalScrollBar().setValue(self.Events.verticalScrollBar().maximum());
+        self.ActiveEvent.verticalScrollBar().setValue(self.ActiveEvent.verticalScrollBar().maximum());
+
+        if not status:  # Print errors
+            self.Errors.append(self.ActiveTest.text() + ' - ' + message[1:])
+            self.Errors.verticalScrollBar().setValue(self.Errors.verticalScrollBar().maximum());
 
     def progress_update(self):
+        self.ActiveEvent.clear()
         self.ProgressBar.setValue(self.worker.worker.get_current_task())
         if self.worker.worker.sequencer.tests_failed > 0 or self.worker.worker.sequencer.tests_errored > 0:
             self.ProgressBar.setStyleSheet(ERROR_STYLE)
 
-
     def get_input(self, message, choices):
         self.Events.append(message)
+        self.ActiveEvent.append(message)
         self.Events.verticalScrollBar().setValue(self.Events.verticalScrollBar().maximum());
-        if len(choices) == 1:
+        self.ActiveEvent.verticalScrollBar().setValue(self.ActiveEvent.verticalScrollBar().maximum());
+        if isinstance(choices, bool):
+            pass
+        elif len(choices) == 1:
             self.Button_2.setText(choices[0])
+            self.Button_2.setShortcut(QtGui.QKeySequence(choices[0][0:1]))
             self.Button_2.setEnabled(True)
             self.Button_2.setDefault(True)
         elif len(choices) == 2:
             self.Button_1.setText(choices[0])
+            self.Button_1.setShortcut(QtGui.QKeySequence(choices[0][0:1]))
             self.Button_1.setEnabled(True)
             self.Button_1.setDefault(True)
             self.Button_3.setText(choices[1])
+            self.Button_3.setShortcut(QtGui.QKeySequence(choices[1][0:1]))
             self.Button_3.setEnabled(True)
         else:
             self.Button_1.setText(choices[0])
+            self.Button_1.setShortcut(QtGui.QKeySequence(choices[0][0:1]))
             self.Button_1.setEnabled(True)
             self.Button_1.setDefault(True)
             self.Button_2.setText(choices[1])
+            self.Button_2.setShortcut(QtGui.QKeySequence(choices[1][0:1]))
             self.Button_2.setEnabled(True)
             self.Button_3.setText(choices[2])
+            self.Button_3.setShortcut(QtGui.QKeySequence(choices[2][0:1]))
             self.Button_3.setEnabled(True)
 
     def clean_up(self):
         """This function is the second one called for normal termination, and the first one called for unusual termination.
            Check for abnormal termination, and stop the sequencer if required; then stop and delete the thread"""
 
-        if self.worker_thread == None:  #   This function has already run, therefore main already has the status code
+        if self.worker_thread == None:  # This function has already run, therefore main already has the status code
             return
 
-        #   The following actions must be done in a specific order, be careful when making changes to this section
+        # The following actions must be done in a specific order, be careful when making changes to this section
 
         if self.status_code == -1:  # Unusual termination - The sequencer hasn't finished yet, stop it
             self.status_code = self.worker.worker.stop()
 
-        self.worker.deleteLater()                   #   Schedule the thread worker for deletion
-        self.worker = None                          #   Remove the reference to allow the GC to clean up
+        self.worker.deleteLater()  # Schedule the thread worker for deletion
+        self.worker = None  # Remove the reference to allow the GC to clean up
 
-        self.worker_thread.exit(self.status_code)   #   Exit the thread
-        self.worker_thread.wait(2000)               #   2 seconds for the thread to exit
-        self.worker_thread.terminate()              #   Force quit the thread if it is still running
-        self.worker_thread.deleteLater()            #   Schedule the thread for deletion
-        self.worker_thread = None                   #   Remove the reference to allow the GC to clean up
+        self.worker_thread.exit(self.status_code)  # Exit the thread
+        self.worker_thread.wait(2000)  # 2 seconds for the thread to exit
+        self.worker_thread.terminate()  # Force quit the thread if it is still running
+        self.worker_thread.deleteLater()  # Schedule the thread for deletion
+        self.worker_thread = None  # Remove the reference to allow the GC to clean up
 
         #   Now close the GUI thread, return to the controller in main
         self.application.exit(self.status_code)
 
-
     """User IO handlers, emit signals to trigger main thread updates via slots.
        These are run in the sequencer thread"""
-    def event_output(self, message, colour=QtGui.QColor(255, 255, 255)):
-        self.output_signal.emit(message, colour)
 
+    def event_output(self, message, colour=QtGui.QColor(255, 255, 255), status=True):
+        self.output_signal.emit(message, colour, status)
 
     def gui_user_input(self, message, choices):
         self.input_signal.emit(message, choices)
         return self.inputQueue.get(True)
 
-
     """UI Event Handlers, process actions taken by the user on the GUI.
        These are run in the main thread """
+
     def button_1_click(self):
         self.inputQueue.put(self.Button_1.text())
         self.buttonReset()
@@ -261,16 +398,16 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.Button_2.setDefault(False)
         self.Button_3.setDefault(False)
 
-
     """Thread listener, called from the sequencer thread"""
+
     def _completion_code(self, code):
         """This function is the first one called when the sequencer completes normally.
            Set the exit code, and signal the main thread."""
         self.status_code = code
         self.finish.emit()
 
-
     """UI Callables, called from the sequencer thread"""
+
     def reformat_text(self, text_str, first_line_fill="", subsequent_line_fill=""):
         lines = []
         wrapper.initial_indent = first_line_fill
@@ -280,7 +417,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                 wrapper.initial_indent = subsequent_line_fill
             lines.append(wrapper.fill(line))
         return '\n'.join(lines)
-
 
     def _user_action(self, msg, q, abort):
         """
@@ -305,7 +441,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         global key_hook
         key_hook.user_fail_queue.put((q, abort, {b'\x1b': False, b' ': True}))
 
-
     def _user_ok(self, msg, q):
         """
         This can be replaced anywhere in the project that needs to implement the user driver
@@ -321,7 +456,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.event_output('\a')
         self.gui_user_input(msg, ("Continue",))
         q.put("Result", None)
-
 
     def _user_choices(self, msg, q, choices, target, attempts=5):
         """
@@ -353,7 +487,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                 q.put(('Result', ret_val))
                 return
         q.put('Exception', UserInputError("Maximum number of attempts {} reached".format(attempts)))
-
 
     def _user_input(self, msg, q, target=None, attempts=5, kwargs=None):
         """
@@ -395,7 +528,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                 return
         q.put('Exception', UserInputError("Maximum number of attempts {} reached".format(attempts)))
 
-
     def _user_display(self, msg):
         """
         :param msg:
@@ -403,7 +535,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         :return:
         """
         self.event_output(self.reformat_text(msg))
-
 
     def _user_display_important(self, msg):
         """
@@ -417,7 +548,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.event_output(self.reformat_text(msg))
         self.event_output("")
         self.event_output("!" * wrapper.width)
-
 
     def _print_sequence_end(self, status, passed, failed, error, skipped, sequence_status):
         self.event_output("#" * wrapper.width)
@@ -442,52 +572,59 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.event_output("#" * wrapper.width)
         self.event_output('\a')
 
-
     def _print_test_start(self, data, test_index):
+        self.progress.emit()
         self.event_output("*" * wrapper.width)
         self.event_output(self.reformat_text("Test {}: {}".format(test_index, data.test_desc)))
         # self.event_output("Test {}: {}".format(test_index, data.test_desc))
         self.event_output("-" * wrapper.width)
-        self.label_update.emit(test_index)
-        self.progress.emit()
+        self.label_update.emit(test_index, data.test_desc)
+        self.tree_update.emit(test_index, "In Progress")
 
     def _print_test_seq_start(self, data, test_index):
         self.ProgressBar.setMaximum(self.worker.worker.get_task_count())
+        self.tree_init.emit(self.worker.worker.get_test_tree())
         self.progress.emit()
         self._print_test_start(data, test_index)
-
 
     def _print_test_complete(self, data, test_index, status):
         sequencer = RESOURCES["SEQUENCER"]
         self.event_output("-" * wrapper.width)
-        self.event_output(self.reformat_text("Checks passed: {}, Checks failed: {}".format(sequencer.chk_pass, sequencer.chk_fail)))
+        self.event_output(
+            self.reformat_text("Checks passed: {}, Checks failed: {}".format(sequencer.chk_pass, sequencer.chk_fail)))
         # self.event_output("Checks passed: {}, Checks failed: {}".format(sequencer.chk_pass, sequencer.chk_fail))
         self.event_output(self.reformat_text("Test {}: {}".format(test_index, status.upper())))
         # self.event_output("Test {}: {}".format(test_index, status.upper()))
         self.event_output("-" * wrapper.width)
-
+        if sequencer.chk_fail == 0:
+            self.tree_update.emit(test_index, "Passed")
+        else:
+            self.tree_update.emit(test_index, "Failed")
 
     def _print_test_skip(self, data, test_index):
         self.event_output("\nTest Marked as skip")
-
+        self.tree_update.emit(test_index, "Skipped")
 
     def _print_test_retry(self, data, test_index):
         self.event_output(self.reformat_text("\nTest {}: Retry".format(test_index)))
 
-
     def _print_errors(self, exception, test_index):
+        if isinstance(exception, SequenceAbort):
+            self.tree_update.emit(test_index, "Aborted")
+        else:
+            self.tree_update.emit(test_index, "Error")
         self.event_output("")
         self.event_output("!" * wrapper.width)
-        self.event_output(self.reformat_text("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), exception)))
-            # self.event_output(self.reformat_text("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), traceback.format_tb(exception.__traceback__))))
+        self.event_output(
+            self.reformat_text("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), exception)))
+        # self.event_output(self.reformat_text("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), traceback.format_tb(exception.__traceback__))))
         # traceback.print_tb(exception.__traceback__)
         # print(type(exception), exception)
-            # self.event_output("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), exception))
+        # self.event_output("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), exception))
         self.event_output("!" * wrapper.width)
         # TODO self.event_output traceback into a debug log file
         if fixate.config.DEBUG:
             traceback.print_tb(exception.__traceback__, file=sys.stderr)
-
 
     def round_to_3_sig_figures(self, chk):
         """
@@ -504,7 +641,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                 pass
         return ret_dict
 
-
     def _print_comparisons(self, passes, chk, chk_cnt, context):
         if passes:
             status = "PASS"
@@ -512,36 +648,40 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             status = "FAIL"
         format_dict = self.round_to_3_sig_figures(chk)
         if chk._min is not None and chk._max is not None:
-            self.event_output(self.reformat_text("\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {_min} - {_max} : "
-                                "{description}".format(
-                status=status,
-                comparison=chk.target.__name__[1:].replace('_', ' '),
-                chk_cnt=chk_cnt,
-                description=chk.description, **format_dict)))
+            self.event_output(self.reformat_text(
+                "\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {_min} - {_max} : "
+                "{description}".format(
+                    status=status,
+                    comparison=chk.target.__name__[1:].replace('_', ' '),
+                    chk_cnt=chk_cnt,
+                    description=chk.description, **format_dict)), status=passes)
         elif chk.nominal is not None and chk.tol is not None:
-            self.event_output(self.reformat_text("\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {nominal} +- {tol}% : "
-                                "{description}".format(
-                status=status,
-                comparison=chk.target.__name__[1:].replace('_', ' '),
-                chk_cnt=chk_cnt,
-                description=chk.description, **format_dict)))
+            self.event_output(self.reformat_text(
+                "\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {nominal} +- {tol}% : "
+                "{description}".format(
+                    status=status,
+                    comparison=chk.target.__name__[1:].replace('_', ' '),
+                    chk_cnt=chk_cnt,
+                    description=chk.description, **format_dict)), status=passes)
         elif chk._min is not None or chk._max is not None or chk.nominal is not None:
             # Grabs the first value that isn't none. Nominal takes priority
             comp_val = next(format_dict[item] for item in ["nominal", "_min", "_max"] if format_dict[item] is not None)
-            self.event_output(self.reformat_text("\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {comp_val} : "
-                                "{description}".format(
-                status=status,
-                comparison=chk.target.__name__[1:].replace('_', ' '),
-                comp_val=comp_val,
-                chk_cnt=chk_cnt,
-                description=chk.description, **format_dict)))
+            self.event_output(
+                self.reformat_text("\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {comp_val} : "
+                                   "{description}".format(
+                    status=status,
+                    comparison=chk.target.__name__[1:].replace('_', ' '),
+                    comp_val=comp_val,
+                    chk_cnt=chk_cnt,
+                    description=chk.description, **format_dict)), status=passes)
         else:
             if chk.test_val is not None:
                 self.event_output(self.reformat_text(
                     "\nCheck {chk_cnt}: {status}: {test_val} : {description}".format(chk_cnt=chk_cnt,
                                                                                      description=chk.description,
-                                                                                     status=status, **format_dict)))
+                                                                                     status=status, **format_dict)),
+                    status=passes)
             else:
                 self.event_output(self.reformat_text(
                     "\nCheck {chk_cnt} : {status}: {description}".format(description=chk.description, chk_cnt=chk_cnt,
-                                                                         status=status)))
+                                                                         status=status)), status=passes)

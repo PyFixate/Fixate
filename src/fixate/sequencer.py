@@ -185,6 +185,19 @@ class Sequencer:
 
         return 0
 
+    def get_tree(self):
+        """Get the test tree as a list"""
+
+        tree = []
+        tests = test_list_repr(self.context[0].testlist)
+
+        for test in tests:
+            if len(test.get('level')) != 0:
+                tree.append(["", ""])
+                tree[-1][0] = test.get('level')
+                tree[-1][1] = test.get('test_name')
+        return tree
+
     def run_sequence(self):
         """
         Runs the sequence from the beginning to end once

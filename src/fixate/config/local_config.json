@@ -1,3 +1,14 @@
 {
-    "INSTRUMENTS": {}
+    "INSTRUMENTS": {
+        "visa": [
+            [
+                "RIGOL TECHNOLOGIES,DG1022 ,DG1D163250998,00.03.00.11.00.02.12\n",
+                "USB0::0x09C4::0x0400::DG1D163250998::INSTR"
+            ],
+            [
+                "FLUKE,8846A,3553022,08/02/10-11:53\r\n",
+                "ASRL13::INSTR"
+            ]
+        ]
+    }
 }

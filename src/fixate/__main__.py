@@ -168,7 +168,7 @@ class FixateSupervisor:
         return self.controller.fixate_exec()
 
 
-class FixateWorker():
+class FixateWorker:
     def __init__(self, sequencer, test_script_path, csv_output_path, args, loop):
         self.sequencer = sequencer
         self.test_script_path = test_script_path
@@ -183,6 +183,9 @@ class FixateWorker():
 
     def get_current_task(self):
         return self.sequencer.tests_completed()
+
+    def get_test_tree(self):
+        return self.sequencer.get_tree()
 
     def stop(self):
         """This function is called in case of unusual termination, and runs in the main thread"""
@@ -277,8 +280,7 @@ class FixateWorker():
             elif self.sequencer.end_status == "ERROR":
                 return 12
             else:
-                # Else Passed is exit(0)
-                return 0
+                return 5
 
 
 def retrieve_test_data(test_suite, index):
