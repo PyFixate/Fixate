@@ -245,6 +245,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             current_test.setBackground(i, colours[0])
             current_test.setForeground(i, colours[1])
         current_test.setText(1, status)
+        current_test.setExpanded(True)
 
         # In case of an abort, update all remaining tests
         if STATUS_PRIORITY.index(status) == 0:
@@ -254,6 +255,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                     current_test.setBackground(i, colours[0])
                     current_test.setForeground(i, colours[1])
                 current_test.setText(1, status)
+                current_test.setExpanded(False)
                 if current_test.childCount() > 0 and not sub_finish:  # Go in a level
                     current_test = current_test.child(0)
                     sub_finish = False
@@ -285,6 +287,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                 current_test.setBackground(i, colours[0])
                 current_test.setForeground(i, colours[1])
             current_test.setText(1, parent_status)
+            if STATUS_PRIORITY.index(parent_status) != 1:
+                current_test.setExpanded(False)
 
     def display_test(self, test_index, description):
         self.ActiveTest.setText("Test {}:".format(test_index))
