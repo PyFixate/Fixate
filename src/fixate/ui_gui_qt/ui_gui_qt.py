@@ -3,6 +3,7 @@ import sys
 import msvcrt
 import time
 import textwrap
+from collections import OrderedDict
 from queue import Empty
 from pubsub import pub
 from queue import Queue
@@ -13,12 +14,14 @@ import fixate.config
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from . import layout
+from os import path
 
-cmd_line_queue = Queue()
 wrapper = textwrap.TextWrapper(width=75)
 wrapper.break_long_words = False
 
 wrapper.drop_whitespace = True
+
+QT_GUI_WORKING_INDICATOR = path.join(path.dirname(__file__), 'working_indicator.gif')
 
 ERROR_STYLE = """
 QProgressBar{
@@ -32,59 +35,17 @@ QProgressBar::chunk{
     width: 1px;
 }"""
 
-STATUS_PRIORITY = ("Aborted", "In Progress", "Error", "Failed", "Passed", "Skipped")
-STATUS_COLOUR = ((QtGui.QBrush(QtGui.QColor(128, 128, 128)), QtGui.QBrush(QtGui.QColor(255, 255, 255))),
-                 (QtGui.QBrush(QtGui.QColor(255, 255, 128)), QtGui.QBrush(QtGui.QColor(0, 0, 0))),
-                 (QtGui.QBrush(QtGui.QColor(255, 0, 0)), QtGui.QBrush(QtGui.QColor(255, 255, 255))),
-                 (QtGui.QBrush(QtGui.QColor(255, 0, 0)), QtGui.QBrush(QtGui.QColor(255, 255, 255))),
-                 (QtGui.QBrush(QtGui.QColor(0, 255, 0)), QtGui.QBrush(QtGui.QColor(0, 0, 0))),
-                 (QtGui.QBrush(QtGui.QColor(90, 255, 255)), QtGui.QBrush(QtGui.QColor(0, 0, 0))))
+STATUS_PRIORITY = OrderedDict(
+    [("In Progress", (QtGui.QBrush(QtGui.QColor(255, 255, 128)), QtGui.QBrush(QtGui.QColor(0, 0, 0)))),
+     ("Error", (QtGui.QBrush(QtGui.QColor(255, 0, 0)), QtGui.QBrush(QtGui.QColor(255, 255, 255)))),
+     ("Failed", (QtGui.QBrush(QtGui.QColor(255, 0, 0)), QtGui.QBrush(QtGui.QColor(255, 255, 255)))),
+     ("Aborted", (QtGui.QBrush(QtGui.QColor(128, 128, 128)), QtGui.QBrush(QtGui.QColor(255, 255, 255)))),
+     ("Passed", (QtGui.QBrush(QtGui.QColor(0, 255, 0)), QtGui.QBrush(QtGui.QColor(0, 0, 0)))),
+     ("Skipped", (QtGui.QBrush(QtGui.QColor(90, 255, 255)), QtGui.QBrush(QtGui.QColor(0, 0, 0))))])
 
 
-def get_status_colour(status):
-    return [STATUS_COLOUR[STATUS_PRIORITY.index(status)][0], STATUS_COLOUR[STATUS_PRIORITY.index(status)][1]]
-
-
-def kb_hit_monitor(cmd_q):
-    while True:
-        resp = cmd_q.get()
-        if resp is None:
-            break  # Command send to close kb_hit monitor
-        q, abort, key_presses = resp  # Begin active monitoring
-        while True:
-            try:
-                abort.get_nowait()
-                break
-            except Empty:
-                pass
-            if msvcrt.kbhit():  # Check for key press
-                key_press = msvcrt.getch()
-                key = key_presses.get(key_press, None)
-                if key is not None:
-                    q.put(key)
-                    break
-            time.sleep(0.05)
-
-
-class KeyboardHook:
-    def __init__(self):
-        self.user_fail_queue = Queue()
-        self.key_monitor = None
-
-    def install(self):
-        self.key_monitor = ExcThread(target=kb_hit_monitor,
-                                     args=(self.user_fail_queue,))
-        self.key_monitor.start()
-
-    def uninstall(self):
-        if self.key_monitor:
-            self.user_fail_queue.put(None)
-            self.key_monitor.stop()
-            self.key_monitor.join()
-        self.key_monitor = None
-
-
-key_hook = KeyboardHook()
+def get_status_colours(status):
+    return STATUS_PRIORITY[status]
 
 
 def exception_hook(exctype, value, traceback):  # TODO DEBUG REMOVE
@@ -104,11 +65,15 @@ class SequencerThread(QObject):
 
 class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     input_signal = pyqtSignal(str, tuple)
-    output_signal = pyqtSignal(str, QtGui.QColor, bool)
+    output_signal = pyqtSignal(str, str)
     label_update = pyqtSignal(str, str)
+    update_image = pyqtSignal(str, bool)
+    text_signal = pyqtSignal(str)
+    timer_signal = pyqtSignal()
     tree_init = pyqtSignal(list)
     tree_update = pyqtSignal(str, str)
 
+    working = pyqtSignal()
     progress = pyqtSignal()
     finish = pyqtSignal()
 
@@ -126,8 +91,20 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.TestTree.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         self.TestTree.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Fixed)
 
+        self.base_image = ""
+        self.image_scene = QtWidgets.QGraphicsScene()
+        self.ImageView.set_scene(self.image_scene)
+        self.ImageView.setScene(self.image_scene)
+
+        self.working_indicator = QtGui.QMovie(QT_GUI_WORKING_INDICATOR)
+        self.WorkingIndicator.setMovie(self.working_indicator)
+        self.start_indicator()
+
         self.status_code = -1  # Default status code used to check for unusual exit
-        self.inputQueue = Queue()
+        self.input_queue = Queue()
+        self.abort_timer = QtCore.QTimer(self)
+        self.fail_queue = None
+        self.abort_queue = None
         self.worker = SequencerThread(worker)
         self.worker_thread = QThread()
         self.worker.moveToThread(self.worker_thread)
@@ -139,13 +116,19 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.Button_1.clicked.connect(self.button_1_click)
         self.Button_2.clicked.connect(self.button_2_click)
         self.Button_3.clicked.connect(self.button_3_click)
+        self.UserInputBox.submit.connect(self.text_input_submit)
 
+        self.abort_timer.timeout.connect(self.abort_check)
         self.input_signal.connect(self.get_input)
         self.output_signal.connect(self.display_output)
         self.label_update.connect(self.display_test)
+        self.update_image.connect(self.display_image)
+        self.text_signal.connect(self.open_text_input)
+        self.timer_signal.connect(self.start_timer)
         self.tree_init.connect(self.display_tree)
         self.tree_update.connect(self.update_tree)
         self.progress.connect(self.progress_update)
+        self.working.connect(self.start_indicator)
 
         sys.excepthook = exception_hook  # TODO DEBUG REMOVE
 
@@ -169,6 +152,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         pub.subscribe(self._print_comparisons, 'Check')
         pub.subscribe(self._print_errors, "Test_Exception")
         pub.subscribe(self._print_sequence_end, "Sequence_Complete")
+        pub.subscribe(self._image, 'UI_image')
         pub.subscribe(self._user_ok, 'UI_req')
         pub.subscribe(self._user_choices, "UI_req_choices")
         pub.subscribe(self._user_input, 'UI_req_input')
@@ -178,16 +162,64 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         pub.subscribe(self._print_test_retry, 'Test_Retry')
         pub.subscribe(self._user_action, 'UI_action')
         pub.subscribe(self._completion_code, 'Finish')
-        key_hook.install()
         return
 
     def unregister_events(self):
         pub.unsubAll()
-        key_hook.uninstall()
         return
 
     """Slot handlers for thread-gui interaction
        These are run in the main thread"""
+
+    def start_timer(self):
+        self.abort_timer.start(100)
+
+    def abort_check(self):
+        if self.abort_queue is None:
+            return
+        try:
+            self.abort_queue.get_nowait()
+            self.abort_queue = None
+            self.button_reset(True)
+            self.abort_timer.stop()
+        except Empty:
+            return
+
+    def open_text_input(self, message):
+        self.ActiveEvent.append(message)
+        self.ActiveEvent.verticalScrollBar().setValue(self.ActiveEvent.verticalScrollBar().maximum());
+        self.Events.append(message)
+        self.Events.verticalScrollBar().setValue(self.Events.verticalScrollBar().maximum());
+        self.working_indicator.stop()
+        self.WorkingIndicator.hide()
+        self.UserInputBox.setPlaceholderText("Input:")
+        self.UserInputBox.setEnabled(True)
+
+    def start_indicator(self):
+        self.WorkingIndicator.show()
+        self.working_indicator.start()
+
+    def display_image(self, path="", overlay=False):
+
+        if path == "" or not overlay:
+            self.image_scene.clear()
+            if overlay:
+                image = QtGui.QPixmap(self.base_image)
+            elif path == "":
+                self.base_image = path
+                return
+            else:
+                self.base_image = path
+                image = QtGui.QPixmap(path)
+            self.image_scene.addPixmap(image)
+            self.ImageView.fitInView(0, 0, self.image_scene.width(), self.image_scene.height(),
+                                     QtCore.Qt.KeepAspectRatio)
+            return
+
+        image = QtGui.QPixmap(path)
+        self.image_scene.addPixmap(image)
+        self.ImageView.fitInView(0, 0, self.image_scene.width(), self.image_scene.height(), QtCore.Qt.KeepAspectRatio)
+        return
 
     def display_tree(self, tree):
 
@@ -196,39 +228,39 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             return
         self.treeSet = True
 
-        levelStack = []
+        level_stack = []
         for item in tree:
             # Check Level
-            if item[0].count('.') + 1 <= len(levelStack):  # Case 1: Going out one or more levels or same level
-                for _ in range(len(levelStack) - item[0].count('.')):
-                    levelStack.pop()
-            elif item[0].count('.') + 1 > len(levelStack):  # Case 2: Going in one or more levels
-                for index in range(item[0].count('.') + 1 - len(levelStack), 0, -1):
+            if item[0].count('.') + 1 <= len(level_stack):  # Case 1: Going out one or more levels or same level
+                for _ in range(len(level_stack) - item[0].count('.')):
+                    level_stack.pop()
+            elif item[0].count('.') + 1 > len(level_stack):  # Case 2: Going in one or more levels
+                for index in range(item[0].count('.') + 1 - len(level_stack), 0, -1):
                     split_index = item[0].split('.')
                     if index > 1:  # More than one level, append dummy items as required
                         dummy = QtWidgets.QTreeWidgetItem()
                         dummy.setText(0, '.'.join(split_index[:-(index - 1)]))
                         dummy.setText(1, 'Queued')
                         dummy.setTextAlignment(1, QtCore.Qt.AlignRight)
-                        levelStack.append(dummy.clone())
+                        level_stack.append(dummy.clone())
 
             tree_item = QtWidgets.QTreeWidgetItem()
             tree_item.setText(0, item[0] + '. ' + item[1])
             tree_item.setTextAlignment(1, QtCore.Qt.AlignRight)
             tree_item.setText(1, 'Queued')
 
-            levelStack.append(tree_item.clone())
-            if len(levelStack) > 1:  # Child Add
-                levelStack[-2].addChild(levelStack[-1])
+            level_stack.append(tree_item.clone())
+            if len(level_stack) > 1:  # Child Add
+                level_stack[-2].addChild(level_stack[-1])
             else:  # Top Level
-                self.TestTree.addTopLevelItem(levelStack[-1])
+                self.TestTree.addTopLevelItem(level_stack[-1])
 
     def update_tree(self, test_index, status):
 
         if len(test_index) == 0:
             return
 
-        colours = get_status_colour(status)
+        colours = get_status_colours(status)
         test_index = test_index.split('.')
 
         #   Find the test in the tree
@@ -241,21 +273,25 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                     break
 
         # Update the test
-        for i in range(2):
-            current_test.setBackground(i, colours[0])
-            current_test.setForeground(i, colours[1])
-        current_test.setText(1, status)
-        current_test.setExpanded(True)
+        if status not in ["Aborted"]:
+            for i in range(2):
+                current_test.setBackground(i, colours[0])
+                current_test.setForeground(i, colours[1])
+            current_test.setText(1, status)
+            current_test.setExpanded(True)
 
         # In case of an abort, update all remaining tests
-        if STATUS_PRIORITY.index(status) == 0:
+        else :
+            self.display_output(message="Aborting, please wait...", status="Active")
             sub_finish = False
+            original_test = current_test
             while current_test is not None:
-                for i in range(2):
-                    current_test.setBackground(i, colours[0])
-                    current_test.setForeground(i, colours[1])
-                current_test.setText(1, status)
-                current_test.setExpanded(False)
+                if current_test.text(1) in ["Queued"]:
+                    for i in range(2):
+                        current_test.setBackground(i, colours[0])
+                        current_test.setForeground(i, colours[1])
+                    current_test.setText(1, status)
+                    current_test.setExpanded(False)
                 if current_test.childCount() > 0 and not sub_finish:  # Go in a level
                     current_test = current_test.child(0)
                     sub_finish = False
@@ -271,38 +307,40 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                 else:  # Top level test, go to next test
                     current_test = self.TestTree.topLevelItem(self.TestTree.indexOfTopLevelItem(current_test) + 1)
                     sub_finish = False
-            return
+            current_test = original_test
 
         # Check for last test in group
-        while current_test.parent() is not None and current_test.parent().indexOfChild(
-                current_test) >= current_test.parent().childCount() - 1:
+        while current_test.parent() is not None and (current_test.parent().indexOfChild(
+                current_test) >= current_test.parent().childCount() - 1 or status in ["Aborted"]):
             parent_status = current_test.text(1)
             current_test = current_test.parent()
             for child_index in range(current_test.childCount()):  # Check status of all child tests
                 check_status = current_test.child(child_index).text(1)
-                if STATUS_PRIORITY.index(check_status) < STATUS_PRIORITY.index(parent_status):
+                if list(STATUS_PRIORITY.keys()).index(check_status) < list(STATUS_PRIORITY.keys()).index(parent_status):
                     parent_status = check_status
-            colours = get_status_colour(parent_status)
+            colours = get_status_colours(parent_status)
             for i in range(2):
                 current_test.setBackground(i, colours[0])
                 current_test.setForeground(i, colours[1])
             current_test.setText(1, parent_status)
-            if STATUS_PRIORITY.index(parent_status) != 1:
+            if parent_status not in ["In Progress"]:
                 current_test.setExpanded(False)
 
     def display_test(self, test_index, description):
         self.ActiveTest.setText("Test {}:".format(test_index))
         self.TestDescription.setText("{}".format(description))
 
-    def display_output(self, message, colour, status):
+    def display_output(self, message, status):
         self.Events.append(message)
-        self.ActiveEvent.append(message)
-        self.Events.verticalScrollBar().setValue(self.Events.verticalScrollBar().maximum());
-        self.ActiveEvent.verticalScrollBar().setValue(self.ActiveEvent.verticalScrollBar().maximum());
+        self.Events.verticalScrollBar().setValue(self.Events.verticalScrollBar().maximum())
 
         if not status:  # Print errors
             self.Errors.append(self.ActiveTest.text() + ' - ' + message[1:])
-            self.Errors.verticalScrollBar().setValue(self.Errors.verticalScrollBar().maximum());
+            self.Errors.verticalScrollBar().setValue(self.Errors.verticalScrollBar().maximum())
+
+        if status == "Active":
+            self.ActiveEvent.append(message)
+            self.ActiveEvent.verticalScrollBar().setValue(self.Errors.verticalScrollBar().maximum())
 
     def progress_update(self):
         self.ActiveEvent.clear()
@@ -342,6 +380,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             self.Button_3.setShortcut(QtGui.QKeySequence(choices[2][0:1]))
             self.Button_3.setEnabled(True)
 
+        self.working_indicator.stop()
+        self.WorkingIndicator.hide()
+
     def clean_up(self):
         """This function is the second one called for normal termination, and the first one called for unusual termination.
            Check for abnormal termination, and stop the sequencer if required; then stop and delete the thread"""
@@ -369,38 +410,66 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     """User IO handlers, emit signals to trigger main thread updates via slots.
        These are run in the sequencer thread"""
 
-    def event_output(self, message, colour=QtGui.QColor(255, 255, 255), status=True):
-        self.output_signal.emit(message, colour, status)
+    def event_output(self, message, status=True):
+        self.output_signal.emit(message, str(status))
 
-    def gui_user_input(self, message, choices):
-        self.input_signal.emit(message, choices)
-        return self.inputQueue.get(True)
+    def gui_user_input(self, message, choices=None, blocking=True):
+        result = None
+        if choices is not None:  # Button Prompt
+            if blocking:
+                self.input_signal.emit(message, choices)
+            else:
+                self.input_signal.emit(message, (choices[0],))
+                self.timer_signal.emit()
+        else:  # Text Prompt
+            self.text_signal.emit(message)
+
+        if blocking:  # Block sequencer until user responds
+            result = self.input_queue.get(True)
+            self.working.emit()
+        else:
+            self.fail_queue = choices[1]
+            self.abort_queue = choices[2]
+        return result
 
     """UI Event Handlers, process actions taken by the user on the GUI.
        These are run in the main thread """
 
+    def text_input_submit(self):
+        self.input_queue.put(self.UserInputBox.toPlainText())
+        self.UserInputBox.clear()
+        self.UserInputBox.setPlaceholderText("")
+        self.UserInputBox.setEnabled(False)
+
     def button_1_click(self):
-        self.inputQueue.put(self.Button_1.text())
-        self.buttonReset()
+        self.input_queue.put(self.Button_1.text())
+        self.button_reset()
 
     def button_2_click(self):
-        self.inputQueue.put(self.Button_2.text())
-        self.buttonReset()
+        if self.fail_queue is not None:
+            self.fail_queue.put(self.Button_2.text())
+            self.fail_queue = None
+            self.abort_timer.stop()
+            self.abort_queue = None
+        else:
+            self.input_queue.put(self.Button_2.text())
+        self.button_reset()
 
     def button_3_click(self):
-        self.inputQueue.put(self.Button_3.text())
-        self.buttonReset()
+        self.input_queue.put(self.Button_3.text())
+        self.button_reset()
 
-    def buttonReset(self):
-        self.Button_1.setText("")
+    def button_reset(self, fail_only=False):
         self.Button_2.setText("")
-        self.Button_3.setText("")
-        self.Button_1.setEnabled(False)
         self.Button_2.setEnabled(False)
-        self.Button_3.setEnabled(False)
-        self.Button_1.setDefault(False)
         self.Button_2.setDefault(False)
-        self.Button_3.setDefault(False)
+        if not fail_only:
+            self.Button_1.setText("")
+            self.Button_3.setText("")
+            self.Button_1.setEnabled(False)
+            self.Button_3.setEnabled(False)
+            self.Button_1.setDefault(False)
+            self.Button_3.setDefault(False)
 
     """Thread listener, called from the sequencer thread"""
 
@@ -422,6 +491,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             lines.append(wrapper.fill(line))
         return '\n'.join(lines)
 
+    def _image(self, path, overlay):
+        self.update_image.emit(path, overlay)
+
     def _user_action(self, msg, q, abort):
         """
         This is for tests that aren't entirely dependant on the automated system.
@@ -440,10 +512,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         None
         """
         self.event_output('\a')
-        self.event_output(self.reformat_text(msg))
-        self.event_output("Press escape to fail the test or space to pass")
-        global key_hook
-        key_hook.user_fail_queue.put((q, abort, {b'\x1b': False, b' ': True}))
+        self.gui_user_input(self.reformat_text(msg), ("Fail", q, abort), False)
 
     def _user_ok(self, msg, q):
         """
@@ -456,7 +525,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
          The result queue of type queue.Queue
         :return:
         """
-        msg = self.reformat_text(msg + "\n\nPress Continue to continue...")
         self.event_output('\a')
         self.gui_user_input(msg, ("Continue",))
         q.put("Result", None)
@@ -481,11 +549,10 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         :param kwargs:
         :return:
         """
-        choicesstr = "\n" + ', '.join(choices[:-1]) + ' or ' + choices[-1] + ' '
         for _ in range(attempts):
             # This will change based on the interface
             self.event_output('\a')
-            ret_val = self.gui_user_input(self.reformat_text(msg + choicesstr), choices)
+            ret_val = self.gui_user_input(self.reformat_text(msg), choices)
             ret_val = target(ret_val, choices)
             if ret_val:
                 q.put(('Result', ret_val))
@@ -522,7 +589,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         for _ in range(attempts):
             # This will change based on the interface
             self.event_output('\a')
-            ret_val = input(msg)
+            ret_val = self.gui_user_input(msg, None, True)
             if target is None:
                 q.put(ret_val)
                 return
@@ -535,7 +602,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     def _user_display(self, msg):
         """
         :param msg:
-        :param important: creates a line of "!" either side of the message
         :return:
         """
         self.event_output(self.reformat_text(msg))
@@ -549,13 +615,13 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.event_output("")
         self.event_output("!" * wrapper.width)
         self.event_output("")
-        self.event_output(self.reformat_text(msg))
+        self.event_output(self.reformat_text(msg), status="Active")
         self.event_output("")
         self.event_output("!" * wrapper.width)
 
     def _print_sequence_end(self, status, passed, failed, error, skipped, sequence_status):
         self.event_output("#" * wrapper.width)
-        self.event_output(self.reformat_text("Sequence {}".format(sequence_status)))
+        self.event_output(self.reformat_text("Sequence {}".format(sequence_status)), status="Active")
         # self.event_output("Sequence {}".format(sequence_status))
         post_sequence_info = []
         if status == "PASSED":
@@ -600,6 +666,10 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.event_output(self.reformat_text("Test {}: {}".format(test_index, status.upper())))
         # self.event_output("Test {}: {}".format(test_index, status.upper()))
         self.event_output("-" * wrapper.width)
+
+        if status.upper() in ["ERROR", "SKIPPED"]:
+            return
+
         if sequencer.chk_fail == 0:
             self.tree_update.emit(test_index, "Passed")
         else:
@@ -615,12 +685,15 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     def _print_errors(self, exception, test_index):
         if isinstance(exception, SequenceAbort):
             self.tree_update.emit(test_index, "Aborted")
+            status = True
         else:
+            status = False
             self.tree_update.emit(test_index, "Error")
         self.event_output("")
         self.event_output("!" * wrapper.width)
         self.event_output(
-            self.reformat_text("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), exception)))
+            self.reformat_text("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), exception)),
+            status=status)
         # self.event_output(self.reformat_text("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), traceback.format_tb(exception.__traceback__))))
         # traceback.print_tb(exception.__traceback__)
         # print(type(exception), exception)

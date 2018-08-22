@@ -34,6 +34,16 @@ def _user_req(msg):
     return q.get()
 
 
+def _user_image(path, overlay):
+    """
+    A GUI function that updates the displayed image on-screen
+    :param path:
+     A relative path to the image
+    """
+    pub.sendMessage('UI_image', path=path, overlay=overlay)
+    return
+
+
 def _user_req_input(msg, target=None, attempts=5, **kwargs):
     """
     A blocking function that waits for the user returned values
@@ -147,6 +157,10 @@ def user_action(msg, target):
 
 def user_ok(msg):
     return _user_req(msg)
+
+
+def user_image(path="", overlay=False):
+    return _user_image(path, overlay)
 
 
 def user_confirmation_box(msg, attempts=1):
