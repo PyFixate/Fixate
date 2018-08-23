@@ -8,7 +8,8 @@ Fixate runs on Python 3.4 or greater.
 
 ### Installing
 
-Clone the repository using git or download a zip file and unzip the source. Then run setup.py to install. For the moment, there is no package on PyPI.
+Clone the repository using git or download a zip file and unzip the source. Then run setup.py to install.
+Alternatively, install from Pypi with 'pip install fixate'
 
 ### Run the example scripts
 
