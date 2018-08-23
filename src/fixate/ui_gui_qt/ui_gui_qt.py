@@ -334,7 +334,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.Events.append(message)
         self.Events.verticalScrollBar().setValue(self.Events.verticalScrollBar().maximum())
 
-        if not status:  # Print errors
+        if status == "False":  # Print errors
             self.Errors.append(self.ActiveTest.text() + ' - ' + message[1:])
             self.Errors.verticalScrollBar().setValue(self.Errors.verticalScrollBar().maximum())
 
