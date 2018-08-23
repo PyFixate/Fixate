@@ -1,2 +1,3 @@
 pyvisa
 pypubsub
+pyqt5
