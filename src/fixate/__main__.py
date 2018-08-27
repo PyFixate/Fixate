@@ -190,7 +190,7 @@ class FixateWorker:
     def stop(self):
         """This function is called in case of unusual termination, and runs in the main thread"""
         self.sequencer._handle_sequence_abort()
-        pub.sendMessage("Sequence_Abort", exception=SequenceAbort("Application closing"))
+        pub.sendMessage("Sequence_Abort", exception=SequenceAbort("Application Closing"))
         self.loop.stop()
 
         for _ in range(15):
@@ -208,6 +208,8 @@ class FixateWorker:
     def ui_run(self):
 
         asyncio.set_event_loop(self.loop)
+        serial_number = None
+        test_selector = None
         self.start = True
 
         try:
@@ -215,9 +217,15 @@ class FixateWorker:
             if self.args.dev:
                 fixate.config.DEBUG = True
             if self.args.index is None:
-                self.args.index = user_input("Please enter test selector string")[1]
+                test_selector = user_input("Please enter test selector string")
+                self.args.index = test_selector[1]
+                if test_selector == "ABORT_FORCE":
+                    return
             if self.args.serial_number is None:
-                self.sequencer.context_data["serial_number"] = user_serial("Please enter serial number")[1]
+                serial_number = user_serial("Please enter serial number")
+                self.sequencer.context_data["serial_number"] = serial_number[1]
+                if serial_number == "ABORT_FORCE":
+                    return
             else:
                 self.sequencer.context_data["serial_number"] = self.args.serial_number
             if self.test_script_path is None:
@@ -270,6 +278,8 @@ class FixateWorker:
             input(traceback.print_exc())
             raise
         finally:
+            if serial_number == "ABORT_FORCE" or test_selector == "ABORT_FORCE":
+                return 11
             unregister_csv()
             save_local_config()
             self.clean = True  # Let the supervisor know that the program is finishing normally

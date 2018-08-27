@@ -91,6 +91,7 @@ class Sequencer:
         self.tests = TestList()
         self._status = "Idle"
         self.active_test = None
+        self.ABORT = False
         # pub.subscribe(self._handle_sequence_abort, "Seq_Abort")
         self.test_attempts = 0
         self.chk_fail = 0
@@ -296,6 +297,9 @@ class Sequencer:
                     self.tests_failed += 1
                 break
             except CheckFail:
+                if self.ABORT:  #   Program force quit
+                    active_test_status = "ERROR"
+                    raise SequenceAbort("Sequence Aborted")
                 # Retry Logic for failed checks
                 active_test_status = "FAIL"
                 if not self.retry_test(TestClass.RT_RETRY):
@@ -303,6 +307,9 @@ class Sequencer:
                     self.tests_failed += 1
                     break
             except tuple(abort_exceptions):
+                if self.ABORT:  # Program force quit
+                    active_test_status = "ERROR"
+                    raise SequenceAbort("Sequence Aborted")
                 pub.sendMessage("Test_Exception", exception=sys.exc_info()[1], test_index=self.levels())
                 attempts = 0
                 active_test_status = "ERROR"
@@ -311,6 +318,9 @@ class Sequencer:
                     break
             # Retry logic for exceptions
             except BaseException as e:
+                if self.ABORT:  # Program force quit
+                    active_test_status = "ERROR"
+                    raise SequenceAbort("Sequence Aborted")
                 pub.sendMessage("Test_Exception", exception=sys.exc_info()[1], test_index=self.levels())
                 # Retry handle selected to skip the test.
                 # Should be depreciated as test class shouldn't set sequencer behaviour

@@ -85,6 +85,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.register_events()
         self.setupUi(self)
         self.treeSet = False
+        self.blocked = False
+        self.closing = False
 
         # Extra GUI setup not supported in the designer
         self.TestTree.setColumnWidth(1, 80)
@@ -152,6 +154,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         pub.subscribe(self._print_comparisons, 'Check')
         pub.subscribe(self._print_errors, "Test_Exception")
         pub.subscribe(self._print_sequence_end, "Sequence_Complete")
+        pub.subscribe(self._seq_abort, "Sequence_Abort")
         pub.subscribe(self._image, 'UI_image')
         pub.subscribe(self._user_ok, 'UI_req')
         pub.subscribe(self._user_choices, "UI_req_choices")
@@ -281,7 +284,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             current_test.setExpanded(True)
 
         # In case of an abort, update all remaining tests
-        else :
+        else:
             self.display_output(message="Aborting, please wait...", status="Active")
             sub_finish = False
             original_test = current_test
@@ -383,24 +386,45 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.working_indicator.stop()
         self.WorkingIndicator.hide()
 
+    def _seq_abort(self, exception=None):
+        """
+        This function ensures that sequence aborting is handled correctly if the sequencer is blocked waiting for input
+        """
+
+        # Release user input waiting loops
+        if self.fail_queue is not None:
+            self.fail_queue.put(False)
+            self.fail_queue = None
+        if self.abort_queue is not None:
+            self.abort_queue.put(True)
+            self.abort_queue = None
+
+        # Release sequence blocking calls
+        if self.blocked:
+            self.input_queue.put("ABORT_FORCE")
+
     def clean_up(self):
         """This function is the second one called for normal termination, and the first one called for unusual termination.
            Check for abnormal termination, and stop the sequencer if required; then stop and delete the thread"""
 
-        if self.worker_thread == None:  # This function has already run, therefore main already has the status code
+        if self.worker_thread is None:  # This function has already run, therefore main already has the status code
             return
 
         # The following actions must be done in a specific order, be careful when making changes to this section
+        self.abort_timer.stop()
+        self.closing = True
 
         if self.status_code == -1:  # Unusual termination - The sequencer hasn't finished yet, stop it
             self.status_code = self.worker.worker.stop()
+
+        self.unregister_events()  # Prevent interruption by pubsub messages
 
         self.worker.deleteLater()  # Schedule the thread worker for deletion
         self.worker = None  # Remove the reference to allow the GC to clean up
 
         self.worker_thread.exit(self.status_code)  # Exit the thread
         self.worker_thread.wait(2000)  # 2 seconds for the thread to exit
-        self.worker_thread.terminate()  # Force quit the thread if it is still running
+        self.worker_thread.terminate()  # Force quit the thread if it is still running, if so, this will throw a warning
         self.worker_thread.deleteLater()  # Schedule the thread for deletion
         self.worker_thread = None  # Remove the reference to allow the GC to clean up
 
@@ -425,7 +449,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             self.text_signal.emit(message)
 
         if blocking:  # Block sequencer until user responds
+            self.blocked = True
             result = self.input_queue.get(True)
+            self.blocked = False
             self.working.emit()
         else:
             self.fail_queue = choices[1]
@@ -492,6 +518,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         return '\n'.join(lines)
 
     def _image(self, path, overlay):
+        if self.closing:
+            return
         self.update_image.emit(path, overlay)
 
     def _user_action(self, msg, q, abort):
@@ -511,6 +539,10 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         :return:
         None
         """
+        if self.closing:
+            q.put(False)
+            abort.put(True)
+            return
         self.event_output('\a')
         self.gui_user_input(self.reformat_text(msg), ("Fail", q, abort), False)
 
@@ -525,6 +557,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
          The result queue of type queue.Queue
         :return:
         """
+        if self.closing:
+            q.put("Result", None)
+            return
         self.event_output('\a')
         self.gui_user_input(msg, ("Continue",))
         q.put("Result", None)
@@ -549,6 +584,10 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         :param kwargs:
         :return:
         """
+        if self.closing:
+            q.put(("Result", "ABORT_FORCE"))
+            return
+
         for _ in range(attempts):
             # This will change based on the interface
             self.event_output('\a')
@@ -579,6 +618,10 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         :param kwargs:
         :return:
         """
+        if self.closing:
+            q.put(('Result', "ABORT_FORCE"))
+            return
+
         initial_indent = ">>> "
         subsequent_indent = "    "
         # additional space added due to wrapper.drop_white_space being True, need to
@@ -590,7 +633,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             # This will change based on the interface
             self.event_output('\a')
             ret_val = self.gui_user_input(msg, None, True)
-            if target is None:
+            if target is None or ret_val == "ABORT_FORCE":
                 q.put(ret_val)
                 return
             ret_val = target(ret_val, **kwargs)
@@ -604,6 +647,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         :param msg:
         :return:
         """
+        if self.closing:
+            return
+
         self.event_output(self.reformat_text(msg))
 
     def _user_display_important(self, msg):
@@ -612,6 +658,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         :param important: creates a line of "!" either side of the message
         :return:
         """
+        if self.closing:
+            return
+
         self.event_output("")
         self.event_output("!" * wrapper.width)
         self.event_output("")
@@ -620,6 +669,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.event_output("!" * wrapper.width)
 
     def _print_sequence_end(self, status, passed, failed, error, skipped, sequence_status):
+        if self.closing:
+            return
+
         self.event_output("#" * wrapper.width)
         self.event_output(self.reformat_text("Sequence {}".format(sequence_status)), status="Active")
         # self.event_output("Sequence {}".format(sequence_status))
@@ -643,6 +695,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.event_output('\a')
 
     def _print_test_start(self, data, test_index):
+        if self.closing:
+            return
+
         self.progress.emit()
         self.event_output("*" * wrapper.width)
         self.event_output(self.reformat_text("Test {}: {}".format(test_index, data.test_desc)))
@@ -652,12 +707,18 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.tree_update.emit(test_index, "In Progress")
 
     def _print_test_seq_start(self, data, test_index):
+        if self.closing:
+            return
+
         self.ProgressBar.setMaximum(self.worker.worker.get_task_count())
         self.tree_init.emit(self.worker.worker.get_test_tree())
         self.progress.emit()
         self._print_test_start(data, test_index)
 
     def _print_test_complete(self, data, test_index, status):
+        if self.closing:
+            return
+
         sequencer = RESOURCES["SEQUENCER"]
         self.event_output("-" * wrapper.width)
         self.event_output(
@@ -676,13 +737,22 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             self.tree_update.emit(test_index, "Failed")
 
     def _print_test_skip(self, data, test_index):
+        if self.closing:
+            return
+
         self.event_output("\nTest Marked as skip")
         self.tree_update.emit(test_index, "Skipped")
 
     def _print_test_retry(self, data, test_index):
+        if self.closing:
+            return
+
         self.event_output(self.reformat_text("\nTest {}: Retry".format(test_index)))
 
     def _print_errors(self, exception, test_index):
+        if self.closing:
+            return
+
         if isinstance(exception, SequenceAbort):
             self.tree_update.emit(test_index, "Aborted")
             status = True
