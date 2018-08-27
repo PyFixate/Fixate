@@ -1,13 +1,12 @@
-import argparse
 import asyncio
-import functools
-import importlib.machinery
 import logging
 import os
 import sys
-import zipimport
-from argparse import RawTextHelpFormatter
+from argparse import ArgumentParser, RawTextHelpFormatter
+from functools import partial
+from importlib.machinery import SourceFileLoader
 from time import sleep
+from zipimport import zipimporter
 from pubsub import pub
 import fixate.config
 from fixate.config import ASYNC_TASKS, RESOURCES
@@ -21,7 +20,7 @@ try:
     asyncio.ensure_future
 except AttributeError:
     asyncio.ensure_future = getattr(asyncio, 'async')  # Compatibility with 3.4.4 and 3.5
-parser = argparse.ArgumentParser(description="""
+parser = ArgumentParser(description="""
 Fixate Command Line Interface
 
 """, formatter_class=RawTextHelpFormatter)
@@ -91,13 +90,13 @@ def load_test_suite(script_path, zip_path, zip_selector):
         raise ValueError("Cannot load test suite without appropriate path selected")
     if script_path is not None:
         # Do a script file load
-        importer = importlib.machinery.SourceFileLoader('module.loaded_tests', script_path)
+        importer = SourceFileLoader('module.loaded_tests', script_path)
         loader = importer.load_module
         sys.path.append(os.path.dirname(script_path))
     else:
         # Use Zip File
-        importer = zipimport.zipimporter(zip_path)
-        loader = functools.partial(importer.load_module, zip_selector.split('.')[0])
+        importer = zipimporter(zip_path)
+        loader = partial(importer.load_module, zip_selector.split('.')[0])
         sys.path.append(zip_path)
     logger.debug("Sys Path Appended")
     logger.debug("Source File Loaded")
@@ -269,7 +268,7 @@ class FixateWorker:
             def finished_test_run(future):
                 self.loop.call_soon(cancel_tasks)
                 if self.sequencer.status in ["Finished", "Aborted"]:
-                    f = functools.partial(user_ok, "Finished testing")
+                    f = partial(user_ok, "Finished testing")
                     self.loop.run_in_executor(None, f).add_done_callback(finished_test_run_response)
 
             init_tasks()
