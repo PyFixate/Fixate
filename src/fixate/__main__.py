@@ -35,8 +35,7 @@ mutex_group.add_argument('-p', '--path',
                          This is mutually exclusive with --zip""")
 mutex_group.add_argument('-z', '--zip',
                          help="""Path to zip file of test scripts. Mutually exclusive with --path""", )
-
-parser.add_argument('-l', '--local_log',
+parser.add_argument('-l', '--local_log', '--local-log',
                     help="""Overrides the logging path to the current working directory""",
                     action="store_true")
 parser.add_argument('-q', '--qtgui',
@@ -45,23 +44,23 @@ parser.add_argument('-q', '--qtgui',
 parser.add_argument('-d', '--dev',
                     help="""Activate Dev Mode for more debug information""",
                     action="store_true")
-parser.add_argument('-n', '--n_loops',
+parser.add_argument('-n', '--n_loops', '--n-loops',
                     help="""Loop the test. Use -1 for infinite loops""",
                     action="store")
-parser.add_argument('-a', '--abort_force',
+parser.add_argument('-a', '--abort_force', '--abort-force',
                     help="""Forces an abort instead of prompting the user for retry abort fail""",
                     action="store_true")
-parser.add_argument('-f', '--fail_force',
+parser.add_argument('-f', '--fail_force', '--fail-force',
                     help="""Forces a fail instead of prompting the user for retry abort fail""",
                     action="store_true")
-parser.add_argument('-r', '--retry_force',
+parser.add_argument('-r', '--retry_force', '--retry-force',
                     help="""Forces a retry instead of prompting the user for retry abort fail""",
                     action="store_true")
 parser.add_argument('-i', '--index',
                     help="""Selector string that is parsed into test_data.get() hosted in the path or zip_selector file.
                     This can be used to distinguish between different configurations of tests""",
                     default="default")
-parser.add_argument('--zip_selector',
+parser.add_argument('--zip_selector', '--zip-selector',
                     help="""File name in zip that hosts the test_data object to return tests. 
                     Only used if zip file is parsed in path. Use to override from default of test_variants.py""",
                     default="test_variants.py")
@@ -75,7 +74,7 @@ parser.add_argument('--script-params',
                     """,
                     action='append',
                     default=[])
-parser.add_argument('--serial_number',
+parser.add_argument('--serial_number', '--serial-number',
                     help=("Serial number of the DUT."))
 
 
