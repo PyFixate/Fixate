@@ -1,20 +1,17 @@
-import traceback
 import sys
-import msvcrt
-import time
 import textwrap
+import traceback
 from collections import OrderedDict
-from queue import Empty
-from pubsub import pub
-from queue import Queue
-from fixate.core.exceptions import UserInputError, SequenceAbort
-from fixate.core.common import ExcThread
-from fixate.config import RESOURCES
-import fixate.config
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
-from . import layout
 from os import path
+from queue import Empty
+from queue import Queue
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import QObject, QThread, pyqtSignal
+from pubsub import pub
+import fixate.config
+from fixate.config import RESOURCES
+from fixate.core.exceptions import UserInputError, SequenceAbort
+from . import layout
 
 wrapper = textwrap.TextWrapper(width=75)
 wrapper.break_long_words = False

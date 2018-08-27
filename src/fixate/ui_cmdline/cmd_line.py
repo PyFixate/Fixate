@@ -1,8 +1,8 @@
 import traceback
 import sys
-import msvcrt
 import time
 import textwrap
+from pynput import keyboard
 from queue import Empty
 from pubsub import pub
 from queue import Queue
@@ -17,44 +17,52 @@ wrapper.break_long_words = False
 
 wrapper.drop_whitespace = True
 
-
-def kb_hit_monitor(cmd_q):
-    while True:
-        resp = cmd_q.get()
-        if resp is None:
-            break  # Command send to close kb_hit monitor
-        q, abort, key_presses = resp  # Begin active monitoring
-        while True:
-            try:
-                abort.get_nowait()
-                break
-            except Empty:
-                pass
-            if msvcrt.kbhit():  # Check for key press
-                key_press = msvcrt.getch()
-                key = key_presses.get(key_press, None)
-                if key is not None:
-                    q.put(key)
-                    break
-            time.sleep(0.05)
-
-
 class KeyboardHook:
     def __init__(self):
         self.user_fail_queue = Queue()
         self.key_monitor = None
+        self.listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
+        self.q = None
+        self.abort = None
+        self.keys = None
+
+    def on_press(self, key):
+        if self.q is None:
+            return
+
+        if self.abort is not None:
+            try:
+                self.abort.get_nowait()
+                self.q = None
+                self.keys = None
+                self.abort = None
+                return
+            except Empty:
+                if self.keys is None:
+                    return
+                lookup = self.keys.get(key, None)
+                if lookup is not None:
+                    self.q.put(lookup)
+                    self.q = None
+                    self.keys = None
+                    self.abort = None
+                    return
+
+    def on_release(self, key):
+        pass
 
     def install(self):
-        self.key_monitor = ExcThread(target=kb_hit_monitor,
-                                     args=(self.user_fail_queue,))
-        self.key_monitor.start()
+        self.listener.start()
 
     def uninstall(self):
-        if self.key_monitor:
-            self.user_fail_queue.put(None)
-            self.key_monitor.stop()
-            self.key_monitor.join()
-        self.key_monitor = None
+        if self.listener:
+            self.listener.stop()
+        self.listener = None
+
+    def set(self, q, abort, key_map):
+        self.q = q
+        self.abort = abort
+        self.keys = key_map
 
 
 key_hook = KeyboardHook()
@@ -117,7 +125,7 @@ def _user_action(msg, q, abort):
     print(reformat_text(msg))
     print("Press escape to fail the test or space to pass")
     global key_hook
-    key_hook.user_fail_queue.put((q, abort, {b'\x1b': False, b' ': True}))
+    key_hook.set(q, abort, {keyboard.Key.esc: False, keyboard.Key.space: True})
 
 
 def _user_ok(msg, q):
