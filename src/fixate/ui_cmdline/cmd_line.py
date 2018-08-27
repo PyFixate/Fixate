@@ -1,21 +1,20 @@
-import traceback
 import sys
-import time
 import textwrap
-from pynput import keyboard
+import traceback
 from queue import Empty
-from pubsub import pub
 from queue import Queue
-from fixate.core.exceptions import UserInputError
-from fixate.core.common import ExcThread
-from fixate.config import RESOURCES
+from pubsub import pub
+from pynput import keyboard
 import fixate.config
+from fixate.config import RESOURCES
+from fixate.core.exceptions import UserInputError
 
 cmd_line_queue = Queue()
 wrapper = textwrap.TextWrapper(width=75)
 wrapper.break_long_words = False
 
 wrapper.drop_whitespace = True
+
 
 class KeyboardHook:
     def __init__(self):
@@ -160,9 +159,6 @@ def _user_choices(msg, q, choices, target, attempts=5):
      Optional
      Validation function to check if the user response is valid
     :param attempts:
-
-    :param args:
-    :param kwargs:
     :return:
     """
     choicesstr = "\n" + ', '.join(choices[:-1]) + ' or ' + choices[-1] + ' '
@@ -193,7 +189,6 @@ def _user_input(msg, q, target=None, attempts=5, kwargs=None):
      Validation function to check if the user response is valid
     :param attempts:
 
-    :param args:
     :param kwargs:
     :return:
     """
@@ -221,7 +216,6 @@ def _user_input(msg, q, target=None, attempts=5, kwargs=None):
 def _user_display(msg):
     """
     :param msg:
-    :param important: creates a line of "!" either side of the message
     :return:
     """
     print(reformat_text(msg))
@@ -230,7 +224,6 @@ def _user_display(msg):
 def _user_display_important(msg):
     """
     :param msg:
-    :param important: creates a line of "!" either side of the message
     :return:
     """
     print("")
@@ -312,7 +305,7 @@ def round_to_3_sig_figures(chk):
         ret_dict[element] = getattr(chk, element, None)
         try:
             ret_dict[element] = "{:.3g}".format(ret_dict[element])
-        except:
+        except Exception as e:
             pass
     return ret_dict
 

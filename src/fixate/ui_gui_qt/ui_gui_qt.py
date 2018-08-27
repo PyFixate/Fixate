@@ -187,9 +187,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
     def open_text_input(self, message):
         self.ActiveEvent.append(message)
-        self.ActiveEvent.verticalScrollBar().setValue(self.ActiveEvent.verticalScrollBar().maximum());
+        self.ActiveEvent.verticalScrollBar().setValue(self.ActiveEvent.verticalScrollBar().maximum())
         self.Events.append(message)
-        self.Events.verticalScrollBar().setValue(self.Events.verticalScrollBar().maximum());
+        self.Events.verticalScrollBar().setValue(self.Events.verticalScrollBar().maximum())
         self.working_indicator.stop()
         self.WorkingIndicator.hide()
         self.UserInputBox.setPlaceholderText("Input:")
@@ -351,8 +351,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     def get_input(self, message, choices):
         self.Events.append(message)
         self.ActiveEvent.append(message)
-        self.Events.verticalScrollBar().setValue(self.Events.verticalScrollBar().maximum());
-        self.ActiveEvent.verticalScrollBar().setValue(self.ActiveEvent.verticalScrollBar().maximum());
+        self.Events.verticalScrollBar().setValue(self.Events.verticalScrollBar().maximum())
+        self.ActiveEvent.verticalScrollBar().setValue(self.ActiveEvent.verticalScrollBar().maximum())
         if isinstance(choices, bool):
             pass
         elif len(choices) == 1:
@@ -401,8 +401,10 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             self.input_queue.put("ABORT_FORCE")
 
     def clean_up(self):
-        """This function is the second one called for normal termination, and the first one called for unusual termination.
-           Check for abnormal termination, and stop the sequencer if required; then stop and delete the thread"""
+        """
+        This function is the second one called for normal termination, and the first one called for unusual termination.
+        Check for abnormal termination, and stop the sequencer if required; then stop and delete the thread
+        """
 
         if self.worker_thread is None:  # This function has already run, therefore main already has the status code
             return
@@ -431,7 +433,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     """User IO handlers, emit signals to trigger main thread updates via slots.
        These are run in the sequencer thread"""
 
-    def event_output(self, message, status=True):
+    def event_output(self, message, status="True"):
         self.output_signal.emit(message, str(status))
 
     def gui_user_input(self, message, choices=None, blocking=True):
@@ -546,8 +548,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     def _user_ok(self, msg, q):
         """
         This can be replaced anywhere in the project that needs to implement the user driver
-        The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the second
-        part is the exception object or response object
+        The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the
+        second part is the exception object or response object
         :param msg:
          Message for the user to understand what to do
         :param q:
@@ -565,8 +567,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         """
         This can be replaced anywhere in the project that needs to implement the user driver
         Temporarily a simple input function.
-        The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the second
-        part is the exception object or response object
+        The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the
+        second part is the exception object or response object
         This needs to be compatible with forced exit. Look to user action for how it handles a forced exit
         :param msg:
          Message for the user to understand what to input
@@ -576,9 +578,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
          Optional
          Validation function to check if the user response is valid
         :param attempts:
-
-        :param args:
-        :param kwargs:
         :return:
         """
         if self.closing:
@@ -599,8 +598,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         """
         This can be replaced anywhere in the project that needs to implement the user driver
         Temporarily a simple input function.
-        The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the second
-        part is the exception object or response object
+        The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the
+        second part is the exception object or response object
         This needs to be compatible with forced exit. Look to user action for how it handles a forced exit
         :param msg:
          Message for the user to understand what to input
@@ -611,7 +610,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
          Validation function to check if the user response is valid
         :param attempts:
 
-        :param args:
         :param kwargs:
         :return:
         """
@@ -652,7 +650,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     def _user_display_important(self, msg):
         """
         :param msg:
-        :param important: creates a line of "!" either side of the message
         :return:
         """
         if self.closing:
@@ -761,10 +758,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.event_output(
             self.reformat_text("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), exception)),
             status=status)
-        # self.event_output(self.reformat_text("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), traceback.format_tb(exception.__traceback__))))
-        # traceback.print_tb(exception.__traceback__)
-        # print(type(exception), exception)
-        # self.event_output("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), exception))
         self.event_output("!" * wrapper.width)
         # TODO self.event_output traceback into a debug log file
         if fixate.config.DEBUG:

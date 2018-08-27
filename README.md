@@ -1,6 +1,9 @@
 # Fixate
 
-Fixate is a Python library for testing real stuff. Fixate provides a framework for writing scripts in Python to test hardware. Providing drivers for equipment, support for switching, logging and a basic test runner UI. While Fixate is fairly simple, it is already being used to test real electronics products in real factories.
+Fixate is a Python library for testing real stuff.
+Fixate provides a framework for writing scripts in Python to test hardware.
+Providing drivers for equipment, support for switching, logging and a basic test runner UI.
+While Fixate is fairly simple, it is already being used to test real electronics products in real factories.
 
 ## Getting Started
 
@@ -13,12 +16,17 @@ Alternatively, install from Pypi with 'pip install fixate'
 
 ### Run the example scripts
 
-There are a number of examples under src/fixate/examples. For a minimal example try running tiny.py. For a more complicated example using multi-level tests, try running multi_level_design.py. The test runner is executed by calling the package as a script with the test script to execute passed in using the -p command line argument:
+There are a number of examples under src/fixate/examples. For a minimal example try running tiny.py.
+For a more complicated example using multi-level tests, try running multi_level_design.py.
+The test runner is executed by calling the package as a script with the test script to execute passed in using the
+'-p' command line argument:
 
 python -m fixate -p tiny.py
 
 ## Running the tests
-In general, it is recommended to run the "core" set of tests. The "drivers" test have a number of dependencies that are not required by default. Tests run using unittest. Navigate to the test/core directory and execute "python -m unittest".
+In general, it is recommended to run the "core" set of tests.
+The "drivers" test have a number of dependencies that are not required by default. Tests run using unittest.
+Navigate to the test/core directory and execute "python -m unittest".
 
 ## Modifying the Qt GUI
 
@@ -39,4 +47,4 @@ See also the list of [contributors](https://github.com/your/project/contributors
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details

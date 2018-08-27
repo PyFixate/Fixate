@@ -1,26 +1,26 @@
 import argparse
 import asyncio
+import functools
 import importlib.machinery
+import logging
 import os
 import sys
-import functools
-import logging
-from argparse import RawTextHelpFormatter
 import zipimport
-import fixate.config
+from argparse import RawTextHelpFormatter
 from time import sleep
-from fixate.config.local_config import save_local_config
+from pubsub import pub
+import fixate.config
 from fixate.config import ASYNC_TASKS, RESOURCES
-from fixate.core.ui import user_ok, user_input, user_serial, user_info
+from fixate.config.local_config import save_local_config
+from fixate.core.exceptions import SequenceAbort
+from fixate.core.ui import user_ok, user_input, user_serial
 from fixate.reporting import register_csv, unregister_csv
 from fixate.ui_cmdline import register_cmd_line, unregister_cmd_line
-from fixate.core.exceptions import ScriptError, SequenceAbort
-from pubsub import pub
 
 try:
     asyncio.ensure_future
 except AttributeError:
-    asyncio.ensure_future = getattr(asyncio, 'async')  # Compatability with 3.4.4 and 3.5
+    asyncio.ensure_future = getattr(asyncio, 'async')  # Compatibility with 3.4.4 and 3.5
 parser = argparse.ArgumentParser(description="""
 Fixate Command Line Interface
 
@@ -82,7 +82,9 @@ def load_test_suite(script_path, zip_path, zip_selector):
     """
     Attempts to load a Fixate Script file from an absolute path.
     Try loading from zip, then direct script otherwise
-    :param cli_args:
+    :param script_path:
+    :param zip_path:
+    :param zip_selector:
     :return:
     """
     if not any([script_path, zip_path]):
@@ -106,7 +108,10 @@ def load_test_suite(script_path, zip_path, zip_selector):
 
 
 class FixateController:
-    """This class acts as the base controller for the command line interface. It may be subclassed for different execution environments"""
+    """
+    This class acts as the base controller for the command line interface.
+    It may be subclassed for different execution environments
+    """
 
     def __init__(self, sequencer, test_script_path, csv_output_path, args, loop):
         register_cmd_line()
@@ -147,7 +152,8 @@ class FixateSupervisor:
                     self.fixateApp = QtWidgets.QApplication(sys.argv)
                     self.fixateApp.setQuitOnLastWindowClosed(False)
                     self.fixateDisplay = gui.FixateGUI(self.worker, self.fixateApp)
-                    self.fixateApp.aboutToQuit.connect(self.fixateDisplay.clean_up)  # Duplicate call except in the case where termination is caused by logoff/shutdown
+                    self.fixateApp.aboutToQuit.connect(
+                        self.fixateDisplay.clean_up)  # Duplicate call except in the case where termination is caused by logoff/shutdown
                     self.fixateDisplay.show()
 
                 def fixate_exec(self):
