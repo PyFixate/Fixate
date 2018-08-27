@@ -22,7 +22,7 @@ In general, it is recommended to run the "core" set of tests. The "drivers" test
 
 ## Modifying the Qt GUI
 
-The Qt GUI base file is created using Qt Designer under Mingw32
+The Qt GUI base file is created using Qt Designer under Mingw32.
 If you'd like to make changes, use pyuic5 to build the layout file, with the command:
 
 pyuic5 fixateGUI.ui -o layout.py

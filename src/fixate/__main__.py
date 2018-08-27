@@ -137,12 +137,13 @@ class FixateSupervisor:
 
             class QTController(FixateController):
                 def __init__(self, sequencer, test_script_path, csv_output_path, args, loop):
-                    from PyQt5 import QtWidgets
+                    from PyQt5 import QtWidgets, QtCore
                     import fixate.ui_gui_qt as gui
 
                     self.worker = FixateWorker(test_script_path=test_script_path, csv_output_path=csv_output_path,
                                                args=args, loop=loop, sequencer=sequencer)
 
+                    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
                     self.fixateApp = QtWidgets.QApplication(sys.argv)
                     self.fixateApp.setQuitOnLastWindowClosed(False)
                     self.fixateDisplay = gui.FixateGUI(self.worker, self.fixateApp)
