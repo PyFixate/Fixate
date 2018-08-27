@@ -20,6 +20,13 @@ python -m fixate -p tiny.py
 ## Running the tests
 In general, it is recommended to run the "core" set of tests. The "drivers" test have a number of dependencies that are not required by default. Tests run using unittest. Navigate to the test/core directory and execute "python -m unittest".
 
+## Modifying the Qt QUI
+
+The Qt GUI base file is created using Qt Designer under Mingw32
+If you'd like to make changes, use pyuic5 to build the layout file, with the command:
+
+pyuic5 fixateGUI.ui -o layout.py
+
 ## Contributing
 
 Contributions are welcome. Get in touch or create a new pull request.
