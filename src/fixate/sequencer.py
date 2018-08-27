@@ -164,7 +164,6 @@ class Sequencer:
         """Get the total number of tests"""
         return sum(1 for test in test_list_repr(self.context[0].testlist) if test.get('test_type') == 'test')
 
-
     def tests_completed(self):
         """Count the number of tests remaining"""
         current_index = "0"
@@ -174,15 +173,19 @@ class Sequencer:
             if index == 0:
                 pass
             elif index == 1:
-                current_index = str(test.index+1)
+                current_index = str(test.index + 1)
             else:
-                current_index += "."+str(test.index+1)
+                current_index += "." + str(test.index + 1)
 
-        for index, test in enumerate(test_list_repr(self.context[0].testlist)):
-            if test.get('test_type') == 'test':
-                search_index += 1
-            if test.get('level') == current_index:
-                return search_index
+        try:
+            for index, test in enumerate(test_list_repr(self.context[0].testlist)):
+                if test.get('test_type') == 'test':
+                    search_index += 1
+                if test.get('level') == current_index:
+                    return search_index
+
+        except IndexError:
+            return 0
 
         return 0
 
@@ -297,7 +300,7 @@ class Sequencer:
                     self.tests_failed += 1
                 break
             except CheckFail:
-                if self.ABORT:  #   Program force quit
+                if self.ABORT:  # Program force quit
                     active_test_status = "ERROR"
                     raise SequenceAbort("Sequence Aborted")
                 # Retry Logic for failed checks
@@ -378,7 +381,7 @@ class Sequencer:
         self.context.push(self.tests)
         self.context_data.clear()
         self.end_status = "N/A"
-        
+
     def check(self, chk, result):
         if result:
             self.chk_pass += 1
