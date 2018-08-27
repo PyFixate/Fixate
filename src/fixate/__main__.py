@@ -278,9 +278,9 @@ class FixateWorker:
             input(traceback.print_exc())
             raise
         finally:
+            unregister_csv()
             if serial_number == "ABORT_FORCE" or test_selector == "ABORT_FORCE":
                 return 11
-            unregister_csv()
             save_local_config()
             self.clean = True  # Let the supervisor know that the program is finishing normally
             if self.sequencer.end_status == "FAILED":
