@@ -248,7 +248,8 @@ class FixateWorker:
             if self.args.local_log:
                 self.csv_output_path = os.path.join(os.path.dirname(self.test_script_path))
             if self.csv_output_path is None:
-                self.csv_output_path = os.path.join(base_csv_path, self.sequencer.context_data.get("part_number", ""),
+                from fixate.config.fixate_config import BASE_CSV_PATH
+                self.csv_output_path = os.path.join(BASE_CSV_PATH, self.sequencer.context_data.get("part_number", ""),
                                                     self.sequencer.context_data.get("module", ""))
             register_csv(self.csv_output_path)
             self.sequencer.status = 'Running'
@@ -322,9 +323,6 @@ def run_main_program(test_script_path=None, csv_output_path=None):
     supervisor = FixateSupervisor(test_script_path, csv_output_path, args)
     exit(supervisor.run_fixate())
 
-
-# Default directory if none is provided
-base_csv_path = os.path.dirname("\\\\cam-fs001\\Groups\\Production\\Test Programs\\Amptest Logs\\")
 
 # Setup configuration
 if __name__ == "__main__":
