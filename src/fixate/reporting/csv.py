@@ -105,6 +105,7 @@ class CsvReporting:
         self.csv_path = ''
         self.test_module = None
         self.start_time = None
+        self.current_test = None
 
     def sequence_update(self, status):
         # Do Start Sequence Reporting
@@ -165,6 +166,7 @@ class CsvReporting:
                                  'Test {}'.format(test_index), 'start', data.test_desc, data.test_desc_long])
 
         test_params = self.extract_test_parameters(data)
+        self.current_test = test_index
         if len(test_params):
             # Test <test_index>, test-parameters, <param_name>=<param_value>, ...
             param_line = ["{:.2f}".format(time.clock() - self.start_time),
@@ -174,6 +176,7 @@ class CsvReporting:
             self._write_line_to_csv(param_line)
 
     def test_exception(self, exception, test_index):
+        self.current_test = test_index
         exc_line = ["{:.2f}".format(time.clock() - self.start_time),
                     'Test {}'.format(test_index),
                     'exception',
@@ -199,6 +202,7 @@ class CsvReporting:
         self.chk_cnt += 1
 
     def test_complete(self, data, test_index, status):
+        self.current_test = test_index
         try:
             sequencer = fixate.config.RESOURCES["SEQUENCER"]
             passed = sequencer.chk_pass
@@ -212,6 +216,11 @@ class CsvReporting:
                                      'checks-failed={}'.format(failed)])
         finally:
             self.chk_cnt = 0
+
+    def user_wait(self, *args, **kwargs):
+        self._write_line_to_csv(["{:.2f}".format(time.clock() - self.start_time),
+                                 'Test {}'.format(self.current_test),
+                                 'waiting'])
 
     @staticmethod
     def extract_test_parameters(test_cls):
@@ -261,6 +270,10 @@ def register_csv(csv_dir):
     pub.subscribe(writer.reporting.test_complete, "Test_Complete")
     pub.subscribe(writer.reporting.sequence_update, "Sequence_Update")
     pub.subscribe(writer.reporting.sequence_complete, "Sequence_Complete")
+    pub.subscribe(writer.reporting.user_wait, "UI_req")
+    pub.subscribe(writer.reporting.user_wait, "UI_req_choices")
+    pub.subscribe(writer.reporting.user_wait, "UI_req_input")
+    pub.subscribe(writer.reporting.user_wait, "UI_action")
 
 
 def unregister_csv():
@@ -275,4 +288,8 @@ def unregister_csv():
     pub.unsubscribe(writer.reporting.test_complete, "Test_Complete")
     pub.unsubscribe(writer.reporting.sequence_update, "Sequence_Update")
     pub.unsubscribe(writer.reporting.sequence_complete, "Sequence_Complete")
+    pub.unsubscribe(writer.reporting.user_wait, "UI_req")
+    pub.unsubscribe(writer.reporting.user_wait, "UI_req_choices")
+    pub.unsubscribe(writer.reporting.user_wait, "UI_req_input")
+    pub.unsubscribe(writer.reporting.user_wait, "UI_action")
     writer.uninstall()
