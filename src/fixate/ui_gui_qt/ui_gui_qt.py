@@ -89,7 +89,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.closing = False
 
         # Extra GUI setup not supported in the designer
-        self.TestTree.setColumnWidth(1, 80)
+        self.TestTree.setColumnWidth(1, 90)
         self.TestTree.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         self.TestTree.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Fixed)
 
