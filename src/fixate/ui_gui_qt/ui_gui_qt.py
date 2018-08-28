@@ -194,6 +194,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.WorkingIndicator.hide()
         self.UserInputBox.setPlaceholderText("Input:")
         self.UserInputBox.setEnabled(True)
+        self.UserInputBox.setFocus()
 
     def start_indicator(self):
         self.WorkingIndicator.show()
