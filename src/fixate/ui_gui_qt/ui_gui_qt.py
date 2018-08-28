@@ -91,6 +91,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.TestTree.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Fixed)
 
         self.base_image = ""
+        self.dialog = None
         self.image_scene = QtWidgets.QGraphicsScene()
         self.ImageView.set_scene(self.image_scene)
         self.ImageView.setScene(self.image_scene)
@@ -206,21 +207,43 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             self.image_scene.clear()
             if overlay:
                 image = QtGui.QPixmap(self.base_image)
+                if image.isNull():
+                    self.file_not_found(self.base_image)
             elif path == "":
                 self.base_image = path
                 return
             else:
                 self.base_image = path
                 image = QtGui.QPixmap(path)
+                if image.isNull():
+                    self.file_not_found(path)
             self.image_scene.addPixmap(image)
             self.ImageView.fitInView(0, 0, self.image_scene.width(), self.image_scene.height(),
                                      QtCore.Qt.KeepAspectRatio)
             return
 
         image = QtGui.QPixmap(path)
+        if image.isNull():
+            self.file_not_found(path)
         self.image_scene.addPixmap(image)
         self.ImageView.fitInView(0, 0, self.image_scene.width(), self.image_scene.height(), QtCore.Qt.KeepAspectRatio)
         return
+
+    def file_not_found(self, path):
+        """
+        Display warning box for an invalid image path
+        :param path:
+        :return:
+        """
+
+        self.dialog = QtWidgets.QMessageBox()
+        self.dialog.setText("Warning: Image not Found")
+        self.dialog.setInformativeText("Filename: {}".format(path))
+        self.dialog.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        self.dialog.setDefaultButton(QtWidgets.QMessageBox.Ok)
+        self.dialog.setIcon(QtWidgets.QMessageBox.Warning)
+        self.dialog.exec()
+
 
     def display_tree(self, tree):
 

@@ -56,6 +56,8 @@ class ParameterisedTest(TestClass):
         user_ok("The overlay should be cleared, leaving the base. Press OK to continue")
         user_image()
         user_ok("The screen should be clear. Press OK to continue")
+        user_image("Invalid_Image.abc")
+        user_ok("There should have been a warning box. Press OK to continue")
 
 
 TEST_SEQUENCE = [SimpleTest(), MyTestList([ParameterisedTest(1), ParameterisedTest(2)])]
