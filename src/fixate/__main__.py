@@ -9,6 +9,7 @@ from time import sleep
 from zipimport import zipimporter
 from pubsub import pub
 import fixate.config
+import ruamel.yaml
 from fixate.config import ASYNC_TASKS, RESOURCES
 from fixate.config.local_config import save_local_config
 from fixate.core.exceptions import SequenceAbort
@@ -43,6 +44,8 @@ parser.add_argument('-q', '--qtgui',
 parser.add_argument('-d', '--dev',
                     help="""Activate Dev Mode for more debug information""",
                     action="store_true")
+parser.add_argument('-c', '--config',
+                    help="""Specify config file""")
 parser.add_argument('-n', '--n_loops', '--n-loops',
                     help="""Loop the test. Use -1 for infinite loops""",
                     action="store")
@@ -182,6 +185,7 @@ class FixateWorker:
         self.loop = loop
         self.start = False
         self.clean = False
+        self.config = None
 
     def get_task_count(self):
         return self.sequencer.count_tests()
@@ -209,6 +213,24 @@ class FixateWorker:
             pass  # If the thread has hung, or reached an uninterruptable state, ignore it, it'll be force terminated at the end anyway
 
         return 11
+
+    def read_config(self, path=None):
+        """
+        Loads yaml config file, and reads in parameters
+        :param path:
+        :return:
+        """
+
+        if path is None:
+            return {}
+
+        try:
+            with open(os.path.join(path), 'rb') as f:
+                yaml = ruamel.yaml.YAML(typ="safe", pure=True)
+                return yaml.load(f)
+        except (IOError, OSError) as e:
+            raise e("Error opening config file")
+        return {}
 
     def ui_run(self):
 
@@ -248,8 +270,8 @@ class FixateWorker:
             if self.args.local_log:
                 self.csv_output_path = os.path.join(os.path.dirname(self.test_script_path))
             if self.csv_output_path is None:
-                from fixate.config.fixate_config import BASE_CSV_PATH
-                self.csv_output_path = os.path.join(BASE_CSV_PATH, self.sequencer.context_data.get("part_number", ""),
+                self.config = self.read_config(self.args.config)
+                self.csv_output_path = os.path.join(self.config.get('BASE_CSV_PATH', ""), self.sequencer.context_data.get("part_number", ""),
                                                     self.sequencer.context_data.get("module", ""))
             register_csv(self.csv_output_path)
             self.sequencer.status = 'Running'

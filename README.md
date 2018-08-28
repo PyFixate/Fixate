@@ -19,7 +19,7 @@ Alternatively, install from Pypi with 'pip install fixate'
 There are a number of examples under src/fixate/examples. For a minimal example try running tiny.py.
 For a more complicated example using multi-level tests, try running multi_level_design.py.
 The test runner is executed by calling the package as a script with the test script to execute passed in using the
-'-p' command line argument:
+'-p' command line argument, as well as the -c command line argument to specify the config file
 
 python -m fixate -p tiny.py
 
