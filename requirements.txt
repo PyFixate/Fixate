@@ -2,3 +2,4 @@ pyvisa
 pypubsub
 pyqt5
 pynput
+ruamel.yaml
