@@ -230,7 +230,6 @@ class FixateWorker:
                 return yaml.load(f)
         except (IOError, OSError) as e:
             raise e("Error opening config file")
-        return {}
 
     def ui_run(self):
 
