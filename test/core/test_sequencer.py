@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import MagicMock, call
 from pubsub import pub
 import fixate
-from fixate.core.common import TestList, TestClass
+from fixate.core.common import TestList as FixateTL, TestClass as FixateTC
 
 
 def sleep_100m():
@@ -11,7 +11,7 @@ def sleep_100m():
     return True
 
 
-class Lst(TestList):
+class Lst(FixateTL):
     """
     Mock Test List
     """
@@ -40,7 +40,7 @@ class LstSetupFail(Lst):
         raise ValueError("Failed Setup")
 
 
-class Test(TestClass):
+class SubclassOfFixateTest(FixateTC):
     """
     Dummy Test Class
     """
@@ -78,7 +78,7 @@ class TestSequencerTests(unittest.TestCase):
         test_lst = \
             Lst([
                 Lst([
-                    Test(3, self.mock_master)],
+                    SubclassOfFixateTest(3, self.mock_master)],
                     2, self.mock_master)],
                 1, self.mock_master)
         self.test_cls.load(test_lst)
@@ -106,11 +106,11 @@ class TestSequencerTests(unittest.TestCase):
     def test_complex_test_list(self):
         self.mock_master = MagicMock()
         self.test_cls.clear_tests()
-        test_lst = Lst([Test(2, self.mock_master),
-                        Lst([Test(4, self.mock_master),
-                             Test(5, self.mock_master)],
+        test_lst = Lst([SubclassOfFixateTest(2, self.mock_master),
+                        Lst([SubclassOfFixateTest(4, self.mock_master),
+                             SubclassOfFixateTest(5, self.mock_master)],
                             3, self.mock_master),
-                        Test(6, self.mock_master)],
+                        SubclassOfFixateTest(6, self.mock_master)],
                        1, self.mock_master)
         self.test_cls.load(test_lst)
         self.run_test_cls()
@@ -159,7 +159,7 @@ class TestSequencerTests(unittest.TestCase):
             Lst(
                 [LstSetupFail(
                     [Lst(
-                        [Test(4, self.mock_master)],
+                        [SubclassOfFixateTest(4, self.mock_master)],
                         3, self.mock_master)],
                     2, self.mock_master)],
                 1, self.mock_master)
@@ -189,7 +189,7 @@ class TestSequencerTests(unittest.TestCase):
             Lst(
                 [LstSetupFail(
                     [Lst(
-                        [Test(4, self.mock_master)],
+                        [SubclassOfFixateTest(4, self.mock_master)],
                         3, self.mock_master)],
                     2, self.mock_master)],
                 1, self.mock_master)

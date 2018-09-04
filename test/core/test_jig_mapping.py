@@ -3,8 +3,14 @@ from unittest.mock import MagicMock
 
 from fixate.core.jig_mapping import VirtualAddressMap, AddressHandler, VirtualMux
 
-import map_data
-
+try:
+    # This try/except is temporary while moving tests to pytest. running
+    # python -m unittest vs pytest ends up with different python path. In
+    # time we will most likely move to using only pytest and when that happens
+    # the except clause below can be removed.
+    from . import map_data
+except ImportError:
+    import map_data
 
 class TestVirtualAddressMap(TestCase):
     """
