@@ -24,14 +24,6 @@ def readfile(filename, func):
     except (IOError, IndexError):
         sys.stderr.write(u"""
 Can't find '%s' file. This doesn't seem to be a valid release.
-
-If you are working from a git clone, run:
-    make describe
-    setup.py develop
-
-To build a valid release, run:
-    make all
-
 """ % filename)
         sys.exit(1)
     return data
@@ -67,7 +59,12 @@ setup(
     scripts=[],
     url="http://pyfixate.com/",
     version=get_version(),
-    install_requires=get_requires(),
+    install_requires=["pyvisa",
+        "pypubsub",
+        #"pyqt5",
+        "pynput",
+        "ruamel.yaml",
+        ],
     python_requires='~=3.4',
     dependency_links=[],
     include_package_data=True,
