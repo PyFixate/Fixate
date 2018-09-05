@@ -2,8 +2,8 @@
 *.pyc
 *.csv
 *.pyc
-*.pyc
-*fixate_config.py
 build/*
 dist/*
 src/fixate.egg-info/
+.pytest_cache
+.tox/
