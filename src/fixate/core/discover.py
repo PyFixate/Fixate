@@ -91,16 +91,16 @@ def open_visa_instrument(instr_type, restrictions=None):
     discover_called = False
     if not instruments:
         # All discovery methods for implemented instruments should be called
-        instruments = discover_visa()
+        discover_visa()
         discover_called = True
-    instruments = filter_connected(instruments, fixate.config.DRIVERS.get(instr_type, {}))
+    instruments = filter_connected(fixate.config.INSTRUMENTS, fixate.config.DRIVERS.get(instr_type, {}))
     # This is where the restrictions would come in
     if instruments:
         for instr in instruments:
             return instruments[instr]
     elif discover_called is False:
-        instruments = discover_visa()
-        instruments = filter_connected(instruments, fixate.config.DRIVERS.get(instr_type, {}))
+        discover_visa()
+        instruments = filter_connected(fixate.config.INSTRUMENTS, fixate.config.DRIVERS.get(instr_type, {}))
         for instr in instruments:
             return instruments[instr]
 
@@ -160,14 +160,28 @@ def _visa_get_instrument(queries):
 def _visa_id_query(instrument):
     try:
 
-        instr = fixate.config.RESOURCES["VISA_RESOURCE_MANAGER"].get_instrument(instrument)
-        tmp_timeout = instr.timeout
+        instr = fixate.config.RESOURCES["VISA_RESOURCE_MANAGER"].open_resource(instrument, query_delay=0.1)
+
         instr.timeout = 100
-        instr.write("*IDN?")
-        time.sleep(0.1)
-        resp = instr.read()
-        instr.timeout = tmp_timeout
-        return resp, instrument
+
+        resp = instr.query("*IDN?")
+
+        if resp:
+            instr.close()
+            del instr
+            return resp, instrument
+
+        instr.read_termination = '\n'
+        instr.write_termination = '\n'
+
+        resp = instr.query("*IDN?")
+
+        if resp:
+            instr.close()
+            del instr
+            return resp, instrument
+        return False, instrument
+
     except VisaIOError as e:
         if e.error_code != VI_ERROR_TMO:
             """
@@ -175,7 +189,7 @@ def _visa_id_query(instrument):
             Visa instruments yet pyvisa seems to think that they are
             """
             # TODO Should be logged
-            #print(e)
+            # print(e)
         return False, instrument
 
 
@@ -266,7 +280,7 @@ def filter_connected(instruments, classes):
     result = {}
     for cls_name, cls in classes:
         if cls.INSTR_TYPE == 'VISA':
-            for instr_id, instr_interface in instruments:
+            for instr_id, instr_interface in instruments.get("visa", []):
                 # In future make it a proper regex search rather than a straight string search
                 if re.search(cls.REGEX_ID, instr_id):
                     try:
@@ -274,7 +288,7 @@ def filter_connected(instruments, classes):
                     except VisaIOError:
                         pass
         if cls.INSTR_TYPE == 'SERIAL':
-            for com_port, info in instruments.items():
+            for com_port, info in instruments.get("serial", {}).items():
                 instr_id, baud_rate = info
                 if re.search(cls.REGEX_ID, instr_id):
                     try:
