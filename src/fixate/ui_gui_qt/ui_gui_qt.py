@@ -1,4 +1,6 @@
 import sys
+import os
+import pkgutil
 import textwrap
 import traceback
 from collections import OrderedDict
@@ -201,28 +203,35 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.WorkingIndicator.show()
         self.working_indicator.start()
 
-    def display_image(self, path="", overlay=False):
+    def retrieve_packaged_data(self, path):
+        try:
+            return pkgutil.get_data("module.loaded_tests", path)
+        except FileNotFoundError:
+            return b""
 
+    def display_image(self, path="", overlay=False):
         if path == "" or not overlay:
             self.image_scene.clear()
             if overlay:
-                image = QtGui.QPixmap(self.base_image)
+                image = QtGui.QPixmap()
+                image.loadFromData(self.base_image)
                 if image.isNull():
                     self.file_not_found(self.base_image)
             elif path == "":
                 self.base_image = path
                 return
             else:
-                self.base_image = path
-                image = QtGui.QPixmap(path)
+                self.base_image = self.retrieve_packaged_data(path)
+                image = QtGui.QPixmap()
+                image.loadFromData(self.base_image)
                 if image.isNull():
                     self.file_not_found(path)
             self.image_scene.addPixmap(image)
             self.ImageView.fitInView(0, 0, self.image_scene.width(), self.image_scene.height(),
                                      QtCore.Qt.KeepAspectRatio)
             return
-
-        image = QtGui.QPixmap(path)
+        image = QtGui.QPixmap()
+        image.loadFromData(self.retrieve_packaged_data(path))
         if image.isNull():
             self.file_not_found(path)
         self.image_scene.addPixmap(image)
@@ -243,7 +252,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.dialog.setDefaultButton(QtWidgets.QMessageBox.Ok)
         self.dialog.setIcon(QtWidgets.QMessageBox.Warning)
         self.dialog.exec()
-
 
     def display_tree(self, tree):
 
