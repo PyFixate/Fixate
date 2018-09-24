@@ -11,7 +11,7 @@ DRIVER_LIST = {"DMM": {"dmm.fluke_8846a.Fluke8846A"},
                "DAQ": {"daq.daqmx.DaqMx"},
                "LCR": {"lcr.agilent_u1732c.AgilentU1732C"},
                "PROGRESSION": {"progression.Progression"},
-               "PPS": {'pps.bk_178x.BK178X'},
+               "PPS": {'pps.bk_178x.BK178X', 'pps.siglent_spd_3303X.SPD3303X'},
                "DSO": {'dso.agilent_mso_x.MSO_X_3000'},
                "FTDI": {"ftdi.FTDI2xx"}}
 CONFIG_LOADED = False
@@ -22,7 +22,7 @@ RESOURCES = {}
 DRIVERS = {}
 ASYNC_TASKS = []
 DEBUG = False
-
+importer = None
 # Import the drivers from the DRIVER_LIST
 for key, value in DRIVER_LIST.items():
     for drv in value:
