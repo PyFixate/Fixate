@@ -60,9 +60,10 @@ class SubclassOfFixateTest(FixateTC):
     def test(self):
         self.mock.test_test(self.num)
 
+
 @unittest.skip("busted. Looks like aysnc stuff might not be working?")
 class TestSequencerTests(unittest.TestCase):
-    async = False
+    _async = False
 
     def setUp(self):
         self.test_cls = fixate.config.RESOURCES["SEQUENCER"]
@@ -97,11 +98,11 @@ class TestSequencerTests(unittest.TestCase):
                                            ])
 
     def test_async_single_test_deep_level(self):
-        self.async = True
+        self._async = True
         try:
             self.test_single_test_deep_level()
         finally:
-            self.async = False
+            self._async = False
 
     def test_complex_test_list(self):
         self.mock_master = MagicMock()
@@ -145,11 +146,11 @@ class TestSequencerTests(unittest.TestCase):
                                            ])
 
     def test_async_complex_test_list(self):
-        self.async = True
+        self._async = True
         try:
             self.test_complex_test_list()
         finally:
-            self.async = False
+            self._async = False
 
     def test_list_setup_fail(self):
         self.mock_master = MagicMock()
@@ -206,15 +207,16 @@ class TestSequencerTests(unittest.TestCase):
                                            call.list_exit(2),
                                            call.list_exit(1),
                                            ])
+
     def test_async_list_setup_fail(self):
-        self.async = True
+        self._async = True
         try:
             self.test_list_setup_fail()
         finally:
-            self.async = False
+            self._async = False
 
     def run_test_cls(self):
-        if self.async:
+        if self._async:
             self.test_cls.loop.run_in_executor(None, self.test_cls.run_sequence)
         else:
             self.test_cls.run_sequence()

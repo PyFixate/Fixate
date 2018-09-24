@@ -1,6 +1,9 @@
 import time
-from amptest.drivers.pps import PPS
-from amptest.lib.exceptions import ParameterError, InstrumentError
+from fixate.drivers.pps import PPS
+from fixate.core.exceptions import ParameterError, InstrumentError
+from functools import update_wrapper
+import inspect
+import re
 
 
 class SPD3303X(PPS):
@@ -10,7 +13,12 @@ class SPD3303X(PPS):
     read_termination = "\n"
 
     def __init__(self, instrument):
+        super().__init__(instrument)
         self.instrument = instrument
+        self.instrument.timeout = 100
+        self.instrument.query_delay = 0.1
+        self.instrument.read_termination = self.read_termination
+        self.instrument.write_termination = self.write_termination
         # (<api command>, <write or query>, <command>)
         self.api = [
             # Save commands
@@ -28,69 +36,41 @@ class SPD3303X(PPS):
             # Channel 1 Commands
             ("channel1.voltage", self.write, "CH1:VOLT {value}"),
             ("channel1.current", self.write, "CH1:CURR {value}"),
-            ("channel1.off", self.write, "OUTPut CH1,OFF"),
-            ("channel1.on", self.write, "OUTPut CH1,ON"),
-            ("channel1.wave.on", self.write, "OUTPut:WAVE CH1,ON"),
-            ("channel1.wave.off", self.write, "OUTPut:WAVE CH1,OFF"),
-            ("channel1.timer.set.group1", self.write, "TIMEr:SET CH1,1,{voltage},{current},{time}"),
-            ("channel1.timer.set.group2", self.write, "TIMEr:SET CH1,2,{voltage},{current},{time}"),
-            ("channel1.timer.set.group3", self.write, "TIMEr:SET CH1,3,{voltage},{current},{time}"),
-            ("channel1.timer.set.group4", self.write, "TIMEr:SET CH1,4,{voltage},{current},{time}"),
-            ("channel1.timer.set.group5", self.write, "TIMEr:SET CH1,5,{voltage},{current},{time}"),
-            ("channel1.timer.on()", self.write, "TIMEr CH1,ON;"),
-            ("channel1.timer.off()", self.write, "TIMEr CH1,OFF;"),
+            ("channel1._call", self.write_bool, "OUTPut CH1,{value}"),
+            ("channel1.wave", self.write_bool, "OUTPut:WAVE CH1,{value}"),
+            ("channel1.timer.set_waveform", self.write_timer, "TIMEr:SET CH1,{group},{voltage},{current},{duration}"),
+            ("channel1.timer._call", self.write_bool, "TIMEr CH1,{value}"),
             # Channel 2 Commands
             ("channel2.voltage", self.write, "CH1:VOLT {value}"),
             ("channel2.current", self.write, "CH1:CURR {value}"),
-            ("channel2.off", self.write, "OUTPut CH2,OFF"),
-            ("channel2.on", self.write, "OUTPut CH2,ON"),
-            ("channel2.wave.on", self.write, "OUTPut:WAVE CH1,ON"),
-            ("channel2.wave.off", self.write, "OUTPut:WAVE CH1,OFF"),
-            ("channel2.timer.set.group1", self.write, "TIMEr:SET CH2,1,{voltage},{current},{time}"),
-            ("channel2.timer.set.group2", self.write, "TIMEr:SET CH2,2,{voltage},{current},{time}"),
-            ("channel2.timer.set.group3", self.write, "TIMEr:SET CH2,3,{voltage},{current},{time}"),
-            ("channel2.timer.set.group4", self.write, "TIMEr:SET CH2,4,{voltage},{current},{time}"),
-            ("channel2.timer.set.group5", self.write, "TIMEr:SET CH2,5,{voltage},{current},{time}"),
-            ("channel2.timer.on()", self.write, "TIMEr CH2,ON;"),
-            ("channel2.timer.off()", self.write, "TIMEr CH2,OFF;"),
+            ("channel2._call", self.write_bool, "OUTPut CH2,OFF"),
+            ("channel2.wave", self.write_bool, "OUTPut:WAVE CH1,{value}"),
+            ("channel2.timer.set_waveform", self.write_timer, "TIMEr:SET CH2,{group},{voltage},{current},{duration}"),
+            ("channel2.timer._call", self.write_bool, "TIMEr CH2,{value}"),
             # Output Setting Commands
-            ("output.independent", self.write, "OUTPut:TRACK 0"),
-            ("output.series", self.write, "OUTPut:TRACK 1"),
-            ("output.parallel", self.write, "OUTPut:TRACK 2"),
+            ("independent", self.write, "OUTPut:TRACK 0"),
+            ("series.voltage", self.write, "OUTPut:TRACK 1"),
+            ("series.current", self.write, "OUTPut:TRACK 1"),
+            ("parallel.voltage", self.write, "OUTPut:TRACK 2"),
+            ("parallel.current", self.write, "OUTPut:TRACK 2"),
             # Address Setting Commands
             ("address.ip", self.write, "IPaddr {value}"),
             ("address.mask", self.write, "MASKaddr {value}"),
             ("address.gate", self.write, "GATEaddr {value}"),
-            ("address.dhcp.on", self.write, "DHCP ON"),
-            ("address.dhcp.off", self.write, "DHCP OFF"),
+            ("address.dhcp", self.write_bool, "DHCP {value}"),
 
             ("idn", self.query_value, "*IDN?"),
             # Channel 1 Measuring
             ("channel1.measure.current", self.query_value, "MEAS:CURRent? CH1"),
-            ("channel1.measure.voltage", self.query_value, "MEAS:VOLTage? {CH1}"),
-            ("channel1.measure.power", self.query_value, "MEAS:POWEr? {CH1}"),
-            ("channel1.timer.get.group1", self.query_value, "TIMEr:SET? CH1,1"),
-            ("channel1.timer.get.group2", self.query_value, "TIMEr:SET? CH1,2"),
-            ("channel1.timer.get.group3", self.query_value, "TIMEr:SET? CH1,3"),
-            ("channel1.timer.get.group4", self.query_value, "TIMEr:SET? CH1,4"),
-            ("channel1.timer.get.group5", self.query_value, "TIMEr:SET? CH1,5"),
-            ("channel1.current.get", self.query_value, "CH1 CURRent?"),
-            ("channel1.voltage.get", self.query_value, "CH1 VOLTage?"),
+            ("channel1.measure.voltage", self.query_value, "MEAS:VOLTage? CH1"),
+            ("channel1.measure.power", self.query_value, "MEAS:POWEr? CH1"),
             # Channel 2 Measuring
             ("channel2.measure.current", self.query_value, "MEAS:CURRent? CH2"),
-            ("channel2.measure.voltage", self.query_value, "MEAS:VOLTage? {CH2}"),
-            ("channel2.measure.power", self.query_value, "MEAS:POWEr? {CH2}"),
-            ("channel2.timer.get.group1", self.query_value, "TIMEr:SET? CH1,1"),
-            ("channel2.timer.get.group2", self.query_value, "TIMEr:SET? CH1,2"),
-            ("channel2.timer.get.group3", self.query_value, "TIMEr:SET? CH1,3"),
-            ("channel2.timer.get.group4", self.query_value, "TIMEr:SET? CH1,4"),
-            ("channel2.timer.get.group5", self.query_value, "TIMEr:SET? CH1,5"),
-            ("channel1.current.get", self.query_value, "CH1 CURRent?"),
-            ("channel1.voltage.get", self.query_value, "CH1 VOLTage?"),
-            ("", self.query_value, ""),
-            ("", self.query_value, ""),
-
+            ("channel2.measure.voltage", self.query_value, "MEAS:VOLTage? CH2"),
+            ("channel2.measure.power", self.query_value, "MEAS:POWEr? CH2")
         ]
+
+        self.init_api()
 
     def query_value(self, base_str, *args, **kwargs):
         formatted_string = self._format_string(base_str, **kwargs)
@@ -107,6 +87,24 @@ class SPD3303X(PPS):
     def write(self, base_str, *args, **kwargs):
         formatted_string = self._format_string(base_str, **kwargs)
         self._write(formatted_string)
+
+    def write_bool(self, base_str, value):
+        if value:
+            formatted_string = base_str.format(value="ON")
+        else:
+            formatted_string = base_str.format(value="OFF")
+        self._write(formatted_string)
+
+    def write_timer(self, base_str, waveform):
+
+        if len(waveform) > 5:
+            raise ValueError("Error: Too many points in waveform. Waveform must have 5 or fewer points")
+
+        for index, wave in enumerate(waveform):
+            group = index + 1
+            voltage, current, duration = wave
+            formatted_string = base_str.format(group=group, voltage=voltage, current=current, duration=duration)
+            self._write(formatted_string)
 
     def _format_string(self, base_str, **kwargs):
         kwargs['self'] = self
@@ -172,21 +170,25 @@ class SPD3303X(PPS):
 
     def _write(self, data):
         """
-        The DG1022 cannot respond to visa commands as quickly as some other devices
-        A 100ms delay was found to be reliable for most commands with the exception of the *IDN?
-        identification command. An extra 100ms should be allowed for explicit calls to *IDN?
+        The SPD3303X cannot respond to visa commands as quickly as some other devices
+        A 20ms delay was found to be reliable for most commands.
         Note:
         The 6000 number for the sleep is derived from trial and error. The write calls don't seem to block at the rate
         they write. By allowing 166uS delay for each byte of data then the Funcgen doesn't choke on the next call. A
-        flat 100ms is added to allow processing time.
+        flat 20ms is added to allow processing time.
         This is especially important for commands that write large amounts of data such as user arbitrary forms.
         """
         self.instrument.write(data)
+        time.sleep(0.02 + len(data) / 6000)
         self._is_error()
 
     def _check_errors(self):
         resp = self.instrument.query("SYST:ERR?")
-        code, msg = resp.strip('\n').split(',')
+        comp = re.compile(r'(\d+) {1,2}([\w ]+)', re.UNICODE)
+        resp = comp.match(resp)
+        code = resp[1]
+        msg = resp[2]
+        # code, msg = resp.strip('\n').split(',')
         code = int(code)
         msg = msg.strip('"')
         return code, msg
@@ -205,3 +207,56 @@ class SPD3303X(PPS):
             else:
                 raise InstrumentError("Error(s) Returned from PPS\n" +
                                       "\n".join(["Code: {}\nMessage:{}".format(code, msg) for code, msg in errors]))
+
+    def init_api(self):
+        for func_str, handler, base_str in self.api:
+            *parents, func = func_str.split(".")
+            parent_obj = self
+            for parent in parents:
+                parent_obj = getattr(parent_obj, parent)
+            func_obc = getattr(parent_obj, func)
+            setattr(parent_obj, func, self.prepare_string(func_obc, handler, base_str))
+
+    def prepare_string(self, func, handler, base_str, *args, **kwargs):
+        def temp_func(*nargs, **nkwargs):
+            """
+            Only formats using **nkwargs
+            New Temp
+            :param nargs:
+            :param nkwargs:
+            :return:
+            """
+            sig = inspect.signature(func)
+            keys = [itm[0] for itm in sig.parameters.items()]
+            # Hard coding for RIGOL. BOOLS should be converted to "ON", "OFF"
+            for index, param in enumerate(nargs):
+                nkwargs[keys[index]] = param
+            for k, v in nkwargs.items():
+                if sig.parameters[k].annotation == bool:
+                    if v:
+                        nkwargs[k] = "ON"
+                    else:
+                        nkwargs[k] = "OFF"
+            # new_str = base_str.format(**nkwargs)
+            # handler(self, new_str)
+            return handler(base_str, **nkwargs)
+
+        return update_wrapper(temp_func, func)
+
+
+if __name__ == "__main__":
+    from fixate.drivers import pps
+
+    p = pps.open()
+    p.channel1.voltage(12)
+    p.channel1.current(0.5)
+    p.channel1(True)
+    p.channel1(False)
+
+    p.series.voltage(12)
+    p.series.current(0.5)
+    p.series(True)
+
+    p.series(False)
+    p.channel1.voltage(3)
+

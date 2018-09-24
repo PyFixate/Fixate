@@ -470,6 +470,9 @@
               <property name="text">
                <string/>
               </property>
+              <property name="shortcut">
+               <string notr="true"/>
+              </property>
               <property name="checkable">
                <bool>false</bool>
               </property>
@@ -495,6 +498,9 @@
               <property name="text">
                <string/>
               </property>
+              <property name="shortcut">
+               <string notr="true"/>
+              </property>
              </widget>
             </item>
             <item>
@@ -510,6 +516,9 @@
               </property>
               <property name="text">
                <string/>
+              </property>
+              <property name="shortcut">
+               <string notr="true"/>
               </property>
              </widget>
             </item>

@@ -1,4 +1,5 @@
 import ctypes
+import struct
 import time
 from fixate.core.common import bits
 from fixate.core.exceptions import InstrumentError, InstrumentNotConnected
@@ -82,14 +83,26 @@ class BIT_MODE(object):
     FT_BITMODE_SYNC_FIFO = DWORD(0x40)
 
 
-class FT_DEVICE_LIST_INFO_NODE(ctypes.Structure):
-    _fields_ = [("Flags", DWORD),
-                ("Type", DWORD),
-                ("ID", DWORD),
-                ("LocId", DWORD),
-                ("SerialNumber", ctypes.c_char * 16),
-                ("Description", ctypes.c_char * 64),
-                ("ftHandle", DWORD)]
+# Add null padding if 64 bit
+if struct.calcsize("P") == 8:
+    class FT_DEVICE_LIST_INFO_NODE(ctypes.Structure):
+        _fields_ = [("Flags", DWORD),
+                    ("Type", DWORD),
+                    ("ID", DWORD),
+                    ("LocId", DWORD),
+                    ("SerialNumber", ctypes.c_char * 16),
+                    ("Description", ctypes.c_char * 64),
+                    ("ftHandle", DWORD),
+                    ("null_padding", DWORD)]
+else:  # 32 bit
+    class FT_DEVICE_LIST_INFO_NODE(ctypes.Structure):
+        _fields_ = [("Flags", DWORD),
+                    ("Type", DWORD),
+                    ("ID", DWORD),
+                    ("LocId", DWORD),
+                    ("SerialNumber", ctypes.c_char * 16),
+                    ("Description", ctypes.c_char * 64),
+                    ("ftHandle", DWORD)]
 
 
 class WORD_LENGTH(object):
