@@ -16,7 +16,7 @@ jobs:
         python.version: '3.6'
       Python37:
         python.version: '3.7'
-    maxParallel: 3
+    maxParallel: 4
     
   steps:
     - task: UsePythonVersion@0
@@ -47,9 +47,3 @@ jobs:
       inputs:
         pathtoPublish: 'dist'
         artifactName: 'dist'
-
-    - task: PyPIPublisher@0
-      inputs:
-        pypiConnection: ''
-        packageDirectory: '$(build.sourcesDirectory)'
-        alsoPublishWheel: true
