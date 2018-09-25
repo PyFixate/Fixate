@@ -1,0 +1,49 @@
+# Python Django
+# Test a Django project on multiple versions of Python.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+jobs:
+- job: 'Test Windows x64'
+  pool:
+    vmImage: 'VS2017-Win2016'
+  strategy:
+    matrix:
+      Python34:
+        python.version: '3.4'
+      Python35:
+        python.version: '3.5'
+      Python36:
+        python.version: '3.6'
+      Python37:
+        python.version: '3.7'
+    maxParallel: 4
+    
+  steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(python.version)'
+        architecture: 'x64'
+    
+    - script: pip install -r requirements.txt
+      displayName: 'Install Test Requirements'
+      
+    - script: |
+        pip install pytest
+        pip install pytest-cov
+        pip install wheel
+        pytest tests --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
+      displayName: 'Test with pytest'
+    
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: '**/test-*.xml'
+        testRunTitle: 'Publish test results for Python $(python.version) x64 Windows'  
+        
+    - script: 'python setup.py sdist bdist_wheel'
+      displayName: 'Build package'
+    
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish artifact: dist'
+      inputs:
+        pathtoPublish: 'dist'
+        artifactName: 'dist'
