@@ -3,6 +3,7 @@ from fixate.drivers.funcgen.rigol_dg1022 import RigolDG1022
 from fixate.core.discover import discover_visa, filter_connected
 from fixate.core.exceptions import *
 
+
 def get_funcgen():
     instruments = discover_visa()
     connected = filter_connected(instruments, [("RigolDG1022", RigolDG1022)])
@@ -20,6 +21,7 @@ class BaseSetup:
         self.testcls.reset()
 
 
+@unittest.skip("Requires instrument connected to run")
 class Waveforms(unittest.TestCase):
     def setUp(self):
         self.testcls = get_funcgen()
@@ -51,6 +53,7 @@ class Waveforms(unittest.TestCase):
         self.assertIn("NOIS", self.testcls.instrument.query("FUNC?"))
 
 
+@unittest.skip("Requires instrument connected to run")
 class ChannelConfig(unittest.TestCase):
     def setUp(self):
         self.testcls = get_funcgen()
@@ -254,6 +257,7 @@ class ChannelConfig(unittest.TestCase):
         self.assertAlmostEqual(20, float(self.testcls.instrument.query("FUNC:SQU:DCYC?")))
 
 
+@unittest.skip("Requires instrument connected to run")
 class Burst(unittest.TestCase):
     def setUp(self):
         self.testcls = get_funcgen()
@@ -296,6 +300,7 @@ class Burst(unittest.TestCase):
         self.assertAlmostEqual(30, float(self.testcls.instrument.query("BURS:PHAS?")))
 
 
+@unittest.skip("Requires instrument connected to run")
 class Modulate_Options(unittest.TestCase):
     def setUp(self):
         self.testcls = get_funcgen()
@@ -324,6 +329,7 @@ class Modulate_Options(unittest.TestCase):
         self.assertAlmostEqual(100, float(self.testcls.instrument.query("FSK:INT:RATE?")))
 
 
+@unittest.skip("Requires instrument connected to run")
 class Modulate(unittest.TestCase):
     def setUp(self):
         self.testcls = get_funcgen()
@@ -346,6 +352,7 @@ class Modulate(unittest.TestCase):
         self.assertIn("OFF", self.testcls.instrument.query("FSK:STAT?"))
 
 
+@unittest.skip("Requires instrument connected to run")
 class Trigger(unittest.TestCase):
     def setUp(self):
         self.testcls = get_funcgen()
@@ -409,6 +416,7 @@ class Trigger(unittest.TestCase):
         self.assertIn("NEG", self.testcls.instrument.query("OUTP:TRIG:SLOP?"))
 
 
+@unittest.skip("Requires instrument connected to run")
 class Modulate_Source(unittest.TestCase):
     def setUp(self):
         self.testcls = get_funcgen()
@@ -432,6 +440,7 @@ class Modulate_Source(unittest.TestCase):
         self.assertIn("EXT", self.testcls.instrument.query("AM:SOUR?"))
 
 
+@unittest.skip("Requires instrument connected to run")
 class Channel_Activation(unittest.TestCase):
     def setUp(self):
         self.testcls = get_funcgen()
@@ -442,6 +451,7 @@ class Channel_Activation(unittest.TestCase):
         self.assertIn("ON", self.testcls.instrument.query("OUTP?"))
 
 
+@unittest.skip("Requires instrument connected to run")
 class Modulate_Shape(unittest.TestCase):
     def setUp(self):
         self.testcls = get_funcgen()
@@ -503,6 +513,7 @@ class Modulate_Shape(unittest.TestCase):
         self.assertIn("NOIS", self.testcls.instrument.query("FM:INT:FUNC?"))
 
 
+@unittest.skip("Requires instrument connected to run")
 class Modulate_Activation(unittest.TestCase):
     def setUp(self):
         self.testcls = get_funcgen()
@@ -517,6 +528,7 @@ class Modulate_Activation(unittest.TestCase):
         self.assertIn("ON", self.testcls.instrument.query("FM:STAT?"))
 
 
+@unittest.skip("Requires instrument connected to run")
 class Modulate_Frequency(unittest.TestCase):
     def setUp(self):
         self.testcls = get_funcgen()

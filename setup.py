@@ -60,11 +60,12 @@ setup(
     url="http://pyfixate.com/",
     version=get_version(),
     install_requires=["pyvisa",
-        "pypubsub",
-        #"pyqt5",
-        "pynput",
-        "ruamel.yaml",
-        ],
+                      "pypubsub",
+                      # "pyqt5", # Required for the QT GUI
+                      "pynput",
+                      "ruamel.yaml",
+                      "pyserial"
+                      ],
     python_requires='~=3.4',
     dependency_links=[],
     include_package_data=True,
