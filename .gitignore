@@ -8,3 +8,7 @@ src/fixate.egg-info/
 .pytest_cache
 .tox/
 src/fixate/config/local_config.json
+.coverage
+coverage.xml
+junit/*
+htmlcov/*
