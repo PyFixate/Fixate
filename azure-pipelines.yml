@@ -8,15 +8,13 @@ jobs:
     vmImage: 'VS2017-Win2016'
   strategy:
     matrix:
-      Python34:
-        python.version: '3.4'
       Python35:
         python.version: '3.5'
       Python36:
         python.version: '3.6'
       Python37:
         python.version: '3.7'
-    maxParallel: 4
+    maxParallel: 3
     
   steps:
     - task: UsePythonVersion@0
@@ -31,7 +29,8 @@ jobs:
         pip install pytest
         pip install pytest-cov
         pip install wheel
-        pytest tests --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
+        pip install -e .
+        python -m pytest --junitxml=junit/test-results.xml --cov=fixate --cov-report=xml --cov-report=html
       displayName: 'Test with pytest'
     
     - task: PublishTestResults@2
