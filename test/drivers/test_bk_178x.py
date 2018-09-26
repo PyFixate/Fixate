@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import MagicMock
+import unittest
 import serial
 import sys
 from fixate.drivers.pps.bk_178x import BK178X
@@ -7,7 +7,7 @@ from fixate.drivers.pps.bk_178x import BK178X
 out = sys.stdout
 nl = '\n'
 
-
+@unittest.skip("Requires instrument connected to run")
 class PacketFormedCorrectly(TestCase):
     length_packet = 26
 
