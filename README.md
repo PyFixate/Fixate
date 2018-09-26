@@ -1,3 +1,5 @@
+[![Build](https://pyfixate.visualstudio.com/Fixate/_apis/build/status?definition=1)](https://dev.azure.com/pyfixate/Fixate/_build?definitionId=1)
+
 # Fixate
 
 Fixate is a Python library for testing real stuff.
