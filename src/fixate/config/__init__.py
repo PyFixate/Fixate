@@ -5,6 +5,7 @@ Drivers are hard coded into the config to prevent issues arising from auto disco
 Must ensure driver imports are infallible to prevent program crash on start
 """
 import importlib
+from fixate.config.helper import load_dict_config, load_json_config, load_yaml_config, get_plugin_data
 
 DRIVER_LIST = {"DMM": {"dmm.fluke_8846a.Fluke8846A"},
                "FUNC_GEN": {"funcgen.rigol_dg1022.RigolDG1022", "funcgen.keysight_33500b.Keysight33500B"},
@@ -23,6 +24,24 @@ DRIVERS = {}
 ASYNC_TASKS = []
 DEBUG = False
 importer = None
+plugins = {
+    "fixate.reporting.csv": {
+        "REPORT_FORMAT_VERSION": 3,
+        "tpl_time_stamp": "{0:%Y}{0:%m}{0:%d}-{0:%H}{0:%M}{0:%S}",
+        "tpl_csv_path": ["{fixate.config.plugins[fixate.reporting.csv][tpl_time_stamp]}-{index}.csv"],
+        "tpl_first_line": [
+            "0",
+            'Sequence',
+            "started={start_date_time}",
+            "fixate-version={fixate_version}",
+            "test-script-name={test_script_name}",
+            "test_script-version={test_script_version}",
+            "report-format={REPORT_FORMAT_VERSION}",
+            "part_number={part_number}",
+            "module={module}",
+            "serial_number={serial_number}",
+            "index_string={index_string}"]
+    }}
 # Import the drivers from the DRIVER_LIST
 for key, value in DRIVER_LIST.items():
     for drv in value:

@@ -1,5 +1,58 @@
 """
 CSV Definitions
+REPORT_FORMAT_VERSION = 3
+Several parameters are now configure from fixate.config which can be set via -c command or defaults.
+REPORT_FORMAT_VERSION: Now user configurable as the parameters can change the format of the file
+tpl_time_stamp: How is the time stamp used for start and end time. Default "{0:%Y}{0:%m}{0:%d}-{0:%H}{0:%M}{0:%S}"
+tpl_csv_path:
+
+plugins = {
+    "fixate.reporting.csv": {
+        "REPORT_FORMAT_VERSION": 3,
+        "tpl_time_stamp": "{0:%Y}{0:%m}{0:%d}-{0:%H}{0:%M}{0:%S}",
+        "tpl_csv_path": ["{fixate.config.plugins[fixate.reporting.csv][tpl_time_stamp]}"
+                              "-{index}.csv"],
+        "tpl_first_line": [
+            "0",
+            'Sequence',
+            "started={start_date_time}",
+            "fixate-version={fixate_version}",
+            "test-script-name={test_script_name}",
+            "test_script-version={test_script_version}",
+            "report-format={REPORT_FORMAT_VERSION}",
+            "part_number={part_number}",
+            "module={module}",
+            "serial_number={serial_number}",
+            "index_string={index_string}"]
+First Line
+tpl_first_line
+
+Last Line
+<Time Elapsed (s)>,Sequence,ended=tmp_time_stamp,tests-passed=<passed>,
+tests-failed=<failed>,tests-error=<error>,tests-skipped=<skipped>,sequence=<FINISHED ABORTED>
+
+Test Start
+<Time Elapsed (s)>,Test <index>,start,<test_desc>,<test_desc_long>
+
+Test Parameters
+<Time Elapsed (s)>,test-parmaeters,<param_name>=<param_value> ... <param_name>=<param_value>
+
+Check Function
+<Time Elapsed (s)>,Test <index>,check<index>,<check type>,<description>,<PASS FAIL>,... //Defaults for others extend
+... For in_range*, outside_range*,
+<test_val>,<_min>,<_max>
+... For equal, *_or_equal, log_value, smaller, greater
+<test_val>,<nominal>
+... For in_tolerance
+<test_val>,<nominal>,<tol>
+... For passes, fails no more fields
+
+Check Exception
+<Time Elapsed (s)>,Test <index>,check<index>,exception,<exception_message>
+
+Test End
+<Time Elapsed (s)>,Test <index>,end,<PASS FAIL ERROR>,checks-passed=<passed>,checks-failed<failed>,checks-error=<errors>
+
 REPORT_FORMAT_VERSION = 2
 
 First Line
@@ -58,14 +111,12 @@ class TestClassImp(TestClass):
         pass
 
 
-REPORT_FORMAT_VERSION = 2
-
-
 class CSVWriter:
-    def __init__(self, csv_dir):
+    def __init__(self, ):
         self.csv_queue = Queue()
         self.csv_writer = None
-        self.csv_dir = csv_dir
+        data = fixate.config.get_plugin_data(__name__)
+        self.csv_dir = data["csv_path_template"].format(**data, **fixate.config.RESOURCES["SEQUENCER"].context_data)
         self.reporting = CsvReporting("")
 
     def install(self):
@@ -101,48 +152,33 @@ class CsvReporting:
         self.exception_in_test = False
         self.failed = False
         self.chk_cnt = 0
-        self.now = ''
         self.csv_path = ''
         self.test_module = None
         self.start_time = None
         self.current_test = None
+        self.data = fixate.config.get_plugin_data(__name__)
 
     def sequence_update(self, status):
         # Do Start Sequence Reporting
         if status in ["Running"]:
             sequencer = fixate.config.RESOURCES["SEQUENCER"]
             # Create new csv path
-            self.now = '{0:%Y}{0:%m}{0:%d}-{0:%H}{0:%M}{0:%S}'.format(datetime.datetime.now())
+            self.data["start_date_time"] = self.data["tpl_time_stamp"].format(datetime.datetime.now())
             self.test_module = sys.modules["module.loaded_tests"]
-            self.csv_path = os.path.join(self.csv_dir,
-                                         '{part_number}-{module}-{serial_number}-{self.now}.csv'.format(
-                                             part_number=sequencer.context_data.get("part_number"),
-                                             module=sequencer.context_data.get("module"),
-                                             serial_number=sequencer.context_data["serial_number"],
-                                             self=self))
-            # Check if using installed version of fixate
+            self.csv_path = os.path.join(*[s.format(**self.data, self=self) for s in self.data["tpl_csv_path"]])
+            self.data["fixate_version"] = fixate.__version__
+            # Add dev if installed in editable mode
             if 'site-packages' not in __file__:
-                version = 'dev'
-            else:
-                version = ''
+                self.data["fixate_version"] += 'dev'
+            self.data["test_script_name"] = os.path.basename(self.test_module.__file__).split('.')[0]
+            self.data.update(sequencer.context_data)
             self.start_time = time.clock()
-            self._write_line_to_csv(["0",
-                                     'Sequence',
-                                     "started={}".format(self.now),
-                                     "fixate-version={}{}".format(fixate.__version__, version),
-                                     "test-script-name={}".format(os.path.basename(self.test_module.__file__)[:-3]),
-                                     "test_script-version={}".format(sequencer.context_data.get("version")),
-                                     "report-format={}".format(REPORT_FORMAT_VERSION),
-                                     "part_number={}".format(sequencer.context_data.get("part_number")),
-                                     "module={}".format(sequencer.context_data.get("module")),
-                                     "serial_number={}".format(sequencer.context_data.get("serial_number")),
-                                     "index_string={}".format(sequencer.context_data.get("index"))])
+            self._write_line_to_csv([col.format(**self.data, self=self) for col in self.data["tpl_first_line"]])
 
     def sequence_complete(self, status, passed, failed, error, skipped, sequence_status):
         self._write_line_to_csv(["{:.2f}".format(time.clock() - self.start_time),
                                  'Sequence',
-                                 "ended={}".format(
-                                     '{0:%Y}{0:%m}{0:%d}-{0:%H}{0:%M}{0:%S}'.format(datetime.datetime.now())),
+                                 "ended={}".format(self.data["tpl_time_stamp"].format(datetime.datetime.now())),
                                  sequence_status,
                                  "tests-passed={}".format(passed),
                                  "tests-failed={}".format(failed),
@@ -255,14 +291,14 @@ class CsvReporting:
 writer = None
 
 
-def register_csv(csv_dir):
+def register_csv():
     """
     :param csv_dir: Base directory for for csv file
     :param args: Args as parsed into the command line interface
     :return:
     """
     global writer
-    writer = CSVWriter(csv_dir)
+    writer = CSVWriter()
     writer.install()
     pub.subscribe(writer.reporting.test_start, 'Test_Start')
     pub.subscribe(writer.reporting.test_comparison, 'Check')
