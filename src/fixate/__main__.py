@@ -36,7 +36,8 @@ mutex_group.add_argument('-p', '--path',
 mutex_group.add_argument('-z', '--zip',
                          help="""Path to zip file of test scripts. Mutually exclusive with --path""", )
 parser.add_argument('-l', '--local_log', '--local-log',
-                    help="""Overrides the logging path to the current working directory""",
+                    help="""Deprecated. Use the -c config to set up reporting to a different directory
+                    Overrides the logging path to the current working directory""",
                     action="store_true")
 parser.add_argument('-q', '--qtgui',
                     help="""Argument to select the qt gui mode. This is still in early development""",
@@ -45,7 +46,26 @@ parser.add_argument('-d', '--dev',
                     help="""Activate Dev Mode for more debug information""",
                     action="store_true")
 parser.add_argument('-c', '--config',
-                    help="""Specify config file""")
+                    help="""Specify a yaml format config file
+                    The config file will be loaded into fixate.config as module attributes
+                    eg.
+                    myconf.yml
+                    plugins:
+                      myplugin:
+                        param1: Hello
+                        param2: World
+                    python -m fixate -c myconf.yml
+                    will override the plugins parameter in fixate config to be
+                    >>> fixate.config.plugins["myplugin"]["param1"]
+                    "Hello"
+                    >>> fixate.config.plugins["myplugin"]["param2"]
+                    "World"
+                    This can be called multiple times to combine multiple configuration files.
+                    If there are conflicting parameters, the final file will override the previous parameters set
+                    """,
+                    action='append',
+                    default=[]
+                    )
 parser.add_argument('-n', '--n_loops', '--n-loops',
                     help="""Loop the test. Use -1 for infinite loops""",
                     action="store")
@@ -115,11 +135,10 @@ class FixateController:
     It may be subclassed for different execution environments
     """
 
-    def __init__(self, sequencer, test_script_path, csv_output_path, args, loop):
+    def __init__(self, sequencer, test_script_path, args, loop):
         register_cmd_line()
         # self.register()
-        self.worker = FixateWorker(sequencer=sequencer, test_script_path=test_script_path,
-                                   csv_output_path=csv_output_path, args=args, loop=loop)
+        self.worker = FixateWorker(sequencer=sequencer, test_script_path=test_script_path, args=args, loop=loop)
 
     def fixate_exec(self):
         exit_code = self.worker.ui_run()
@@ -129,11 +148,10 @@ class FixateController:
 
 
 class FixateSupervisor:
-    def __init__(self, test_script_path, csv_output_path, args):
+    def __init__(self, test_script_path, args):
 
         # General setup
         self.test_script_path = test_script_path
-        self.csv_output_path = csv_output_path
         self.args = args
         self.loop = asyncio.get_event_loop()
         self.sequencer = RESOURCES["SEQUENCER"]
@@ -143,12 +161,12 @@ class FixateSupervisor:
             self.loop = asyncio.new_event_loop()
 
             class QTController(FixateController):
-                def __init__(self, sequencer, test_script_path, csv_output_path, args, loop):
+                def __init__(self, sequencer, test_script_path, args, loop):
                     from PyQt5 import QtWidgets, QtCore
                     import fixate.ui_gui_qt as gui
 
-                    self.worker = FixateWorker(test_script_path=test_script_path, csv_output_path=csv_output_path,
-                                               args=args, loop=loop, sequencer=sequencer)
+                    self.worker = FixateWorker(test_script_path=test_script_path, args=args, loop=loop,
+                                               sequencer=sequencer)
 
                     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
                     self.fixateApp = QtWidgets.QApplication(sys.argv)
@@ -166,21 +184,20 @@ class FixateSupervisor:
                     self.fixateApp.closeAllWindows()
                     return exit_code
 
-            self.controller = QTController(sequencer=self.sequencer, test_script_path=test_script_path,
-                                           csv_output_path=csv_output_path, args=args, loop=self.loop)
+            self.controller = QTController(sequencer=self.sequencer, test_script_path=test_script_path, args=args,
+                                           loop=self.loop)
         else:  # Command line execution
             self.controller = FixateController(sequencer=self.sequencer, test_script_path=test_script_path,
-                                               csv_output_path=csv_output_path, args=args, loop=self.loop)
+                                               args=args, loop=self.loop)
 
     def run_fixate(self):
         return self.controller.fixate_exec()
 
 
 class FixateWorker:
-    def __init__(self, sequencer, test_script_path, csv_output_path, args, loop):
+    def __init__(self, sequencer, test_script_path, args, loop):
         self.sequencer = sequencer
         self.test_script_path = test_script_path
-        self.csv_output_path = csv_output_path
         self.args = args
         self.loop = loop
         self.start = False
@@ -213,23 +230,6 @@ class FixateWorker:
             pass  # If the thread has hung, or reached an uninterruptable state, ignore it, it'll be force terminated at the end anyway
 
         return 11
-
-    def read_config(self, path=None):
-        """
-        Loads yaml config file, and reads in parameters
-        :param path:
-        :return:
-        """
-
-        if path is None:
-            return {}
-
-        try:
-            with open(os.path.join(path), 'rb') as f:
-                yaml = ruamel.yaml.YAML(typ="safe", pure=True)
-                return yaml.load(f)
-        except (IOError, OSError) as e:
-            raise e("Error opening config file")
 
     def ui_run(self):
 
@@ -266,13 +266,14 @@ class FixateWorker:
             test_suite = load_test_suite(self.args.path, self.args.zip, self.args.zip_selector)
             test_data = retrieve_test_data(test_suite, self.args.index)
             self.sequencer.load(test_data)
+
             if self.args.local_log:
-                self.csv_output_path = os.path.join(os.path.dirname(self.test_script_path))
-            if self.csv_output_path is None:
-                self.config = self.read_config(self.args.config)
-                self.csv_output_path = os.path.join(self.config.get('BASE_CSV_PATH', ""), self.sequencer.context_data.get("part_number", ""),
-                                                    self.sequencer.context_data.get("module", ""))
-            register_csv(self.csv_output_path)
+                fixate.config.plugins["fixate.reporting.csv"]["csv_path_template"] = {
+                    "time_stamp_template": "{0:%Y}{0:%m}{0:%d}-{0:%H}{0:%M}{0:%S}",
+                    "csv_path_template": "{fixate.config.plugins[fixate.reporting.csv][time_stamp_template]}"
+                                         "-{context_data[index]}.csv"
+                }
+            register_csv()
             self.sequencer.status = 'Running'
 
             def init_tasks():
@@ -339,9 +340,12 @@ def retrieve_test_data(test_suite, index):
     return sequence
 
 
-def run_main_program(test_script_path=None, csv_output_path=None):
+def run_main_program(test_script_path=None):
     args, unknown = parser.parse_known_args()
-    supervisor = FixateSupervisor(test_script_path, csv_output_path, args)
+    # Load the config files
+    for conf in args.config:
+        fixate.config.load_yaml_config(conf)
+    supervisor = FixateSupervisor(test_script_path, args)
     exit(supervisor.run_fixate())
 
 
