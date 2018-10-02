@@ -12,3 +12,4 @@ src/fixate/config/local_config.json
 coverage.xml
 junit/*
 htmlcov/*
+docs/build/*
