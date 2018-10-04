@@ -282,16 +282,9 @@ class FixateWorker:
                 for task in ASYNC_TASKS:
                     task.cancel()
 
-            def finished_test_run_response(future):
-                future.result()
-                self.loop.call_soon(cancel_tasks)
-                self.loop.call_later(1, self.loop.stop)  # Max 1 second to clean up tasks before aborting
-
             def finished_test_run(future):
                 self.loop.call_soon(cancel_tasks)
-                if self.sequencer.status in ["Finished", "Aborted"]:
-                    f = partial(user_ok, "Finished testing")
-                    self.loop.run_in_executor(None, f).add_done_callback(finished_test_run_response)
+                self.loop.call_later(1, self.loop.stop)  # Max 1 second to clean up tasks before aborting
 
             init_tasks()
             self.loop.run_in_executor(None, self.sequencer.run_sequence).add_done_callback(finished_test_run)
