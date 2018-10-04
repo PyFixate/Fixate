@@ -157,6 +157,7 @@ class FixateSupervisor:
         self.sequencer = RESOURCES["SEQUENCER"]
 
         # Environment specific setup
+        # TODO remove this to plugin architecture
         if self.args.qtgui:  # Run with the QT GUI
             self.loop = asyncio.new_event_loop()
 
@@ -268,11 +269,10 @@ class FixateWorker:
             self.sequencer.load(test_data)
 
             if self.args.local_log:
-                fixate.config.plugins["fixate.reporting.csv"]["csv_path_template"] = {
-                    "time_stamp_template": "{0:%Y}{0:%m}{0:%d}-{0:%H}{0:%M}{0:%S}",
-                    "csv_path_template": "{fixate.config.plugins[fixate.reporting.csv][time_stamp_template]}"
-                                         "-{context_data[index]}.csv"
-                }
+                try:
+                    fixate.config.plg_csv["tpl_csv_path"] = ["{tpl_time_stamp}-{index}.csv"]
+                except (AttributeError, KeyError):
+                    pass
             register_csv()
             self.sequencer.status = 'Running'
 
@@ -342,11 +342,22 @@ def retrieve_test_data(test_suite, index):
 
 def run_main_program(test_script_path=None):
     args, unknown = parser.parse_known_args()
-    # Load the config files
-    for conf in args.config:
-        fixate.config.load_yaml_config(conf)
+    load_config(args.config)
     supervisor = FixateSupervisor(test_script_path, args)
     exit(supervisor.run_fixate())
+
+
+def load_config(config: list = None):
+    # Load python environment fixate config
+    env_config = os.path.join(sys.prefix, "fixate.yml")
+    if os.path.exists(env_config):
+        fixate.config.load_yaml_config(env_config)
+    # TODO Load script config
+
+    # Load a list of config files
+    if config is not None:
+        for conf in config:
+            fixate.config.load_yaml_config(conf)
 
 
 # Setup configuration

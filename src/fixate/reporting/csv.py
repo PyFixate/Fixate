@@ -20,8 +20,6 @@ plugins = {
             "test-script-name={test_script_name}",
             "test_script-version={test_script_version}",
             "report-format={REPORT_FORMAT_VERSION}",
-            "part_number={part_number}",
-            "module={module}",
             "serial_number={serial_number}",
             "index_string={index_string}"]
 First Line
@@ -94,7 +92,7 @@ import time
 
 from pubsub import pub
 
-from queue import Queue, Empty
+from queue import Queue
 from fixate.core.common import TestClass
 from fixate.core.common import ExcThread
 import fixate
@@ -115,12 +113,13 @@ class CSVWriter:
     def __init__(self, ):
         self.csv_queue = Queue()
         self.csv_writer = None
-        data = fixate.config.get_plugin_data(__name__)
-        self.csv_dir = data["csv_path_template"].format(**data, **fixate.config.RESOURCES["SEQUENCER"].context_data)
-        self.reporting = CsvReporting("")
+        # data = fixate.config.get_config_dict()
+        # data.update(fixate.config.get_plugin_data('plg_csv'))
+        # self.csv_dir = os.path.join(*fixate.config.render_template(data["tpl_csv_path"], **data,
+        #                                                            **fixate.config.RESOURCES["SEQUENCER"].context_data))
+        self.reporting = CsvReporting()
 
     def install(self):
-        self.reporting.csv_dir = self.csv_dir
         self.csv_writer = ExcThread(target=self._csv_write,
                                     args=(self.csv_queue,))
         self.csv_writer.start()
@@ -138,8 +137,8 @@ class CSVWriter:
             if line is None:
                 break  # Command send to close csv_writer
             try:
-                os.makedirs(self.csv_dir)
-            except OSError:
+                os.makedirs(os.path.dirname(self.reporting.csv_path))
+            except OSError as e:
                 pass
             with open(self.reporting.csv_path, 'a+', newline='') as f:
                 writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
@@ -147,8 +146,7 @@ class CSVWriter:
 
 
 class CsvReporting:
-    def __init__(self, csv_dir):
-        self.csv_dir = csv_dir
+    def __init__(self):
         self.exception_in_test = False
         self.failed = False
         self.chk_cnt = 0
@@ -156,16 +154,18 @@ class CsvReporting:
         self.test_module = None
         self.start_time = None
         self.current_test = None
-        self.data = fixate.config.get_plugin_data(__name__)
+        self.data = fixate.config.get_config_dict()
+        self.data.update(fixate.config.get_plugin_data('plg_csv'))
 
     def sequence_update(self, status):
         # Do Start Sequence Reporting
         if status in ["Running"]:
             sequencer = fixate.config.RESOURCES["SEQUENCER"]
+            self.data.update(sequencer.context_data)
             # Create new csv path
             self.data["start_date_time"] = self.data["tpl_time_stamp"].format(datetime.datetime.now())
             self.test_module = sys.modules["module.loaded_tests"]
-            self.csv_path = os.path.join(*[s.format(**self.data, self=self) for s in self.data["tpl_csv_path"]])
+            self.csv_path = os.path.join(*fixate.config.render_template(self.data["tpl_csv_path"], **self.data, self=self))
             self.data["fixate_version"] = fixate.__version__
             # Add dev if installed in editable mode
             if 'site-packages' not in __file__:
@@ -173,7 +173,7 @@ class CsvReporting:
             self.data["test_script_name"] = os.path.basename(self.test_module.__file__).split('.')[0]
             self.data.update(sequencer.context_data)
             self.start_time = time.clock()
-            self._write_line_to_csv([col.format(**self.data, self=self) for col in self.data["tpl_first_line"]])
+            self._write_line_to_csv(fixate.config.render_template(self.data["tpl_first_line"], **self.data, self=self))
 
     def sequence_complete(self, status, passed, failed, error, skipped, sequence_status):
         self._write_line_to_csv(["{:.2f}".format(time.clock() - self.start_time),
