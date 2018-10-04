@@ -50,15 +50,14 @@ parser.add_argument('-c', '--config',
                     The config file will be loaded into fixate.config as module attributes
                     eg.
                     myconf.yml
-                    plugins:
-                      myplugin:
-                        param1: Hello
-                        param2: World
+                    plg_myplug:
+                      param1: Hello
+                      param2: World
                     python -m fixate -c myconf.yml
                     will override the plugins parameter in fixate config to be
-                    >>> fixate.config.plugins["myplugin"]["param1"]
+                    >>> fixate.config.plg_myplug["param1"]
                     "Hello"
-                    >>> fixate.config.plugins["myplugin"]["param2"]
+                    >>> fixate.config.plg_myplug["param2"]
                     "World"
                     This can be called multiple times to combine multiple configuration files.
                     If there are conflicting parameters, the final file will override the previous parameters set
