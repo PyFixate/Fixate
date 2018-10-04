@@ -1,4 +1,5 @@
 [![Build](https://pyfixate.visualstudio.com/Fixate/_apis/build/status?definition=1)](https://dev.azure.com/pyfixate/Fixate/_build?definitionId=1)
+[![Docs](https://readthedocs.org/projects/fixate/badge/)](https://fixate.readthedocs.io/en/latest/?badge=latest)
 
 # Fixate
 
