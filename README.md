@@ -46,7 +46,7 @@ Contributions are welcome. Get in touch or create a new pull request.
 
 * **Ryan Parry-Jones** - *Original Developer* - [pazzarpj](https://github.com/pazzarpj)
 
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
+See also the list of [contributors](https://github.com/PyFixate/Fixate/contributors) who participated in this project.
 
 ## License
 
