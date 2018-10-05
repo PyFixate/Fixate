@@ -1,6 +1,0 @@
----
-# Fixate Config
-# You can rename this file if you want.
-# You'll need to provide the path to Fixate using the -c switch
-BASE_CSV_PATH: "SET PATH HERE"
-...
