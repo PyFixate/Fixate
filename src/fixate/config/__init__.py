@@ -5,7 +5,10 @@ Drivers are hard coded into the config to prevent issues arising from auto disco
 Must ensure driver imports are infallible to prevent program crash on start
 """
 import importlib
+from fixate.config.helper import load_dict_config, load_json_config, load_yaml_config, get_plugin_data, get_plugins, \
+    get_config_dict, render_template
 
+# TODO review all these values to determine if they should exist in this module
 DRIVER_LIST = {"DMM": {"dmm.fluke_8846a.Fluke8846A"},
                "FUNC_GEN": {"funcgen.rigol_dg1022.RigolDG1022", "funcgen.keysight_33500b.Keysight33500B"},
                "DAQ": {"daq.daqmx.DaqMx"},
@@ -23,6 +26,26 @@ DRIVERS = {}
 ASYNC_TASKS = []
 DEBUG = False
 importer = None
+# Begin default "plugins"
+# Use plg_ prefix with dictionary of values to indicate to fixate to install this at startup
+# Default settings for csv reporting. Can be configured via yaml either removing or overriding with plg_csv
+tpl_csv_path = ["{start_date_time}-{index}.csv"]
+tpl_time_stamp = "{0:%Y}{0:%m}{0:%d}-{0:%H}{0:%M}{0:%S}"
+
+plg_csv = {
+    "import_name": "fixate.reporting.csv",
+    "REPORT_FORMAT_VERSION": 3,
+    "tpl_first_line": [
+        "0",
+        'Sequence',
+        "started={start_date_time}",
+        "fixate-version={fixate_version}",
+        "test-script-name={test_script_name}",
+        "report-format={REPORT_FORMAT_VERSION}",
+        "index_string={index}"]
+}
+index = None
+# TODO Remove this and do this as part of the plugin initialisation routine
 # Import the drivers from the DRIVER_LIST
 for key, value in DRIVER_LIST.items():
     for drv in value:
