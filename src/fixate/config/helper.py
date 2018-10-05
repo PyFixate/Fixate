@@ -67,27 +67,19 @@ def load_json_config(in_file, config_name=None) -> None:
 def load_yaml_config(yaml_in: str) -> None:
     """
     :param in_file:
-     string representing valid yaml or a valid file path to the yaml file
-    :usage
-     >>> import fixate.config
-     >>> load_yaml_config("HELLO: WORLD")
-     >>> print(fixate.config.HELLO)
-     "WORLD"
-     my_yaml_file.yml
-     ---
-     HI: WORLD
-     ---
+     string representing a valid file path to the yaml file
      >>> import fixate.config
      >>> with open("my_yaml_file.yml") as f:
      >>>    load_yaml_config("my_yaml_file.yml")
      >>> print(fixate.config.HI)
      "WORLD"
     """
-    if os.path.exists(yaml_in):
-        yaml_in = pathlib.Path(yaml_in)
+    if not os.path.exists(yaml_in):
+        raise FileNotFoundError("Config file {} not found".format(yaml_in))
     yaml = ruamel.yaml.YAML(typ="safe", pure=True)
     yaml.default_flow_style = False
-    fixate.config.__dict__.update(yaml.load(yaml_in))
+    yaml_path = pathlib.Path(yaml_in)
+    fixate.config.__dict__.update(yaml.load(yaml_path))
 
 
 def get_plugins() -> dict:
