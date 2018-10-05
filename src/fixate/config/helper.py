@@ -1,5 +1,6 @@
 import json
 import ruamel.yaml
+import pathlib
 import fixate.config
 import os
 from string import Formatter
@@ -63,45 +64,30 @@ def load_json_config(in_file, config_name=None) -> None:
         fixate.config.__dict__.update(json.load(in_file))
 
 
-def load_yaml_config(in_file, config_name=None) -> None:
+def load_yaml_config(yaml_in: str) -> None:
     """
     :param in_file:
-     valid open file like such as
-        open(in_file) as f:
-            load_json_config(f)
-     or stringio instance
-     or path to file
-    :param config_name:
-     optional way of grouping the config details
+     string representing valid yaml or a valid file path to the yaml file
     :usage
-     my_yaml_file
-     HI: WORLD
-     config_name = None
      >>> import fixate.config
-     >>> with open("my_yaml_file") as f:
-     >>>    load_yaml_config("my_yaml_file")
+     >>> load_yaml_config("HELLO: WORLD")
+     >>> print(fixate.config.HELLO)
+     "WORLD"
+     my_yaml_file.yml
+     ---
+     HI: WORLD
+     ---
+     >>> import fixate.config
+     >>> with open("my_yaml_file.yml") as f:
+     >>>    load_yaml_config("my_yaml_file.yml")
      >>> print(fixate.config.HI)
      "WORLD"
-     config_name = "My_Json"
-     >>> import fixate.config
-     >>> with open("my_yaml_file") as f:
-     >>>    load_yaml_config("my_yaml_file", "My_Yaml")
-     >>> print(fixate.config.My_Yaml)
-     {"HI": "WORLD"}
     """
+    if os.path.exists(yaml_in):
+        yaml_in = pathlib.Path(yaml_in)
     yaml = ruamel.yaml.YAML(typ="safe", pure=True)
     yaml.default_flow_style = False
-    if os.path.exists(in_file):
-        with open(in_file) as f:
-            if config_name:
-                fixate.config.__dict__.update({config_name: yaml.load(f)})
-            else:
-                fixate.config.__dict__.update(yaml.load(f))
-        return
-    if config_name:
-        fixate.config.__dict__.update({config_name: yaml.load(in_file)})
-    else:
-        fixate.config.__dict__.update(yaml.load(in_file))
+    fixate.config.__dict__.update(yaml.load(yaml_in))
 
 
 def get_plugins() -> dict:
