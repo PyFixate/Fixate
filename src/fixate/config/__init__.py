@@ -33,7 +33,7 @@ plg_csv = {
     "import_name": "fixate.reporting.csv",
     "REPORT_FORMAT_VERSION": 3,
     "tpl_time_stamp": "{0:%Y}{0:%m}{0:%d}-{0:%H}{0:%M}{0:%S}",
-    "tpl_csv_path": ["{tpl_time_stamp}-{index}.csv"],
+    "tpl_csv_path": ["{start_date_time}-{index}.csv"],
     "tpl_first_line": [
         "0",
         'Sequence',
