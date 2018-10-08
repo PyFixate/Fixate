@@ -14,6 +14,7 @@ local_data_path = os.path.join(os.path.dirname(__file__), 'drivers.data')
 
 CONFIG_LOADED = False
 
+
 def load_local_config():
     if os.path.isfile(local_config_path):
         with open(local_config_path, 'r') as f:
@@ -50,7 +51,7 @@ def setup_config():
     :return:
     """
     global CONFIG_LOADED
-    
+
     if not CONFIG_LOADED:
         try:
             fixate.config.RESOURCES["VISA_RESOURCE_MANAGER"] = visa.ResourceManager()
