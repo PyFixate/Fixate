@@ -70,7 +70,7 @@ COMMANDS = ((0x20, "Setting the remote control mode"),
 
 class PPSInterface(PPS):
     INSTR_TYPE = "SERIAL"
-
+    REGEX_ID = "model: 6823"
     DATA_BYTE = serial.EIGHTBITS
     STOP_BIT = serial.STOPBITS_ONE
     PARITY = serial.PARITY_NONE
@@ -176,8 +176,7 @@ class PPSInterface(PPS):
     def communicate(self, command, *data_tuples):
         packet = self._packet_encode(command, *data_tuples)
         # Flush read buffer
-        while self.instrument.read():
-            pass
+        self.instrument.flushInput()
         x = 0
         while True:
             x += 1
@@ -189,6 +188,7 @@ class PPSInterface(PPS):
             except IOError:
                 if x == self.attempts:
                     raise
+
     def _send(self, packet):
         self.instrument.write(packet)
 
@@ -232,7 +232,6 @@ class BK178X(PPSInterface):
             raise ParameterError("remote must be True or False")
         self.communicate(0x20, (val, 1))
         self._remote = val
-
 
     @property
     def output_ch1(self):
@@ -350,5 +349,3 @@ if __name__ == '__main__':
     mypps.output_ch1 = False
 
     mypps.output_ch1 = False
-
-

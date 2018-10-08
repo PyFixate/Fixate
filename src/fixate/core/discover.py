@@ -240,34 +240,39 @@ def discover_serial(classes, com_ports=None, baud_rates=None):
     serial_resources = fixate.config.INSTRUMENTS.get("serial", {})
     if com_ports is None:
         com_ports = {dev.device for dev in serial.tools.list_ports.comports()}
+    visa_ports = {"COM{}".format(interf.split(":")[0].split("ASRL")[1]) for id, interf in
+                  fixate.config.INSTRUMENTS.get("visa", []) if "ASRL" in interf}
+
+    com_ports = com_ports - visa_ports
 
     for port in com_ports:
         for cls_name, cls in classes:
-            instr = cls(com_port=port)
-            if baud_rates is None:
-                baud_rates_loop = cls._baud_rates
-            else:
-                baud_rates_loop = baud_rates
+            if cls.INSTR_TYPE == "SERIAL":
+                instr = cls(com_port=port)
+                if baud_rates is None:
+                    baud_rates_loop = cls._baud_rates
+                else:
+                    baud_rates_loop = baud_rates
 
-            for rate in baud_rates_loop:
-                try:
-                    instr.baud_rate = rate
-                    instr.instrument.timeout = 0.1
+                for rate in baud_rates_loop:
                     try:
-                        instr_id = instr.identify(as_string=True)
-                    except IOError:
+                        instr.baud_rate = rate
+                        instr.instrument.timeout = 0.1
+                        try:
+                            instr_id = instr.identify(as_string=True)
+                        except IOError:
+                            pass
+                        else:
+                            if instr_id:
+                                serial_resources[port] = (instr_id, rate)
+                                break
+                    except Exception as e:
                         pass
-                    else:
-                        if instr_id:
-                            serial_resources[port] = (instr_id, rate)
-                            break
-                except Exception as e:
-                    pass
-                finally:
-                    try:
-                        instr.instrument.close()
-                    except:
-                        pass
+                    finally:
+                        try:
+                            instr.instrument.close()
+                        except:
+                            pass
     fixate.config.INSTRUMENTS["serial"] = serial_resources
     return serial_resources
 
