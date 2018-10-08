@@ -370,9 +370,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             self.Errors.append(self.ActiveTest.text() + ' - ' + message[1:])
             self.Errors.verticalScrollBar().setValue(self.Errors.verticalScrollBar().maximum())
 
-        if status == "Active":
+        if status in ["Active", "False"]:
             self.ActiveEvent.append(message)
-            self.ActiveEvent.verticalScrollBar().setValue(self.Errors.verticalScrollBar().maximum())
+            self.ActiveEvent.verticalScrollBar().setValue(self.ActiveEvent.verticalScrollBar().maximum())
 
     def progress_update(self):
         self.ActiveEvent.clear()
@@ -680,7 +680,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.closing:
             return
 
-        self.event_output(self.reformat_text(msg))
+        self.event_output(self.reformat_text(msg), status="Active")
 
     def _user_display_important(self, msg):
         """
@@ -691,11 +691,11 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             return
 
         self.event_output("")
-        self.event_output("!" * wrapper.width)
+        self.event_output("!" * wrapper.width, status="Active")
         self.event_output("")
         self.event_output(self.reformat_text(msg), status="Active")
         self.event_output("")
-        self.event_output("!" * wrapper.width)
+        self.event_output("!" * wrapper.width, status="Active")
 
     def _print_sequence_end(self, status, passed, failed, error, skipped, sequence_status):
         if self.closing:
