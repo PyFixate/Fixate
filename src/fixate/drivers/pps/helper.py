@@ -22,15 +22,11 @@ def open(restrictions=None):
     if restrictions is None:
         restrictions = {}
 
-    visa = open_visa_instrument("PPS", restrictions)
-    if visa:
-        return visa
-    # Else discover the com port variants
     com_ports = restrictions.get('com_ports', None)
     baud_rates = restrictions.get('baud_rates', None)
-    instruments = fixate.config.INSTRUMENTS.get("serial")
     classes = fixate.config.DRIVERS.get("PPS", {})
-    instruments = filter_connected(instruments or {}, classes)
+
+    instruments = filter_connected(fixate.config.INSTRUMENTS or {}, classes)
     if not instruments:
         # All discovery methods for implemented instruments should be called
         discover_visa()

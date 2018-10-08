@@ -12,6 +12,7 @@ local_vars = ["INSTRUMENTS"]
 local_config_path = os.path.join(os.path.dirname(__file__), 'local_config.json')
 local_data_path = os.path.join(os.path.dirname(__file__), 'drivers.data')
 
+CONFIG_LOADED = False
 
 def load_local_config():
     if os.path.isfile(local_config_path):
@@ -48,11 +49,15 @@ def setup_config():
      Configuration that is initialised on first import of fixate
     :return:
     """
-    try:
-        fixate.config.RESOURCES["VISA_RESOURCE_MANAGER"] = visa.ResourceManager()
-    except:
-        fixate.config.RESOURCES["VISA_RESOURCE_MANAGER"] = None
-        user_info("Warning no PyVISA install found")
+    global CONFIG_LOADED
+    
+    if not CONFIG_LOADED:
+        try:
+            fixate.config.RESOURCES["VISA_RESOURCE_MANAGER"] = visa.ResourceManager()
+        except:
+            fixate.config.RESOURCES["VISA_RESOURCE_MANAGER"] = None
+            user_info("Warning no PyVISA install found")
 
-    fixate.config.RESOURCES["SEQUENCER"] = Sequencer()
-    fixate.config.CONFIG_LOADED = True
+        fixate.config.RESOURCES["SEQUENCER"] = Sequencer()
+        load_local_config()
+        CONFIG_LOADED = True
