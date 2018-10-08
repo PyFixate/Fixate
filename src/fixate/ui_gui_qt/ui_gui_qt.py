@@ -63,14 +63,40 @@ class SequencerThread(QObject):
 
 
 class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
+    """
+    GUI Main window
+    """
+    # QT Signals
+    # These are the thread safe signals to update UI elements
+
+    # Multiple Choices/ OK  signal
     input_signal = pyqtSignal(str, tuple)
-    output_signal = pyqtSignal(str, str)
+    # Updates the test Information above the image
     label_update = pyqtSignal(str, str)
-    update_image = pyqtSignal(str, bool)
+    # Signal for the text user input
     text_signal = pyqtSignal(str)
+    # Timer for abort cleanup. TODO Rethink?
     timer_signal = pyqtSignal()
+    # Tree Events
     tree_init = pyqtSignal(list)
     tree_update = pyqtSignal(str, str)
+    # Active Window
+    active_update = pyqtSignal(str)
+    active_clear = pyqtSignal()
+    # History Window
+    history_update = pyqtSignal(str)
+    # Error Window
+    error_update = pyqtSignal(str)
+    # Image Window
+    image_update = pyqtSignal(str)
+    image_overlay = pyqtSignal(str)
+    image_clear = pyqtSignal()
+
+    # Deprecated Replace with Active , History and Error Window signals
+    output_signal = pyqtSignal(str, str)
+    # Deprecated replace with Image Window signals
+    update_image = pyqtSignal(str, bool)
+
 
     working = pyqtSignal()
     progress = pyqtSignal()
