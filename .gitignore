@@ -13,3 +13,5 @@ coverage.xml
 junit/*
 htmlcov/*
 docs/build/*
+Pipfile
+Pipfile.lock

@@ -370,9 +370,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             self.Errors.append(self.ActiveTest.text() + ' - ' + message[1:])
             self.Errors.verticalScrollBar().setValue(self.Errors.verticalScrollBar().maximum())
 
-        if status == "Active":
+        if status in ["Active", "False"]:
             self.ActiveEvent.append(message)
-            self.ActiveEvent.verticalScrollBar().setValue(self.Errors.verticalScrollBar().maximum())
+            self.ActiveEvent.verticalScrollBar().setValue(self.ActiveEvent.verticalScrollBar().maximum())
 
     def progress_update(self):
         self.ActiveEvent.clear()
@@ -577,7 +577,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             q.put(False)
             abort.put(True)
             return
-        self.event_output('\a')
         self.gui_user_input(self.reformat_text(msg), ("Fail", q, abort), False)
 
     def _user_ok(self, msg, q):
@@ -594,7 +593,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.closing:
             q.put("Result", None)
             return
-        self.event_output('\a')
         self.gui_user_input(msg, ("Continue",))
         q.put("Result", None)
 
@@ -621,7 +619,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         for _ in range(attempts):
             # This will change based on the interface
-            self.event_output('\a')
             ret_val = self.gui_user_input(self.reformat_text(msg), choices)
             ret_val = target(ret_val, choices)
             if ret_val:
@@ -661,7 +658,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         wrapper.subsequent_indent = ""
         for _ in range(attempts):
             # This will change based on the interface
-            self.event_output('\a')
             ret_val = self.gui_user_input(msg, None, True)
             if target is None or ret_val == "ABORT_FORCE":
                 q.put(ret_val)
@@ -680,7 +676,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.closing:
             return
 
-        self.event_output(self.reformat_text(msg))
+        self.event_output(self.reformat_text(msg), status="Active")
 
     def _user_display_important(self, msg):
         """
@@ -691,11 +687,11 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             return
 
         self.event_output("")
-        self.event_output("!" * wrapper.width)
+        self.event_output("!" * wrapper.width, status="Active")
         self.event_output("")
         self.event_output(self.reformat_text(msg), status="Active")
         self.event_output("")
-        self.event_output("!" * wrapper.width)
+        self.event_output("!" * wrapper.width, status="Active")
 
     def _print_sequence_end(self, status, passed, failed, error, skipped, sequence_status):
         if self.closing:
@@ -717,11 +713,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             for itm in post_sequence_info:
                 self.event_output(self.reformat_text(itm))
         self.event_output("-" * wrapper.width)
-        # self.reformat_text
         self.event_output(self.reformat_text("Status: {}".format(status)))
-        # self.event_output("Status: {}".format(status))
         self.event_output("#" * wrapper.width)
-        self.event_output('\a')
 
     def _print_test_start(self, data, test_index):
         if self.closing:
@@ -730,7 +723,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.progress.emit()
         self.event_output("*" * wrapper.width)
         self.event_output(self.reformat_text("Test {}: {}".format(test_index, data.test_desc)))
-        # self.event_output("Test {}: {}".format(test_index, data.test_desc))
         self.event_output("-" * wrapper.width)
         self.label_update.emit(test_index, data.test_desc)
         self.tree_update.emit(test_index, "In Progress")
