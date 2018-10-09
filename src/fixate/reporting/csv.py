@@ -165,8 +165,11 @@ class CsvReporting:
             # Create new csv path
             self.data["start_date_time"] = self.data["tpl_time_stamp"].format(datetime.datetime.now())
             self.test_module = sys.modules["module.loaded_tests"]
-            self.csv_path = os.path.join(
-                *fixate.config.render_template(self.data["tpl_csv_path"], **self.data, self=self))
+            if fixate.config.log_file:
+                self.csv_path = fixate.config.log_file
+            else:
+                self.csv_path = os.path.join(
+                    *fixate.config.render_template(self.data["tpl_csv_path"], **self.data, self=self))
             self.data["fixate_version"] = fixate.__version__
             # Add dev if installed in editable mode
             if 'site-packages' not in __file__:
