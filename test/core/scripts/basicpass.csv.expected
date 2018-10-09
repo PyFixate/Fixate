@@ -1,0 +1,5 @@
+0,Sequence,started=20181009-203855,fixate-version=0.4.0dev,test-script-name=basicpass,report-format=3,index_string=None
+0.00,Test 1,start,Simple passing test,
+0.00,Test 1,check1,true,It is True!,PASS,True
+0.00,Test 1,end,PASS,checks-passed=1,checks-failed=0
+0.01,Sequence,ended=20181009-203855,Finished,tests-passed=1,tests-failed=0,tests-error=0,tests-skipped=0,sequence=PASSED
