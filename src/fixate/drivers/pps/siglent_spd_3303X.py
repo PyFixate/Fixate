@@ -20,6 +20,7 @@ class SPD3303X(PPS):
         self.instrument.read_termination = self.read_termination
         self.instrument.write_termination = self.write_termination
         # (<api command>, <write or query>, <command>)
+
         self.api = [
             # Save commands
             ("save.group1", self.write, "*SAV 1"),
@@ -34,31 +35,35 @@ class SPD3303X(PPS):
             ("recall.group4", self.write, "*RCL 4"),
             ("recall.group5", self.write, "*RCL 5"),
             # Channel 1 Commands
-            ("channel1.voltage", self.write, "CH1:VOLT {value}"),
-            ("channel1.current", self.write, "CH1:CURR {value}"),
-            ("channel1._call", self.write_bool, "OUTPut CH1,{value}"),
-            ("channel1.wave", self.write_bool, "OUTPut:WAVE CH1,{value}"),
-            ("channel1.timer.set_waveform", self.write_timer, "TIMEr:SET CH1,{group},{voltage},{current},{duration}"),
-            ("channel1.timer._call", self.write_bool, "TIMEr CH1,{value}"),
+            ("channel1.voltage", self.write, "OUTPut:TRACK 0;CH1:VOLT {value}"),
+            ("channel1.current", self.write, "OUTPut:TRACK 0;CH1:CURR {value}"),
+            ("channel1._call", self.write, "OUTPut:TRACK 0;OUTPut CH1,{value}"),
+            ("channel1.wave", self.write, "OUTPut:TRACK 0;OUTPut:WAVE CH1,{value}"),
+            # TODO Need to initialise all groups (1-5) to 0 V, A, s before setting the ones you need
+            ("channel1.timer.set_waveform", self.write_timer,
+             "OUTPut:TRACK 0;TIMEr:SET CH1,{group},{voltage},{current},{duration}"),
+            ("channel1.timer._call", self.write, "OUTPut:TRACK 0;TIMEr CH1,{value}"),
             # Channel 2 Commands
-            ("channel2.voltage", self.write, "CH1:VOLT {value}"),
-            ("channel2.current", self.write, "CH1:CURR {value}"),
-            ("channel2._call", self.write_bool, "OUTPut CH2,OFF"),
-            ("channel2.wave", self.write_bool, "OUTPut:WAVE CH1,{value}"),
-            ("channel2.timer.set_waveform", self.write_timer, "TIMEr:SET CH2,{group},{voltage},{current},{duration}"),
-            ("channel2.timer._call", self.write_bool, "TIMEr CH2,{value}"),
+            ("channel2.voltage", self.write, "OUTPut:TRACK 0;CH2:VOLT {value}"),
+            ("channel2.current", self.write, "OUTPut:TRACK 0;CH2:CURR {value}"),
+            ("channel2._call", self.write, "OUTPut:TRACK 0;OUTPut CH2,{value}"),
+            ("channel2.wave", self.write, "OUTPut:TRACK 0;OUTPut:WAVE CH2,{value}"),
+            # TODO Need to initialise all groups (1-5) to 0 V, A, s before setting the ones you need
+            ("channel2.timer.set_waveform", self.write_timer,
+             "OUTPut:TRACK 0;TIMEr:SET CH2,{group},{voltage},{current},{duration}"),
+            ("channel2.timer._call", self.write, "OUTPut:TRACK 0;TIMEr CH2,{value}"),
             # Output Setting Commands
-            ("independent", self.write, "OUTPut:TRACK 0"),
-            ("series.voltage", self.write, "OUTPut:TRACK 1"),
-            ("series.current", self.write, "OUTPut:TRACK 1"),
-            ("parallel.voltage", self.write, "OUTPut:TRACK 2"),
-            ("parallel.current", self.write, "OUTPut:TRACK 2"),
+            ("series._call", self.write, "OUTPut:TRACK 1;OUTPut:TRACK 1;OUTPut CH1,{value}"),
+            ("series.voltage", self.write_half, "OUTPut:TRACK 1;CH1:VOLT {value}"),
+            ("series.current", self.write, "OUTPut:TRACK 1;CH1:CURR {value}"),
+            ("parallel._call", self.write, "OUTPut:TRACK 2;OUTPut:TRACK 2;OUTPut CH1,{value}"),
+            ("parallel.voltage", self.write, "OUTPut:TRACK 2;CH1:VOLT {value}"),
+            ("parallel.current", self.write_half, "OUTPut:TRACK 2;CH1:CURR {value}"),
             # Address Setting Commands
             ("address.ip", self.write, "IPaddr {value}"),
             ("address.mask", self.write, "MASKaddr {value}"),
             ("address.gate", self.write, "GATEaddr {value}"),
-            ("address.dhcp", self.write_bool, "DHCP {value}"),
-
+            ("address.dhcp", self.write, "DHCP {value}"),
             ("idn", self.query_value, "*IDN?"),
             # Channel 1 Measuring
             ("channel1.measure.current", self.query_value, "MEAS:CURRent? CH1"),
@@ -69,7 +74,6 @@ class SPD3303X(PPS):
             ("channel2.measure.voltage", self.query_value, "MEAS:VOLTage? CH2"),
             ("channel2.measure.power", self.query_value, "MEAS:POWEr? CH2")
         ]
-
         self.init_api()
 
     def query_value(self, base_str, *args, **kwargs):
@@ -88,23 +92,22 @@ class SPD3303X(PPS):
         formatted_string = self._format_string(base_str, **kwargs)
         self._write(formatted_string)
 
-    def write_bool(self, base_str, value):
-        if value:
-            formatted_string = base_str.format(value="ON")
-        else:
-            formatted_string = base_str.format(value="OFF")
-        self._write(formatted_string)
-
     def write_timer(self, base_str, waveform):
 
         if len(waveform) > 5:
             raise ValueError("Error: Too many points in waveform. Waveform must have 5 or fewer points")
+        # We need to set the remaining waveforms to blank so that the previous values are initialised to 0
+        blank = [[0, 0, 0] for _ in range(5 - len(waveform))]
 
-        for index, wave in enumerate(waveform):
-            group = index + 1
+        waveform.extend(blank)
+        for group, wave in enumerate(waveform, start=1):
             voltage, current, duration = wave
             formatted_string = base_str.format(group=group, voltage=voltage, current=current, duration=duration)
             self._write(formatted_string)
+
+    def write_half(self, base_str, value):
+        formatted_string = self._format_string(base_str, value=value / 2)
+        self._write(formatted_string)
 
     def _format_string(self, base_str, **kwargs):
         kwargs['self'] = self
@@ -178,8 +181,9 @@ class SPD3303X(PPS):
         flat 20ms is added to allow processing time.
         This is especially important for commands that write large amounts of data such as user arbitrary forms.
         """
-        self.instrument.write(data)
-        time.sleep(0.02 + len(data) / 6000)
+        for cmd in data.split(';'):
+            self.instrument.write(cmd)
+            time.sleep(0.02 + len(cmd) / 6000)
         self._is_error()
 
     def _check_errors(self):
@@ -194,19 +198,13 @@ class SPD3303X(PPS):
         return code, msg
 
     def _is_error(self, silent=False):
-        errors = []
-        while True:
-            code, msg = self._check_errors()
-            if code != 0:
-                errors.append((code, msg))
-            else:
-                break
-        if errors:
+        code, msg = self._check_errors()
+        if code != 0:
             if silent:
-                return errors
+                return [(code, msg)]
             else:
-                raise InstrumentError("Error(s) Returned from PPS\n" +
-                                      "\n".join(["Code: {}\nMessage:{}".format(code, msg) for code, msg in errors]))
+                raise InstrumentError("Error Returned from PPS\n" +
+                                      "Code: {}\nMessage:{}".format(code, msg))
 
     def init_api(self):
         for func_str, handler, base_str in self.api:
@@ -259,4 +257,3 @@ if __name__ == "__main__":
 
     p.series(False)
     p.channel1.voltage(3)
-
