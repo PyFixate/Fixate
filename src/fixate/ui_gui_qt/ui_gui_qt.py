@@ -93,6 +93,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     sig_image_clear = pyqtSignal()
 
     # Progress Signals
+    sig_indicator_start = pyqtSignal()
+    sig_indicator_stop = pyqtSignal()
     sig_working = pyqtSignal()
     sig_progress = pyqtSignal()
     sig_finish = pyqtSignal()
@@ -148,30 +150,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.Button_3.clicked.connect(self.button_3_click)
         self.UserInputBox.submit.connect(self.text_input_submit)
 
-        # Signal Binds
-        self.sig_finish.connect(self.clean_up)  # Normal termination
-        self.sig_choices_input.connect(self.get_input)
-        self.sig_label_update.connect(self.display_test)
-        self.sig_text_input.connect(self.open_text_input)
-        self.sig_timer.connect(self.start_timer)
-        self.sig_tree_init.connect(self.display_tree)
-        self.sig_tree_update.connect(self.update_tree)
-        self.sig_progress.connect(self.progress_update)
-        self.sig_working.connect(self.start_indicator)
-
-        # New Binds
-        self.sig_active_update.connect(self.active_update)
-        self.sig_active_clear.connect(self.active_clear)
-        self.sig_history_update.connect(self.history_update)
-        self.sig_history_clear.connect(self.history_clear)
-        self.sig_error_update.connect(self.error_update)
-        self.sig_error_clear.connect(self.error_clear)
-        self.sig_image_update.connect(self.image_update)
-        self.sig_image_clear.connect(self.image_clear)
-        # Deprecated
-        # self.update_image.connect(self.display_image)
-        # self.output_signal.connect(self.display_output)
-
+        self.bind_qt_signals()
         sys.excepthook = exception_hook  # TODO DEBUG REMOVE
 
     def run_sequencer(self):
@@ -183,6 +162,37 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         event.ignore()
         self.hide()
         self.clean_up()
+
+    def bind_qt_signals(self):
+        """
+        Binds the qt signals to the appropriate handlers
+        :return:
+        """
+        # Signal Binds
+        self.sig_finish.connect(self.clean_up)  # Normal termination
+        self.sig_choices_input.connect(self.get_input)
+        self.sig_label_update.connect(self.display_test)
+        self.sig_text_input.connect(self.open_text_input)
+        self.sig_timer.connect(self.start_timer)
+        self.sig_tree_init.connect(self.display_tree)
+        self.sig_tree_update.connect(self.update_tree)
+        self.sig_progress.connect(self.progress_update)
+
+        # New Binds
+        self.sig_indicator_start.connect(self._start_indicator)
+        self.sig_indicator_stop.connect(self._stop_indicator)
+        self.sig_active_update.connect(self.active_update)
+        self.sig_active_clear.connect(self.active_clear)
+        self.sig_history_update.connect(self.history_update)
+        self.sig_history_clear.connect(self.history_clear)
+        self.sig_error_update.connect(self.error_update)
+        self.sig_error_clear.connect(self.error_clear)
+        self.sig_image_update.connect(self._image_update)
+        self.sig_image_clear.connect(self._image_clear)
+        # Deprecated
+        # self.update_image.connect(self.display_image)
+        # self.output_signal.connect(self.display_output)
+        # self.working.connect(self.start_indicator)
 
     """Pubsub handlers for setup and teardown
        These are run in the main thread"""
@@ -197,10 +207,11 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         pub.subscribe(self._user_action, 'UI_action')
         pub.subscribe(self._completion_code, 'Finish')
         # Image Window
-        pub.subscribe(self._image_update, "UI_image")
-        pub.subscribe(self._image_clear, "UI_image_clear")
+        pub.subscribe(self.image_update, "UI_image")
+        pub.subscribe(self.image_clear, "UI_image_clear")
+        pub.subscribe(self.image_clear, "UI_block_end")
         # Active Window
-
+        
         # Multi Window
         pub.subscribe(self._print_test_start, 'Test_Start')
         pub.subscribe(self._print_test_seq_start, 'TestList_Start')
@@ -212,6 +223,12 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         pub.subscribe(self._print_test_retry, 'Test_Retry')
 
         # Error Window
+
+        # Working Indicator
+        pub.subscribe(self.start_indicator, 'Test_Start')
+        pub.subscribe(self.start_indicator, 'UI_block_end')
+        pub.subscribe(self.stop_indicator, 'UI_block_start')
+
         return
 
     def unregister_events(self):
@@ -240,15 +257,23 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.ActiveEvent.verticalScrollBar().setValue(self.ActiveEvent.verticalScrollBar().maximum())
         self.Events.append(message)
         self.Events.verticalScrollBar().setValue(self.Events.verticalScrollBar().maximum())
-        self.working_indicator.stop()
-        self.WorkingIndicator.hide()
         self.UserInputBox.setPlaceholderText("Input:")
         self.UserInputBox.setEnabled(True)
         self.UserInputBox.setFocus()
 
-    def start_indicator(self):
+    def start_indicator(self, **kwargs):
+        self.sig_indicator_start.emit()
+
+    def _start_indicator(self):
         self.WorkingIndicator.show()
         self.working_indicator.start()
+
+    def stop_indicator(self):
+        self.sig_indicator_stop.emit()
+
+    def _stop_indicator(self):
+        self.working_indicator.stop()
+        self.WorkingIndicator.hide()
 
     def retrieve_packaged_data(self, path):
         try:
@@ -256,10 +281,10 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         except FileNotFoundError:
             return b""
 
-    def _image_update(self, path):
+    def image_update(self, path):
         self.sig_image_update.emit(path)
 
-    def image_update(self, path):
+    def _image_update(self, path):
         """
         Adds an image to the image viewer. These images can be stacked with transparent layers to form overlays
         :param path: Relative path to image within the test scripts package
@@ -272,10 +297,10 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.image_scene.addPixmap(image)
         self.ImageView.fitInView(0, 0, self.image_scene.width(), self.image_scene.height(), QtCore.Qt.KeepAspectRatio)
 
-    def _image_clear(self):
+    def image_clear(self):
         self.sig_image_clear.emit()
 
-    def image_clear(self):
+    def _image_clear(self):
         self.image_scene.clear()
 
     def display_image(self, path="", overlay=False):
@@ -507,9 +532,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             self.Button_3.setText(choices[2])
             self.Button_3.setShortcut(QtGui.QKeySequence(choices[2][0:1]))
             self.Button_3.setEnabled(True)
-
-        self.working_indicator.stop()
-        self.WorkingIndicator.hide()
 
     def _seq_abort(self, exception=None):
         """
