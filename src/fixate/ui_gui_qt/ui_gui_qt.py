@@ -181,8 +181,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         # New Binds
         self.sig_indicator_start.connect(self._start_indicator)
         self.sig_indicator_stop.connect(self._stop_indicator)
-        self.sig_active_update.connect(self.active_update)
-        self.sig_active_clear.connect(self.active_clear)
+        self.sig_active_update.connect(self._active_update)
+        self.sig_active_clear.connect(self._active_clear)
         self.sig_history_update.connect(self.history_update)
         self.sig_history_clear.connect(self.history_clear)
         self.sig_error_update.connect(self.error_update)
@@ -211,7 +211,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         pub.subscribe(self.image_clear, "UI_image_clear")
         pub.subscribe(self.image_clear, "UI_block_end")
         # Active Window
-
+        pub.subscribe(self.active_clear, "UI_block_end")
         # Multi Window
         pub.subscribe(self._print_test_start, 'Test_Start')
         pub.subscribe(self._print_test_seq_start, 'TestList_Start')
@@ -456,11 +456,17 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.ActiveTest.setText("Test {}:".format(test_index))
         self.TestDescription.setText("{}".format(description))
 
-    def active_update(self, message):
+    def active_update(self, msg, **kwargs):
+        self.sig_active_update.emit(msg)
+
+    def _active_update(self, message):
         self.ActiveEvent.append(message)
         self.ActiveEvent.verticalScrollBar().setValue(self.ActiveEvent.verticalScrollBar().maximum())
 
-    def active_clear(self):
+    def active_clear(self, **kwargs):
+        self.sig_active_clear.emit()
+
+    def _active_clear(self):
         self.ActiveEvent.clear()
         self.ActiveEvent.verticalScrollBar().setValue(self.ActiveEvent.verticalScrollBar().maximum())
 
