@@ -30,8 +30,11 @@ def _user_req(msg):
      Returns the user response
     """
     q = Queue()
+    pub.sendMessage('UI_block_start')
     pub.sendMessage('UI_req', msg=msg, q=q)
-    return q.get()
+    resp = q.get()
+    pub.sendMessage('UI_block_end')
+    return resp
 
 
 def _user_image(path):
@@ -67,8 +70,11 @@ def _user_req_input(msg, target=None, attempts=5, **kwargs):
      Returns the user response
     """
     q = Queue()
+    pub.sendMessage('UI_block_start')
     pub.sendMessage('UI_req_input', msg=msg, q=q, target=target, attempts=attempts, kwargs=kwargs)
-    return q.get()
+    resp = q.get()
+    pub.sendMessage('UI_block_end')
+    return resp
 
 
 def _user_req_choices(msg, choices, target=None, attempts=5):
@@ -88,8 +94,11 @@ def _user_req_choices(msg, choices, target=None, attempts=5):
     if len(choices) < 2:
         raise ValueError("Requires at least two choices to work, {} provided".format(choices))
     q = Queue()
+    pub.sendMessage('UI_block_start')
     pub.sendMessage('UI_req_choices', msg=msg, q=q, choices=choices, target=target, attempts=attempts)
-    return q.get()
+    resp = q.get()
+    pub.sendMessage('UI_block_end')
+    return resp
 
 
 def user_info(msg):
