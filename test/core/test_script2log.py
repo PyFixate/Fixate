@@ -43,7 +43,7 @@ def test_basicpass(tmpdir):
 
 def test_basicfail(tmpdir):
     script_path = os.path.join(os.path.dirname(__file__), "scripts", "basicfail.py")
-    log_path = os.path.join(tmpdir, "logfile.csv")
+    log_path = os.path.join(str(tmpdir), "logfile.csv")
     ret = subprocess.call(["python", "-m", "fixate",
                            "-p", script_path,
                            "--serial-number", "0123456789",
