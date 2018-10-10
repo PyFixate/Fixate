@@ -770,11 +770,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             q.put(('Result', "ABORT_FORCE"))
             return
 
-        initial_indent = ">>> "
-        subsequent_indent = "    "
-        # additional space added due to wrapper.drop_white_space being True, need to
-        # drop white spaces, but keep the white space to separate the cursor from input message
-        msg = self.reformat_text(msg, initial_indent, subsequent_indent) + "\n>>> "
+        msg = self.reformat_text(msg)
         wrapper.initial_indent = ""
         wrapper.subsequent_indent = ""
         for _ in range(attempts):
