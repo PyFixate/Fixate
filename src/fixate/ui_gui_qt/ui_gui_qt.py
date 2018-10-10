@@ -211,7 +211,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         pub.subscribe(self.image_clear, "UI_image_clear")
         pub.subscribe(self.image_clear, "UI_block_end")
         # Active Window
-
+        
         # Multi Window
         pub.subscribe(self._print_test_start, 'Test_Start')
         pub.subscribe(self._print_test_seq_start, 'TestList_Start')
@@ -901,13 +901,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             self.sig_tree_update.emit(test_index, "Error")
         self.history_update("")
         self.history_update("!" * wrapper.width)
-        self.active_update("!" * wrapper.width)
         self.history_update(
             self.reformat_text("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), exception)))
-        self.active_update(
-            self.reformat_text("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), exception)))
         self.history_update("!" * wrapper.width)
-        self.active_update("!" * wrapper.width)
         # TODO self.history_update traceback into a debug log file
         if fixate.config.DEBUG:
             traceback.print_tb(exception.__traceback__, file=sys.stderr)
@@ -934,54 +930,40 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             status = "FAIL"
         format_dict = self.round_to_3_sig_figures(chk)
         if chk._min is not None and chk._max is not None:
-            msg = self.reformat_text(
+            self.history_update(self.reformat_text(
                 "\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {_min} - {_max} : "
                 "{description}".format(
                     status=status,
                     comparison=chk.target.__name__[1:].replace('_', ' '),
                     chk_cnt=chk_cnt,
-                    description=chk.description, **format_dict))
-            self.history_update(msg)
-            if status == "FAIL":
-                self.active_update(msg)
+                    description=chk.description, **format_dict)))
         elif chk.nominal is not None and chk.tol is not None:
-            msg = self.reformat_text(
+            self.history_update(self.reformat_text(
                 "\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {nominal} +- {tol}% : "
                 "{description}".format(
                     status=status,
                     comparison=chk.target.__name__[1:].replace('_', ' '),
                     chk_cnt=chk_cnt,
-                    description=chk.description, **format_dict))
-            self.history_update(msg)
-            if status == "FAIL":
-                self.active_update(msg)
+                    description=chk.description, **format_dict)))
         elif chk._min is not None or chk._max is not None or chk.nominal is not None:
             # Grabs the first value that isn't none. Nominal takes priority
             comp_val = next(format_dict[item] for item in ["nominal", "_min", "_max"] if format_dict[item] is not None)
-            msg = self.reformat_text("\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {comp_val} : "
-                                     "{description}".format(
-                status=status,
-                comparison=chk.target.__name__[1:].replace('_', ' '),
-                comp_val=comp_val,
-                chk_cnt=chk_cnt,
-                description=chk.description, **format_dict))
-            self.history_update(msg)
-            if status == "FAIL":
-                self.active_update(msg)
+            self.history_update(
+                self.reformat_text("\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {comp_val} : "
+                                   "{description}".format(
+                    status=status,
+                    comparison=chk.target.__name__[1:].replace('_', ' '),
+                    comp_val=comp_val,
+                    chk_cnt=chk_cnt,
+                    description=chk.description, **format_dict)))
         else:
             if chk.test_val is not None:
-                msg = self.reformat_text(
+                self.history_update(self.reformat_text(
                     "\nCheck {chk_cnt}: {status}: {test_val} : {description}".format(
                         chk_cnt=chk_cnt,
                         description=chk.description,
-                        status=status, **format_dict))
-                self.history_update(msg)
-                if status == "FAIL":
-                    self.active_update(msg)
+                        status=status, **format_dict)))
             else:
-                msg = self.reformat_text(
+                self.history_update(self.reformat_text(
                     "\nCheck {chk_cnt} : {status}: {description}".format(description=chk.description, chk_cnt=chk_cnt,
-                                                                         status=status))
-                self.history_update(msg)
-                if status == "FAIL":
-                    self.active_update(msg)
+                                                                         status=status)))
