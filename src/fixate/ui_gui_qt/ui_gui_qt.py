@@ -847,7 +847,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_progress.emit()
         self.history_update("*" * wrapper.width)
         self.history_update(self.reformat_text("Test {}: {}".format(test_index, data.test_desc)))
-        self.active_update(self.reformat_text("Test {}: {}".format(test_index, data.test_desc)))
         self.history_update("-" * wrapper.width)
         self.sig_label_update.emit(test_index, data.test_desc)
         self.sig_tree_update.emit(test_index, "In Progress")
