@@ -83,6 +83,8 @@ class MSO_X_3000(DSO):
             ("acquire.high_resolution", self.write, "ACQ:TYPE HRES"),
             ("events.trigger", self.query_bool, ":TER?"),
             # Measure
+            ("measure.define.threshold.percent", self.write, "MEAS:DEF THR,PERC,{upper},{middle},{lower}"),
+            ("measure.define.threshold.absolute", self.write, "MEAS:DEF THR,ABS,{upper},{middle},{lower}"),
             ("measure.delay._call", self.query_value, "MEAS:DEL? {self._store[source1]},{self._store[source2]}"),
             ("measure.delay.edges.rising.rising", self.write, "MEAS:DEF DEL, +1, +1"),
             ("measure.delay.edges.rising.falling", self.write, "MEAS:DEF DEL, +1, -1"),
