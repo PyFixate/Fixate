@@ -54,18 +54,6 @@ parser.add_argument('-c', '--config',
                     action='append',
                     default=[]
                     )
-parser.add_argument('-n', '--n_loops', '--n-loops',
-                    help="""Loop the test. Use -1 for infinite loops""",
-                    action="store")
-parser.add_argument('-a', '--abort_force', '--abort-force',
-                    help="""Forces an abort instead of prompting the user for retry abort fail""",
-                    action="store_true")
-parser.add_argument('-f', '--fail_force', '--fail-force',
-                    help="""Forces a fail instead of prompting the user for retry abort fail""",
-                    action="store_true")
-parser.add_argument('-r', '--retry_force', '--retry-force',
-                    help="""Forces a retry instead of prompting the user for retry abort fail""",
-                    action="store_true")
 parser.add_argument('-i', '--index',
                     help="""Selector string that is parsed into test_data.get() hosted in the path or zip_selector file.
                     This can be used to distinguish between different configurations of tests""",
