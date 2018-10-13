@@ -96,7 +96,6 @@ class Sequencer:
         self._skip_tests = set([])
         self.context = ContextStack()
         self.context_data = {}
-        self.retry_type = TestClass.RT_RETRY
         self.end_status = "N/A"
 
     def levels(self):
@@ -320,9 +319,9 @@ class Sequencer:
         return active_test_status == "PASS"
 
     def retry_test(self, retry_type=None, prompt_message=""):
-        if self.retry_type == TestClass.RT_ABORT or retry_type == TestClass.RT_ABORT:
+        if retry_type == TestClass.RT_ABORT:
             raise SequenceAbort("Sequence Aborted Automatically")
-        elif self.retry_type == TestClass.RT_FAIL or retry_type == TestClass.RT_FAIL:
+        elif retry_type == TestClass.RT_FAIL:
             return False
         elif retry_type == TestClass.RT_RETRY:
             return True
