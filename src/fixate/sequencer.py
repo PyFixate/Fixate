@@ -1,18 +1,12 @@
-import asyncio
 import sys
 import time
 import re
 from pubsub import pub
 from fixate.core.common import TestList, TestClass
-from fixate.core.exceptions import SequenceAbort, TestRetryExceeded, CheckFail
+from fixate.core.exceptions import SequenceAbort, CheckFail
 from fixate.core.ui import user_retry_abort_fail
 
 STATUS_STATES = ["Idle", "Running", "Paused", "Finished", "Restart", "Aborted"]
-TARGET_RETURN_STATES = ["Skipped", "Result", "Exception"]
-
-
-def default_retry(*args, **kwargs):
-    return "RETRY"
 
 
 class ContextStackNode:
@@ -92,7 +86,6 @@ class Sequencer:
         self._status = "Idle"
         self.active_test = None
         self.ABORT = False
-        # pub.subscribe(self._handle_sequence_abort, "Seq_Abort")
         self.test_attempts = 0
         self.chk_fail = 0
         self.chk_pass = 0
@@ -103,10 +96,8 @@ class Sequencer:
         self._skip_tests = set([])
         self.context = ContextStack()
         self.context_data = {}
-        self.loop = asyncio.get_event_loop()
         self.retry_type = TestClass.RT_RETRY
         self.end_status = "N/A"
-        # self.retry_type = TestClass.RT_PROMPT
 
     def levels(self):
         """
@@ -150,14 +141,6 @@ class Sequencer:
     def load(self, val):
         self.tests.append(val)
         self.context.push(self.tests)
-        self.end_status = "N/A"
-
-    def clear_tests(self):
-        if self.status == "Running":
-            raise RuntimeError("Cannot clear tests while running")
-        self.tests[:] = []
-        self.context[:] = []
-        self.context_data.clear()
         self.end_status = "N/A"
 
     def count_tests(self):
@@ -355,32 +338,6 @@ class Sequencer:
         self.status = "Aborted"
         self.ABORT = True
         self.test_running = False
-
-    def skip_test(self, index):
-        try:
-            self._skip_tests.update(index)
-        except TypeError:
-            self._skip_tests.add(index)
-
-    def _restart(self):
-        """
-        Clear the stack and reset test_index to 0
-        :return:
-        """
-        if self.status == "Running":
-            raise RuntimeError("Cannot Restart if tests are still running")
-        self.test_index = 0
-        self.chk_fail = 0
-        self.chk_pass = 0
-        self.tests_failed = 0
-        self.tests_passed = 0
-        self.tests_errored = 0
-        self.tests_skipped = 0
-        self.status = "Restart"
-        self.context[:] = []
-        self.context.push(self.tests)
-        self.context_data.clear()
-        self.end_status = "N/A"
 
     def check(self, chk, result):
         if result:
