@@ -220,6 +220,7 @@ class Sequencer:
                             top.index += 1
                         else:
                             if not self.retry_test(TestClass.RT_PROMPT):
+                                # mark the test as failed and continue. else will loop and try again
                                 self.tests_failed += 1
                                 top.index += 1
                     elif isinstance(top.current(), TestList):
@@ -287,10 +288,7 @@ class Sequencer:
                     raise SequenceAbort("Sequence Aborted")
                 # Retry Logic for failed checks
                 active_test_status = "FAIL"
-                if not self.retry_test(TestClass.RT_RETRY):
-                    # Retry handle set to skip the test
-                    self.tests_failed += 1
-                    break
+
             except tuple(abort_exceptions):
                 if self.ABORT:  # Program force quit
                     active_test_status = "ERROR"
@@ -303,16 +301,11 @@ class Sequencer:
                     break
             # Retry logic for exceptions
             except BaseException as e:
+                active_test_status = "ERROR"
                 if self.ABORT:  # Program force quit
-                    active_test_status = "ERROR"
                     raise SequenceAbort("Sequence Aborted")
                 pub.sendMessage("Test_Exception", exception=sys.exc_info()[1], test_index=self.levels())
-                # Retry handle selected to skip the test.
-                # Should be depreciated as test class shouldn't set sequencer behaviour
-                active_test_status = "ERROR"
-                if not self.retry_test(TestClass.RT_RETRY, prompt_message=repr(e)):
-                    self.tests_errored += 1
-                    break
+
             # Retry Logic
             pub.sendMessage("Test_Retry", data=active_test, test_index=self.levels())
         pub.sendMessage("Test_Complete", data=active_test, test_index=self.levels(), status=active_test_status)
