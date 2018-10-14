@@ -98,6 +98,10 @@ class Sequencer:
         self.context_data = {}
         self.end_status = "N/A"
 
+        # Sequencer behaviour. Don't ask the user when things to wrong, just marks tests as failed.
+        # This does not change the behaviour of tests that call out to the user. They will still block as required.
+        self.non_interactive = False
+
     def levels(self):
         """
         Get the current test context from the stack
@@ -312,6 +316,13 @@ class Sequencer:
         return active_test_status == "PASS"
 
     def retry_prompt(self):
+        """Prompt the user when something goes wrong.
+
+        For retry return True, to fail return False and to abort raise and abort exception. Respect the
+        non_interactive flag, which can be set by the command line option --non-interactive"""
+
+        if self.non_interactive:
+            return False
         status, resp = user_retry_abort_fail(msg="")
         if resp == "ABORT":
             raise SequenceAbort("Sequence Aborted By User")
