@@ -219,7 +219,7 @@ class Sequencer:
                         if self.run_test():
                             top.index += 1
                         else:
-                            if not self.retry_test(TestClass.RT_PROMPT):
+                            if not self.retry_prompt():
                                 # mark the test as failed and continue. else will loop and try again
                                 self.tests_failed += 1
                                 top.index += 1
@@ -296,7 +296,7 @@ class Sequencer:
                 pub.sendMessage("Test_Exception", exception=sys.exc_info()[1], test_index=self.levels())
                 attempts = 0
                 active_test_status = "ERROR"
-                if not self.retry_test(TestClass.RT_PROMPT):
+                if not self.retry_prompt():
                     self.tests_errored += 1
                     break
             # Retry logic for exceptions
@@ -311,16 +311,8 @@ class Sequencer:
         pub.sendMessage("Test_Complete", data=active_test, test_index=self.levels(), status=active_test_status)
         return active_test_status == "PASS"
 
-    def retry_test(self, retry_type=None, prompt_message=""):
-        if retry_type == TestClass.RT_ABORT:
-            raise SequenceAbort("Sequence Aborted Automatically")
-        elif retry_type == TestClass.RT_FAIL:
-            return False
-        elif retry_type == TestClass.RT_RETRY:
-            return True
-        elif retry_type == TestClass.RT_PROMPT:
-            print(prompt_message)
-            status, resp = user_retry_abort_fail(prompt_message)  # TODO Fix me
+    def retry_prompt(self):
+            status, resp = user_retry_abort_fail(msg="")
             if resp == "ABORT":
                 raise SequenceAbort("Sequence Aborted By User")
             else:
