@@ -312,11 +312,11 @@ class Sequencer:
         return active_test_status == "PASS"
 
     def retry_prompt(self):
-            status, resp = user_retry_abort_fail(msg="")
-            if resp == "ABORT":
-                raise SequenceAbort("Sequence Aborted By User")
-            else:
-                return resp == "RETRY"
+        status, resp = user_retry_abort_fail(msg="")
+        if resp == "ABORT":
+            raise SequenceAbort("Sequence Aborted By User")
+        else:
+            return resp == "RETRY"
 
     def _handle_sequence_abort(self):
         self.status = "Aborted"
