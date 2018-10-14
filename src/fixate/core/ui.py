@@ -30,18 +30,29 @@ def _user_req(msg):
      Returns the user response
     """
     q = Queue()
+    pub.sendMessage('UI_block_start')
     pub.sendMessage('UI_req', msg=msg, q=q)
-    return q.get()
+    resp = q.get()
+    pub.sendMessage('UI_block_end')
+    return resp
 
 
-def _user_image(path, overlay):
+def _user_image(path):
     """
     A GUI function that updates the displayed image on-screen
     :param path:
      A relative path to the image
     """
-    pub.sendMessage('UI_image', path=path, overlay=overlay)
-    return
+    pub.sendMessage('UI_image', path=path)
+
+
+def _user_image_clear():
+    """
+    A GUI function that updates the displayed image on-screen
+    :param path:
+     A relative path to the image
+    """
+    pub.sendMessage('UI_image_clear')
 
 
 def _user_req_input(msg, target=None, attempts=5, **kwargs):
@@ -59,8 +70,11 @@ def _user_req_input(msg, target=None, attempts=5, **kwargs):
      Returns the user response
     """
     q = Queue()
+    pub.sendMessage('UI_block_start')
     pub.sendMessage('UI_req_input', msg=msg, q=q, target=target, attempts=attempts, kwargs=kwargs)
-    return q.get()
+    resp = q.get()
+    pub.sendMessage('UI_block_end')
+    return resp
 
 
 def _user_req_choices(msg, choices, target=None, attempts=5):
@@ -80,8 +94,11 @@ def _user_req_choices(msg, choices, target=None, attempts=5):
     if len(choices) < 2:
         raise ValueError("Requires at least two choices to work, {} provided".format(choices))
     q = Queue()
+    pub.sendMessage('UI_block_start')
     pub.sendMessage('UI_req_choices', msg=msg, q=q, choices=choices, target=target, attempts=attempts)
-    return q.get()
+    resp = q.get()
+    pub.sendMessage('UI_block_end')
+    return resp
 
 
 def user_info(msg):
@@ -159,8 +176,12 @@ def user_ok(msg):
     return _user_req(msg)
 
 
-def user_image(path="", overlay=False):
-    return _user_image(path, overlay)
+def user_image(path):
+    return _user_image(path)
+
+
+def user_image_clear():
+    return _user_image_clear()
 
 
 def user_confirmation_box(msg, attempts=1):
