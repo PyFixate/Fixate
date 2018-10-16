@@ -9,18 +9,14 @@ from time import sleep
 from zipimport import zipimporter
 from pubsub import pub
 import fixate.config
-import ruamel.yaml
 from fixate.config import ASYNC_TASKS, RESOURCES
 from fixate.config.local_config import save_local_config
 from fixate.core.exceptions import SequenceAbort
-from fixate.core.ui import user_ok, user_input, user_serial
+from fixate.core.ui import user_input, user_serial
 from fixate.reporting import register_csv, unregister_csv
 from fixate.ui_cmdline import register_cmd_line, unregister_cmd_line
 
-try:
-    asyncio.ensure_future
-except AttributeError:
-    asyncio.ensure_future = getattr(asyncio, 'async')  # Compatibility with 3.4.4 and 3.5
+
 parser = ArgumentParser(description="""
 Fixate Command Line Interface
 
@@ -54,18 +50,6 @@ parser.add_argument('-c', '--config',
                     action='append',
                     default=[]
                     )
-parser.add_argument('-n', '--n_loops', '--n-loops',
-                    help="""Loop the test. Use -1 for infinite loops""",
-                    action="store")
-parser.add_argument('-a', '--abort_force', '--abort-force',
-                    help="""Forces an abort instead of prompting the user for retry abort fail""",
-                    action="store_true")
-parser.add_argument('-f', '--fail_force', '--fail-force',
-                    help="""Forces a fail instead of prompting the user for retry abort fail""",
-                    action="store_true")
-parser.add_argument('-r', '--retry_force', '--retry-force',
-                    help="""Forces a retry instead of prompting the user for retry abort fail""",
-                    action="store_true")
 parser.add_argument('-i', '--index',
                     help="""Selector string that is parsed into test_data.get() hosted in the path or zip_selector file.
                     This can be used to distinguish between different configurations of tests""",
@@ -86,6 +70,7 @@ parser.add_argument('--script-params',
                     default=[])
 parser.add_argument('--serial_number', '--serial-number',
                     help=("Serial number of the DUT."))
+parser.add_argument('--non-interactive', action="store_true", help="The sequencer will not prompt for retries.")
 
 
 def load_test_suite(script_path, zip_path, zip_selector):
@@ -231,11 +216,13 @@ class FixateWorker:
             # args = parser.parse_args()
             if self.args.dev:
                 fixate.config.DEBUG = True
+
             if self.args.index is None:
                 test_selector = user_input("Please enter test selector string")
                 self.args.index = test_selector[1]
                 if test_selector == "ABORT_FORCE":
                     return
+
             if self.args.serial_number is None:
                 serial_number = user_serial("Please enter serial number")
                 self.sequencer.context_data["serial_number"] = serial_number[1]
@@ -243,8 +230,13 @@ class FixateWorker:
                     return
             else:
                 self.sequencer.context_data["serial_number"] = self.args.serial_number
+
             if self.test_script_path is None:
                 self.test_script_path = self.args.path
+
+            if self.args.non_interactive:
+                self.sequencer.non_interactive = True
+
             # parse script params
             for param in self.args.script_params:
                 k, v = param.split("=")

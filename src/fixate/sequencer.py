@@ -1,18 +1,12 @@
-import asyncio
 import sys
 import time
 import re
 from pubsub import pub
 from fixate.core.common import TestList, TestClass
-from fixate.core.exceptions import SequenceAbort, TestRetryExceeded, CheckFail
+from fixate.core.exceptions import SequenceAbort, CheckFail
 from fixate.core.ui import user_retry_abort_fail
 
 STATUS_STATES = ["Idle", "Running", "Paused", "Finished", "Restart", "Aborted"]
-TARGET_RETURN_STATES = ["Skipped", "Result", "Exception"]
-
-
-def default_retry(*args, **kwargs):
-    return "RETRY"
 
 
 class ContextStackNode:
@@ -92,7 +86,6 @@ class Sequencer:
         self._status = "Idle"
         self.active_test = None
         self.ABORT = False
-        # pub.subscribe(self._handle_sequence_abort, "Seq_Abort")
         self.test_attempts = 0
         self.chk_fail = 0
         self.chk_pass = 0
@@ -103,10 +96,11 @@ class Sequencer:
         self._skip_tests = set([])
         self.context = ContextStack()
         self.context_data = {}
-        self.loop = asyncio.get_event_loop()
-        self.retry_type = TestClass.RT_RETRY
         self.end_status = "N/A"
-        # self.retry_type = TestClass.RT_PROMPT
+
+        # Sequencer behaviour. Don't ask the user when things to wrong, just marks tests as failed.
+        # This does not change the behaviour of tests that call out to the user. They will still block as required.
+        self.non_interactive = False
 
     def levels(self):
         """
@@ -150,14 +144,6 @@ class Sequencer:
     def load(self, val):
         self.tests.append(val)
         self.context.push(self.tests)
-        self.end_status = "N/A"
-
-    def clear_tests(self):
-        if self.status == "Running":
-            raise RuntimeError("Cannot clear tests while running")
-        self.tests[:] = []
-        self.context[:] = []
-        self.context_data.clear()
         self.end_status = "N/A"
 
     def count_tests(self):
@@ -237,7 +223,8 @@ class Sequencer:
                         if self.run_test():
                             top.index += 1
                         else:
-                            if not self.retry_test(TestClass.RT_PROMPT):
+                            if not self.retry_prompt():
+                                # mark the test as failed and continue. else will loop and try again
                                 self.tests_failed += 1
                                 top.index += 1
                     elif isinstance(top.current(), TestList):
@@ -305,10 +292,7 @@ class Sequencer:
                     raise SequenceAbort("Sequence Aborted")
                 # Retry Logic for failed checks
                 active_test_status = "FAIL"
-                if not self.retry_test(TestClass.RT_RETRY):
-                    # Retry handle set to skip the test
-                    self.tests_failed += 1
-                    break
+
             except tuple(abort_exceptions):
                 if self.ABORT:  # Program force quit
                     active_test_status = "ERROR"
@@ -316,71 +300,39 @@ class Sequencer:
                 pub.sendMessage("Test_Exception", exception=sys.exc_info()[1], test_index=self.levels())
                 attempts = 0
                 active_test_status = "ERROR"
-                if not self.retry_test(TestClass.RT_PROMPT):
+                if not self.retry_prompt():
                     self.tests_errored += 1
                     break
             # Retry logic for exceptions
             except BaseException as e:
+                active_test_status = "ERROR"
                 if self.ABORT:  # Program force quit
-                    active_test_status = "ERROR"
                     raise SequenceAbort("Sequence Aborted")
                 pub.sendMessage("Test_Exception", exception=sys.exc_info()[1], test_index=self.levels())
-                # Retry handle selected to skip the test.
-                # Should be depreciated as test class shouldn't set sequencer behaviour
-                active_test_status = "ERROR"
-                if not self.retry_test(TestClass.RT_RETRY, prompt_message=repr(e)):
-                    self.tests_errored += 1
-                    break
+
             # Retry Logic
             pub.sendMessage("Test_Retry", data=active_test, test_index=self.levels())
         pub.sendMessage("Test_Complete", data=active_test, test_index=self.levels(), status=active_test_status)
         return active_test_status == "PASS"
 
-    def retry_test(self, retry_type=None, prompt_message=""):
-        if self.retry_type == TestClass.RT_ABORT or retry_type == TestClass.RT_ABORT:
-            raise SequenceAbort("Sequence Aborted Automatically")
-        elif self.retry_type == TestClass.RT_FAIL or retry_type == TestClass.RT_FAIL:
+    def retry_prompt(self):
+        """Prompt the user when something goes wrong.
+
+        For retry return True, to fail return False and to abort raise and abort exception. Respect the
+        non_interactive flag, which can be set by the command line option --non-interactive"""
+
+        if self.non_interactive:
             return False
-        elif retry_type == TestClass.RT_RETRY:
-            return True
-        elif retry_type == TestClass.RT_PROMPT:
-            print(prompt_message)
-            status, resp = user_retry_abort_fail(prompt_message)  # TODO Fix me
-            if resp == "ABORT":
-                raise SequenceAbort("Sequence Aborted By User")
-            else:
-                return resp == "RETRY"
+        status, resp = user_retry_abort_fail(msg="")
+        if resp == "ABORT":
+            raise SequenceAbort("Sequence Aborted By User")
+        else:
+            return resp == "RETRY"
 
     def _handle_sequence_abort(self):
         self.status = "Aborted"
         self.ABORT = True
         self.test_running = False
-
-    def skip_test(self, index):
-        try:
-            self._skip_tests.update(index)
-        except TypeError:
-            self._skip_tests.add(index)
-
-    def _restart(self):
-        """
-        Clear the stack and reset test_index to 0
-        :return:
-        """
-        if self.status == "Running":
-            raise RuntimeError("Cannot Restart if tests are still running")
-        self.test_index = 0
-        self.chk_fail = 0
-        self.chk_pass = 0
-        self.tests_failed = 0
-        self.tests_passed = 0
-        self.tests_errored = 0
-        self.tests_skipped = 0
-        self.status = "Restart"
-        self.context[:] = []
-        self.context.push(self.tests)
-        self.context_data.clear()
-        self.end_status = "N/A"
 
     def check(self, chk, result):
         if result:
