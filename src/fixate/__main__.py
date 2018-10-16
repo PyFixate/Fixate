@@ -9,19 +9,14 @@ from time import sleep
 from zipimport import zipimporter
 from pubsub import pub
 import fixate.config
-import ruamel.yaml
 from fixate.config import ASYNC_TASKS, RESOURCES
 from fixate.config.local_config import save_local_config
 from fixate.core.exceptions import SequenceAbort
-from fixate.core.ui import user_ok, user_input, user_serial
+from fixate.core.ui import user_input, user_serial
 from fixate.reporting import register_csv, unregister_csv
 from fixate.ui_cmdline import register_cmd_line, unregister_cmd_line
 
 
-try:
-    asyncio.ensure_future
-except AttributeError:
-    asyncio.ensure_future = getattr(asyncio, 'async')  # Compatibility with 3.4.4 and 3.5
 parser = ArgumentParser(description="""
 Fixate Command Line Interface
 
