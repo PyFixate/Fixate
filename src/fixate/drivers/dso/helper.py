@@ -42,7 +42,7 @@ def validate_specifications(_class, specifications):
 
 class CallableNoArgs:
     def __call__(self):
-        self._call()
+        return self._call()
 
     def _call(self):
         raise InstrumentFeatureUnavailable(
@@ -51,7 +51,7 @@ class CallableNoArgs:
 
 class CallableBool:
     def __call__(self, value: bool):
-        self._call(value)
+        return self._call(value)
 
     def _call(self, value: bool):
         raise InstrumentFeatureUnavailable(
@@ -459,10 +459,16 @@ class MeasureRMS:
         self.ac = MeasureInterval()
 
 
+class Delay(CallableNoArgs):
+    def __init__(self):
+        super().__init__()
+        self.edges = MultiSlopes()
+
+
 class Measure:
     def __init__(self):
         self.counter = MeasureAllSources()
-        self.delay = MultiMeasureSources()
+        self.delay = Delay()
         self.duty = MeasureAllSources()
         self.fall_time = MeasureAllSources()
         self.frequency = MeasureAllSources()
@@ -485,6 +491,14 @@ class Measure:
         self.xmin = MeasureAllSources()
 
 
+class MultiSlopes(CallableNoArgs):
+    def __init__(self):
+        super().__init__()
+        self.rising = Slopes()
+        self.falling = Slopes()
+        self.alternating = Slopes()
+        self.either = Slopes()
+
 
 class DSO(metaclass=ABCMeta):
     REGEX_ID = "DSO"
@@ -499,6 +513,10 @@ class DSO(metaclass=ABCMeta):
         self.ch4 = ChannelBase("4")
         self.chmath = ChannelBase("math")
         self.chfunc = ChannelBase("func")
+        self.coupling = Coupling()
+        self.probe = Probe()
+        self.source1 = MultiMeasureSources()
+        self.source2 = MultiMeasureSources()
         self.trigger = Trigger()
         self.time_base = Timebase()
         self.acquire = Acquire()
@@ -541,6 +559,14 @@ class DSO(metaclass=ABCMeta):
         raise InstrumentFeatureUnavailable(
             "{} not available on this device".format(inspect.currentframe().f_code.co_name))
 
+    def scale(self, value: number):
+        raise InstrumentFeatureUnavailable(
+            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+
+    def offset(self, value: number):
+        raise InstrumentFeatureUnavailable(
+            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+
     def init_api(self):
         for func_str, handler, base_str in self.api:
             *parents, func = func_str.split(".")
@@ -563,8 +589,8 @@ class DSO(metaclass=ABCMeta):
             keys = [itm[0] for itm in sig.parameters.items()]
             for index, param in enumerate(nargs):
                 nkwargs[keys[index]] = param
-            new_str = base_str.format(**nkwargs)
+            # new_str = base_str.format(**nkwargs)
             # handler(self, new_str)
-            return handler(new_str)
+            return handler(base_str, **nkwargs)
 
         return update_wrapper(temp_func, func)
