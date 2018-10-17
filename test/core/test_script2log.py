@@ -48,6 +48,6 @@ def test_basicfail(tmpdir):
                            "-p", script_path,
                            "--serial-number", "0123456789",
                            "--log-file", log_path,
-                           "--fail-force"])
-    assert ret == 11
+                           "--non-interactive"])
+    assert ret == 10
     compare_logs(os.path.join(os.path.dirname(__file__), "scripts", "basicfail.csv.expected"), log_path)
