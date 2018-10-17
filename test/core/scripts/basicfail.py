@@ -6,8 +6,7 @@ __version__ = "1"
 
 
 class SimpleTest(TestClass):
-    """Simple passing test"""
-    retry_type = TestClass.RT_FAIL
+    """Simple failing test"""
 
     def test(self):
         chk_true(False, "It is True!")
