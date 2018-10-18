@@ -70,6 +70,7 @@ parser.add_argument('--script-params',
                     default=[])
 parser.add_argument('--serial_number', '--serial-number',
                     help=("Serial number of the DUT."))
+parser.add_argument("--log-file", action="store", help="Specify a file to write the log to")
 parser.add_argument('--non-interactive', action="store_true", help="The sequencer will not prompt for retries.")
 
 
@@ -316,6 +317,7 @@ def retrieve_test_data(test_suite, index):
 def run_main_program(test_script_path=None):
     args, unknown = parser.parse_known_args()
     load_config(args.config)
+    fixate.config.load_dict_config({"log_file": args.log_file})
     supervisor = FixateSupervisor(test_script_path, args)
     exit(supervisor.run_fixate())
 

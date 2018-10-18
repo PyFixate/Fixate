@@ -1,0 +1,5 @@
+0,Sequence,started=20181010-070721,fixate-version=0.4.0dev,test-script-name=basicfail,report-format=3,index_string=None
+0.00,Test 1,start,Simple failing test,
+0.00,Test 1,check1,true,It is True!,FAIL,False
+0.00,Test 1,end,FAIL,checks-passed=0,checks-failed=1
+0.08,Sequence,ended=20181010-070723,Finished,tests-passed=0,tests-failed=1,tests-error=0,tests-skipped=0,sequence=FAILED
