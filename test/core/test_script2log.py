@@ -41,6 +41,7 @@ def test_basicpass(tmpdir):
     assert ret == 5
     compare_logs(os.path.join(os.path.dirname(__file__), "scripts", "basicpass.csv.expected"), log_path)
 
+
 def test_basicfail(tmpdir):
     script_path = os.path.join(os.path.dirname(__file__), "scripts", "basicfail.py")
     log_path = os.path.join(str(tmpdir), "logfile.csv")
@@ -51,3 +52,28 @@ def test_basicfail(tmpdir):
                            "--non-interactive"])
     assert ret == 10
     compare_logs(os.path.join(os.path.dirname(__file__), "scripts", "basicfail.csv.expected"), log_path)
+
+
+basichierachy_data = [
+    ["None", "None", 5],
+    ["test_test", "None", 10],
+]
+
+
+@pytest.mark.parametrize("fail_flag,raise_flag,return_code", basichierachy_data)
+def test_basichierachy(tmpdir, fail_flag, raise_flag, return_code):
+    script_path = os.path.join(os.path.dirname(__file__), "scripts", "basichierachy.py")
+    log_path = os.path.join(str(tmpdir), "logfile.csv")
+    ret = subprocess.call(["python", "-m", "fixate",
+                           "-p", script_path,
+                           "--serial-number", "0123456789",
+                           "--log-file", log_path,
+                           "--non-interactive",
+                           "--script-params", "fail_flag=" + fail_flag,
+                           "--script-params", "raise_flag=" + raise_flag,
+                           ])
+    assert ret == return_code
+    compare_logs(os.path.join(os.path.dirname(__file__),
+                              "scripts",
+                              "basichierachy-{}-{}.csv.expected".format(fail_flag, raise_flag)),
+                 log_path)
