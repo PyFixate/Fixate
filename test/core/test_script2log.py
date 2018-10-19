@@ -31,8 +31,11 @@ def compare_logs(test_log, expected_log):
     compare_dicts(dict_line(test_last), dict_line(expected_last), filter_keys={"ended"})
 
 
+log_dir = os.path.join(os.path.dirname(__file__), "expect-logs")
+script_dir = os.path.join(os.path.dirname(__file__), "scripts")
+
 def test_basicpass(tmpdir):
-    script_path = os.path.join(os.path.dirname(__file__), "scripts", "basicpass.py")
+    script_path = os.path.join(script_dir, "basicpass.py")
     log_path = os.path.join(str(tmpdir), "logfile.csv")
     ret = subprocess.call(["python", "-m", "fixate",
                            "-p", script_path,
@@ -40,11 +43,11 @@ def test_basicpass(tmpdir):
                            "--log-file", log_path,
                            "--non-interactive"])
     assert ret == 5
-    compare_logs(os.path.join(os.path.dirname(__file__), "scripts", "basicpass.csv.expected"), log_path)
+    compare_logs(os.path.join(log_dir, "basicpass.csv"), log_path)
 
 
 def test_basicfail(tmpdir):
-    script_path = os.path.join(os.path.dirname(__file__), "scripts", "basicfail.py")
+    script_path = os.path.join(script_dir, "basicfail.py")
     log_path = os.path.join(str(tmpdir), "logfile.csv")
     ret = subprocess.call(["python", "-m", "fixate",
                            "-p", script_path,
@@ -52,7 +55,7 @@ def test_basicfail(tmpdir):
                            "--log-file", log_path,
                            "--non-interactive"])
     assert ret == 10
-    compare_logs(os.path.join(os.path.dirname(__file__), "scripts", "basicfail.csv.expected"), log_path)
+    compare_logs(os.path.join(log_dir, "basicfail.csv"), log_path)
 
 
 basichierachy_data = [
@@ -63,7 +66,7 @@ basichierachy_data = [
 
 @pytest.mark.parametrize("fail_flag,raise_flag,return_code", basichierachy_data)
 def test_basichierachy(tmpdir, fail_flag, raise_flag, return_code):
-    script_path = os.path.join(os.path.dirname(__file__), "scripts", "basichierachy.py")
+    script_path = os.path.join(script_dir, "basichierachy.py")
     log_path = os.path.join(str(tmpdir), "logfile.csv")
     ret = subprocess.call(["python", "-m", "fixate",
                            "-p", script_path,
@@ -74,7 +77,5 @@ def test_basichierachy(tmpdir, fail_flag, raise_flag, return_code):
                            "--script-params", "raise_flag=" + raise_flag,
                            ])
     assert ret == return_code
-    compare_logs(os.path.join(os.path.dirname(__file__),
-                              "scripts",
-                              "basichierachy-{}-{}.csv.expected".format(fail_flag, raise_flag)),
+    compare_logs(os.path.join(log_dir, "basichierachy-{}-{}.csv".format(fail_flag, raise_flag)),
                  log_path)
