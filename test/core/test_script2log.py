@@ -59,15 +59,23 @@ def test_basicfail(tmpdir):
 
 
 basichierachy_data = [
-    ["None", "None", 5],
-    ["test_test", "None", 10],
+    ["None", "None", "", 5],
+    ["test_test", "None", "", 10],
+    ["None", "test_test", "", 10],
+    pytest.mark.xfail(["None", "test_test", "xfail", 10], reason="Assert Log order not chronological with checks"),
 ]
 
 
-@pytest.mark.parametrize("fail_flag,raise_flag,return_code", basichierachy_data)
-def test_basichierachy(tmpdir, fail_flag, raise_flag, return_code):
+@pytest.mark.parametrize("fail_flag,raise_flag,xfail,return_code", basichierachy_data)
+def test_basichierachy(tmpdir, fail_flag, raise_flag, xfail, return_code):
     script_path = os.path.join(script_dir, "basichierachy.py")
     log_path = os.path.join(str(tmpdir), "logfile.csv")
+
+    if xfail:
+        expected_log_path = os.path.join(log_dir, "basichierachy-{}-{}.csv".format(fail_flag, raise_flag))
+    else:
+        expected_log_path = os.path.join(log_dir, "basichierachy-{}-{}-{}.csv".format(fail_flag, raise_flag, xfail))
+
     ret = subprocess.call(["python", "-m", "fixate",
                            "-p", script_path,
                            "--serial-number", "0123456789",
@@ -76,6 +84,6 @@ def test_basichierachy(tmpdir, fail_flag, raise_flag, return_code):
                            "--script-params", "fail_flag=" + fail_flag,
                            "--script-params", "raise_flag=" + raise_flag,
                            ])
+
     assert ret == return_code
-    compare_logs(os.path.join(log_dir, "basichierachy-{}-{}.csv".format(fail_flag, raise_flag)),
-                 log_path)
+    compare_logs(expected_log_path, log_path)
