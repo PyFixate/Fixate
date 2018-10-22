@@ -1,0 +1,5 @@
+0,Sequence,started=20181022-211022,fixate-version=0.4.0dev,test-script-name=basichierachy,report-format=3,index_string=default
+0.00,Test 1,check1,true,Failure in the test list enter,FAIL,False
+0.01,Test 1,exception,"CheckFail('Check function returned failure, aborting test',)"
+0.01,Sequence,ended=20181022-211022,Aborted,tests-passed=0,tests-failed=0,tests-error=0,tests-skipped=0,sequence=ERROR
+0.01,Test 1,check2,true,Failure in the test list exit,PASS,True
