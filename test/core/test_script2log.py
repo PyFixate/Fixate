@@ -37,7 +37,8 @@ def test_basicpass(tmpdir):
     ret = subprocess.call(["python", "-m", "fixate",
                            "-p", script_path,
                            "--serial-number", "0123456789",
-                           "--log-file", log_path])
+                           "--log-file", log_path,
+                           "--non-interactive"])
     assert ret == 5
     compare_logs(os.path.join(os.path.dirname(__file__), "scripts", "basicpass.csv.expected"), log_path)
 

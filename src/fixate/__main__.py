@@ -12,10 +12,9 @@ import fixate.config
 from fixate.config import ASYNC_TASKS, RESOURCES
 from fixate.config.local_config import save_local_config
 from fixate.core.exceptions import SequenceAbort
-from fixate.core.ui import user_input, user_serial
+from fixate.core.ui import user_input, user_serial, user_ok
 from fixate.reporting import register_csv, unregister_csv
 from fixate.ui_cmdline import register_cmd_line, unregister_cmd_line
-
 
 parser = ArgumentParser(description="""
 Fixate Command Line Interface
@@ -257,18 +256,19 @@ class FixateWorker:
             register_csv()
             self.sequencer.status = 'Running'
 
-            def init_tasks():
-                pass
-
-            def cancel_tasks():
-                for task in ASYNC_TASKS:
-                    task.cancel()
-
-            def finished_test_run(future):
-                self.loop.call_soon(cancel_tasks)
+            def finished_test_run_response(future):
+                future.result()
                 self.loop.call_later(1, self.loop.stop)  # Max 1 second to clean up tasks before aborting
 
-            init_tasks()
+            def finished_test_run(future):
+                if self.sequencer.non_interactive:
+                    self.loop.call_later(1, self.loop.stop)  # Max 1 second to clean up tasks before aborting
+                    return
+
+                if self.sequencer.status in ["Finished", "Aborted"]:
+                    f = partial(user_ok, "Finished testing")
+                    self.loop.run_in_executor(None, f).add_done_callback(finished_test_run_response)
+
             self.loop.run_in_executor(None, self.sequencer.run_sequence).add_done_callback(finished_test_run)
 
             try:
