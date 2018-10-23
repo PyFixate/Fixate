@@ -89,6 +89,7 @@ import datetime
 import sys
 import os
 import time
+import re
 
 from pubsub import pub
 
@@ -220,7 +221,7 @@ class CsvReporting:
         exc_line = ["{:.2f}".format(time.clock() - self.start_time),
                     'Test {}'.format(test_index),
                     'exception',
-                    repr(exception)]
+                    re.sub(r",\)", ")", repr(exception))]  # Remove trailing comma for exception for python < 3.7
         self._write_line_to_csv(exc_line)
 
     def test_comparison(self, passes, chk, chk_cnt, context):

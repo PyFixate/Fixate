@@ -31,8 +31,11 @@ def compare_logs(test_log, expected_log):
     compare_dicts(dict_line(test_last), dict_line(expected_last), filter_keys={"ended"})
 
 
+log_dir = os.path.join(os.path.dirname(__file__), "expect-logs")
+script_dir = os.path.join(os.path.dirname(__file__), "scripts")
+
 def test_basicpass(tmpdir):
-    script_path = os.path.join(os.path.dirname(__file__), "scripts", "basicpass.py")
+    script_path = os.path.join(script_dir, "basicpass.py")
     log_path = os.path.join(str(tmpdir), "logfile.csv")
     ret = subprocess.call(["python", "-m", "fixate",
                            "-p", script_path,
@@ -40,11 +43,11 @@ def test_basicpass(tmpdir):
                            "--log-file", log_path,
                            "--non-interactive"])
     assert ret == 5
-    compare_logs(os.path.join(os.path.dirname(__file__), "scripts", "basicpass.csv.expected"), log_path)
+    compare_logs(os.path.join(log_dir, "basicpass.csv"), log_path)
 
 
 def test_basicfail(tmpdir):
-    script_path = os.path.join(os.path.dirname(__file__), "scripts", "basicfail.py")
+    script_path = os.path.join(script_dir, "basicfail.py")
     log_path = os.path.join(str(tmpdir), "logfile.csv")
     ret = subprocess.call(["python", "-m", "fixate",
                            "-p", script_path,
@@ -52,19 +55,55 @@ def test_basicfail(tmpdir):
                            "--log-file", log_path,
                            "--non-interactive"])
     assert ret == 10
-    compare_logs(os.path.join(os.path.dirname(__file__), "scripts", "basicfail.csv.expected"), log_path)
+    compare_logs(os.path.join(log_dir, "basicfail.csv"), log_path)
 
 
 basichierachy_data = [
-    ["None", "None", 5],
-    ["test_test", "None", 10],
+    # the basic hierarchy test script has a test list with enter/exit, setup & teardown,
+    # along with a single test which has a setup & tear down. By setting the "fail_flag"
+    # or raise_flag as a script-param it is possible to force the script to fail a
+    # check, or raise and exception in the flagged location.
+
+    # Test for a simple passing case
+    ["None", "None", None, 5],
+
+    # Tests with a failing check
+    ["test_test", "None", None, 10],
+    ["test_setup", "None", None, 10],
+    ["test_teardown", "None", None, 10],
+    ["list_setup", "None", None, 10],
+    ["list_teardown", "None", None, 10],
+
+    # The current output of these is almost certainly not what we want. However I'm adding these for now as
+    # a record of the current behaviour. It's not clear to me what the exit codes should be. At some point,
+    # there is a level of definition to all of this. It's also not clear that it makes sense to allow checks
+    # in the setup/tear down enter/exit, but if we don't stop it, we should at least test it.
+
+    # In addition to all that, they fail because the log compare function assume the first and last lines of
+    # the file are the sequence beginning and end entries. However, that is not the case when some exceptions are
+    # raised. Ideally we will improve the log comparison to be more sophisticated.
+    pytest.mark.xfail(["list_enter", "None", None, 11]),
+    pytest.mark.xfail(["list_exit", "None", None, 11]),
+
+    # Tests which raise an exception. Note: There are some bug in the order. We test the current behaviour
+    ["None", "test_test", None, 10],
+
+    # Tests which raise an exception. XFAIL tests which demonstrate the desired behaviour.
+    pytest.mark.xfail(["None", "test_test", "xfail", 10],
+                      reason="Assert Log order not chronological with checks", strict=True),
 ]
 
 
-@pytest.mark.parametrize("fail_flag,raise_flag,return_code", basichierachy_data)
-def test_basichierachy(tmpdir, fail_flag, raise_flag, return_code):
-    script_path = os.path.join(os.path.dirname(__file__), "scripts", "basichierachy.py")
+@pytest.mark.parametrize("fail_flag,raise_flag,xfail,return_code", basichierachy_data)
+def test_basichierachy(tmpdir, fail_flag, raise_flag, xfail, return_code):
+    script_path = os.path.join(script_dir, "basichierachy.py")
     log_path = os.path.join(str(tmpdir), "logfile.csv")
+
+    if not xfail:
+        expected_log_path = os.path.join(log_dir, "basichierachy-{}-{}.csv".format(fail_flag, raise_flag))
+    else:
+        expected_log_path = os.path.join(log_dir, "basichierachy-{}-{}-{}.csv".format(fail_flag, raise_flag, xfail))
+
     ret = subprocess.call(["python", "-m", "fixate",
                            "-p", script_path,
                            "--serial-number", "0123456789",
@@ -73,8 +112,6 @@ def test_basichierachy(tmpdir, fail_flag, raise_flag, return_code):
                            "--script-params", "fail_flag=" + fail_flag,
                            "--script-params", "raise_flag=" + raise_flag,
                            ])
+
     assert ret == return_code
-    compare_logs(os.path.join(os.path.dirname(__file__),
-                              "scripts",
-                              "basichierachy-{}-{}.csv.expected".format(fail_flag, raise_flag)),
-                 log_path)
+    compare_logs(expected_log_path, log_path)

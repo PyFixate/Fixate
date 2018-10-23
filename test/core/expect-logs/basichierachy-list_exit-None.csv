@@ -1,0 +1,14 @@
+0,Sequence,started=20181022-211225,fixate-version=0.4.0dev,test-script-name=basichierachy,report-format=3,index_string=default
+0.00,Test 1,check1,true,Failure in the test list enter,PASS,True
+0.00,Test 1.1,start,Dummy Test Class,
+0.00,Test 1.1,test-parameters,fail_flag=list_exit,raise_flag=None
+0.00,Test 1.1,check1,true,Failure in the test list setup,PASS,True
+0.00,Test 1.1,check2,true,Failure in the test setup,PASS,True
+0.00,Test 1.1,check3,true,Failure in the test test,PASS,True
+0.00,Test 1.1,check4,true,Failure in the test tear down,PASS,True
+0.00,Test 1.1,check5,true,Failure in the test list tear down,PASS,True
+0.00,Test 1.1,end,PASS,checks-passed=5,checks-failed=0
+0.00,Test 1,check6,true,Failure in the test list exit,FAIL,False
+0.01,Test 1,exception,"CheckFail('Check function returned failure, aborting test',)"
+0.01,Sequence,ended=20181022-211225,Aborted,tests-passed=1,tests-failed=0,tests-error=0,tests-skipped=0,sequence=ERROR
+0.01,Test 1,check7,true,Failure in the test list exit,FAIL,False

@@ -1,0 +1,13 @@
+0,Sequence,started=20181019-213552,fixate-version=0.4.0dev,test-script-name=basichierachy,report-format=3,index_string=default
+0.00,Test 1,check1,true,Failure in the test list enter,PASS,True
+0.00,Test 1.1,start,Dummy Test Class,
+0.00,Test 1.1,test-parameters,fail_flag=None,raise_flag=test_test
+0.00,Test 1.1,check1,true,Failure in the test list setup,PASS,True
+0.00,Test 1.1,check2,true,Failure in the test setup,PASS,True
+0.00,Test 1.1,check3,true,Failure in the test test,PASS,True
+0.00,Test 1.1,check4,true,Failure in the test tear down,PASS,True
+0.00,Test 1.1,check5,true,Failure in the test list tear down,PASS,True
+0.01,Test 1.1,exception,"AssertionError('Exception in the test test')"
+0.01,Test 1.1,end,ERROR,checks-passed=5,checks-failed=0
+0.01,Test 1,check6,true,Failure in the test list exit,PASS,True
+0.01,Sequence,ended=20181019-213552,Finished,tests-passed=0,tests-failed=1,tests-error=0,tests-skipped=0,sequence=FAILED

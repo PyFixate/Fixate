@@ -1,6 +1,7 @@
 .idea/
 *.pyc
 *.csv
+!test/core/expect-logs/*.csv
 *.pyc
 build/*
 dist/*
@@ -15,3 +16,4 @@ htmlcov/*
 docs/build/*
 Pipfile
 Pipfile.lock
+venv/
