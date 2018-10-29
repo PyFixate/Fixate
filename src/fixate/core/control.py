@@ -1,5 +1,5 @@
 import time
-from fixate.lib.exceptions import ParameterError, InstrumentError
+from fixate.core.exceptions import ParameterError, InstrumentError
 
 
 def _range_gen(value=None):
