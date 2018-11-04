@@ -21,6 +21,7 @@ Whether you are trying to help do complete repetitive tests on your workbench to
    :caption: Contents:
    
    quickstart
+   example_walkthrough
    DSO Driver Guide
 
 
