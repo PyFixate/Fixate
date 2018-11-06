@@ -408,7 +408,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         # In case of an abort, update all remaining tests
         else:
-            self.active_update(message="Aborting, please wait...")
+            self.active_update("Aborting, please wait...")
             sub_finish = False
             original_test = current_test
             while current_test is not None:
