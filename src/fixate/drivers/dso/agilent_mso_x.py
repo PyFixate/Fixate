@@ -356,8 +356,9 @@ class MSO_X_3000(DSO):
         return signal
 
     def reset(self):
-        self.write("*CLS")
-        self.write("*RST")
+        self.instrument.write("*CLS;*RST")
+        time.sleep(0.15)
+        self._check_errors()
 
     def auto_scale(self):
         self.write(":AUT")
