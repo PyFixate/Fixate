@@ -22,5 +22,3 @@ If you are planning on using the GUI you will also need PyQT5
 .. code:: bash
 
   pip install PyQt5
-  
-

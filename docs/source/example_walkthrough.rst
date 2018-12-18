@@ -32,7 +32,7 @@ For our first example we will be referencing tiny.py
           user_info("Fingers crossed, this will pass")
           chk_true(True, "It is True!")
 
-The core of Fixate can be seen with these first three import statments
+The core of Fixate can be seen with these first three import statements
 
 .. code:: python
 

@@ -1,7 +1,3 @@
-.. Fixate documentation master file, created by
-   sphinx-quickstart on Mon Oct  1 21:25:34 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
 ==================================
 Welcome to Fixate!
 ==================================
@@ -22,9 +18,6 @@ Whether you are trying to help do complete repetitive tests on your workbench to
    
    quickstart
    example_walkthrough
-   DSO Driver Guide
-
-
 
 Indices and tables
 ==================
