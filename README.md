@@ -38,6 +38,11 @@ If you'd like to make changes, use pyuic5 to build the layout file, with the com
 
 pyuic5 fixateGUI.ui -o layout.py
 
+
+## Check out the docs
+
+https://fixate.readthedocs.io
+
 ## Contributing
 
 Contributions are welcome. Get in touch or create a new pull request.
