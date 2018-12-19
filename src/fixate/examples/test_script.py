@@ -3,7 +3,7 @@ This is a test script that shows basic use case for the fixate library
 """
 from fixate.core.common import TestClass, TestList
 from fixate.core.checks import *
-from fixate.core.ui import user_input, user_info
+from fixate.core.ui import user_input, user_info, user_ok
 
 __version__ = '3'
 
@@ -222,19 +222,32 @@ class MultipleLeveledSubTestFailsRetryOnTopLevel(TestClass):
         chk_passes()
 
 
+class MultipleLineInstruction(TestClass):
+    """
+    Multiple line instruction
+    """
+
+    def test(self):
+        user_info("Line 1")
+        user_info("Line 2")
+        user_info("Line 3")
+        user_info("Line 4")
+        user_ok("Line 5")
+
+
 PASSES = [ReturnTrue(), ReturnFalse(skip=True), RaiseValueError(skip=True), RaiseValueErrorInComparison(skip=True),
           RedButton(), GetUserInput(), MultiplePassedTestResults(), MultipleTestResults(skip=True),
           MultipleTestResultsTestException(skip=True), ReturnTrue(), ParameterisedTest(50, 500),
-          ReturnTrue(), ParameterisedTest(10, 5)]
+          ReturnTrue(), ParameterisedTest(10, 5), MultipleLineInstruction()]
 
 FAILS = [ReturnTrue(), ReturnFalse(), RaiseValueError(skip=True), RaiseValueErrorInComparison(skip=True),
          RedButton(), GetUserInput(), MultiplePassedTestResults(), MultipleTestResults(),
          MultipleTestResultsTestException(skip=True), ReturnTrue(), ParameterisedTest(50, 500),
-         ReturnTrue(), ParameterisedTest(10, 5)]
+         ReturnTrue(), ParameterisedTest(10, 5), MultipleLineInstruction()]
 
 ERRORS = [ReturnTrue(), ReturnFalse(), RaiseValueError(), RaiseValueErrorInComparison(), RedButton(),
           GetUserInput(), MultiplePassedTestResults(), MultipleTestResults(), MultipleTestResultsTestException(),
-          ReturnTrue(), ParameterisedTest(50, 500), ReturnTrue(), ParameterisedTest(10, 5)]
+          ReturnTrue(), ParameterisedTest(50, 500), ReturnTrue(), ParameterisedTest(10, 5), MultipleLineInstruction()]
 
 TEST_SEQUENCE = PASSES
 
