@@ -262,7 +262,7 @@ def deprecated(func):
 
 class TestList:
     """
-    The TestList is a container for TestClasses and TestLists to set up a test heirarchy.
+    The TestList is a container for TestClasses and TestLists to set up a test hierarchy.
     They operate similar to a python list except that it has additional methods that can be overridden to provide additional functionality
     """
     def __init__(self, seq=None):
