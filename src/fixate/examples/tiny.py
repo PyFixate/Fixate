@@ -2,8 +2,6 @@ from fixate.core.common import TestClass, TestList
 from fixate.core.ui import user_ok, user_info
 from fixate.core.checks import *
 
-__version__ = "1"
-
 
 class SimpleTest(TestClass):
     """You *need* a description...?"""
@@ -43,8 +41,3 @@ class ParameterisedTest(TestClass):
 
 
 TEST_SEQUENCE = [SimpleTest(), MyTestList([ParameterisedTest(1), ParameterisedTest(2)])]
-
-if __name__ == '__main__':
-    import fixate
-
-    fixate.run_main_program(__file__)

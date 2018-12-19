@@ -79,8 +79,3 @@ class BasicWaves(FunctionGenerator):
 
 
 TEST_SEQUENCE = TestList([BasicWaves()])
-
-if __name__ == '__main__':
-    import fixate
-
-    fixate.run_main_program(__file__)
