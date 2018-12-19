@@ -1,6 +1,7 @@
 from fixate.core.ui import user_info
 from fixate.core.common import TestClass, TestList
 from fixate.config import RESOURCES
+import fixate
 
 __version__ = '2'
 
@@ -61,6 +62,8 @@ i'm a subclass
 4: teardown 10
 : list exit
 """
+
+seq = fixate.config.RESOURCES["SEQUENCER"]
 
 
 class Test(TestClass):
@@ -222,10 +225,12 @@ test_list_setup_fail = Lst([Test(1),
                             Lst([Test(2), Lst([Test(3), Test(4)])]),
                             FailSetup([Lst([Test(5), Test(6)]), Test(7)]),
                             TestSubclass(10)])
-TEST_SEQUENCE = test_list_setup_fail
+TEST_SEQUENCE = tests
 
-if __name__ == '__main__':
-    import fixate
-
-    seq = fixate.config.RESOURCES["SEQUENCER"]
-    fixate.run_main_program(__file__)
+test_data = {
+    "standard": tests,
+    "no_test_list": tests_no_test_list,
+    "list_enter_fail": tests_list_enter_fail,
+    "deep_test_fail": test_deep_test_fail,
+    "list_setup_fail": test_list_setup_fail
+}

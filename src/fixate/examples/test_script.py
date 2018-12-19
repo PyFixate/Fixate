@@ -251,14 +251,8 @@ ERRORS = [ReturnTrue(), ReturnFalse(), RaiseValueError(), RaiseValueErrorInCompa
 
 TEST_SEQUENCE = PASSES
 
-# To launch this script from the framework open the file in the GUI.
-# To launch this script from the command line framework then navigate to the site-packages and type
-# python -m fixate -p <path to this file>
-# or
-# python fixate.__main__.py -p <path to this file>
-
-# This section is if you want to launch the framework from the test script
-if __name__ == '__main__':
-    import fixate
-
-    fixate.run_main_program(__file__)
+test_data = {
+    "passes": PASSES,
+    "fails": FAILS,
+    "ERRORS": ERRORS
+}

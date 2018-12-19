@@ -67,8 +67,3 @@ class ParameterisedTest(TestClass):
 
 
 TEST_SEQUENCE = [SimpleTest(), MyTestList([ParameterisedTest(1)])]
-
-if __name__ == '__main__':
-    import fixate
-
-    fixate.run_main_program(__file__)

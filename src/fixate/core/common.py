@@ -261,6 +261,10 @@ def deprecated(func):
 
 
 class TestList:
+    """
+    The TestList is a container for TestClasses and TestLists to set up a test hierarchy.
+    They operate similar to a python list except that it has additional methods that can be overridden to provide additional functionality
+    """
     def __init__(self, seq=None):
         self.tests = []
         if seq is None:
@@ -306,12 +310,13 @@ class TestList:
 
     def set_up(self):
         """
-        This is called at the beginning of each test contained within
+        Optionally override this to be called before the set_up of the included TestClass and/or TestList within this TestList
         """
 
     def tear_down(self):
         """
-        This is called at the conclusion of each test contained within
+        Optionally override this to be called after the tear_down of the included TestClass's and/or TestList's within this TestList
+        This will be called if the set_up has been called regardless of the success of the included TestClass's and/or TestList's
         """
 
     def enter(self):
@@ -321,13 +326,15 @@ class TestList:
 
     def exit(self):
         """
-        This s called when being popped from the stack
+        This is called when being popped from the stack
         """
 
 
 class TestClass:
     """
-    This class is an abstract base class to implement tests
+    This class is an abstract base class to implement tests.
+    The first line of the docstring of the class that inherits this class will be recognised by logging and UI
+    as the name of the test with the remaining lines stored as self.test_desc_long which will show in the test logs
     """
     RT_ABORT = 1  # Abort the whole test sequence
     RT_RETRY = 2  # Automatically retry up to "attempts"
@@ -364,12 +371,12 @@ class TestClass:
 
     def tear_down(self):
         """
-        Optionally override this code that is always executed last
+        Optionally override this code that is always executed at the end of the test whether it was successful or not
         """
 
     def test(self):
         """
         This method should be overridden with the test code
         This is the test sequence code
-        You can explicitly call self.result() to add a test result to the class
+        Use chk functions to set the pass fail criteria for the test
         """

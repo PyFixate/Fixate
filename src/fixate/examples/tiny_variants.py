@@ -2,6 +2,8 @@ from fixate.core.common import TestClass, TestList
 from fixate.core.ui import user_ok, user_info
 from fixate.core.checks import *
 
+__version__ = "1"
+
 
 class SimpleTest(TestClass):
     """You *need* a description...?"""
@@ -40,4 +42,8 @@ class ParameterisedTest(TestClass):
         user_ok("Testing param={}. Press Enter".format(self.param))
 
 
-TEST_SEQUENCE = [SimpleTest(), MyTestList([ParameterisedTest(1), ParameterisedTest(2)])]
+test_data = {
+    "minimal": [SimpleTest()],
+    "small": [SimpleTest(), MyTestList([ParameterisedTest(1), ParameterisedTest(2)])],
+    "large": [SimpleTest(), MyTestList([ParameterisedTest(x) for x in range(50)])]
+}
