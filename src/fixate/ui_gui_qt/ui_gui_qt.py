@@ -818,22 +818,24 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             return
 
         self.history_update("#" * wrapper.width)
-        self.history_update(self.reformat_text("Sequence {}".format(sequence_status)))
-        # self.history_update("Sequence {}".format(sequence_status))
-        post_sequence_info = []
-        if status == "PASSED":
-            post_sequence_info.extend(RESOURCES["SEQUENCER"].context_data.get("_post_sequence_info_pass", []))
-        elif status == "FAILED" or status == "ERROR":
-            post_sequence_info.extend(RESOURCES["SEQUENCER"].context_data.get("_post_sequence_info_fail", []))
-        post_sequence_info.extend(RESOURCES["SEQUENCER"].context_data.get("_post_sequence_info", []))
-
+        post_sequence_info = RESOURCES["SEQUENCER"].context_data.get("_post_sequence_info", {})
         if post_sequence_info:
             self.history_update("-" * wrapper.width)
             self.history_update("IMPORTANT INFORMATION")
-            for itm in post_sequence_info:
-                self.history_update(self.reformat_text(itm))
+            self.active_update("IMPORTANT INFORMATION")
+
+            for msg, state in post_sequence_info.items():
+                if status == "PASSED":
+                    if state == "PASSED" or state == "ALL":
+                        self.history_update(self.reformat_text(msg))
+                        self.active_update(self.reformat_text(msg))
+                elif state != "PASSED":
+                    self.history_update(self.reformat_text(msg))
+                    self.active_update(self.reformat_text(msg))
+
         self.history_update("-" * wrapper.width)
         self.history_update(self.reformat_text("Status: {}".format(status)))
+        self.active_update(self.reformat_text("Status: {}".format(status)))
         self.history_update("#" * wrapper.width)
 
     def _print_test_start(self, data, test_index):

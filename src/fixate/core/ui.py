@@ -7,6 +7,7 @@ from pubsub import pub
 from fixate.core.exceptions import UserInputError
 from fixate.core.checks import chk_log_value
 from fixate.config import RESOURCES
+from collections import OrderedDict
 
 USER_CONFIRMATION = ("OK", "ABORT", "CANCEL")
 USER_YES_NO = ("YES", "NO")
@@ -236,49 +237,40 @@ def user_serial(msg, target=_ten_digit_serial, attempts=5):
     return serial
 
 
-def user_post_sequence_info_pass(msg):
+def user_post_sequence_info_fail(msg):
     """
-    Hook to display relevant information at the end of a sequence.
-    Only displayed if the sequence passes.
+    Adds information to be displayed to the user at the end of the sequence passes
+    This information will be displayed in the order that post sequence info calls are made and will remove duplicates
     :param msg: String as it should be displayed
     :return:
     """
-    try:
-        # Prevents duplicate messages
-        if msg not in RESOURCES["SEQUENCER"].context_data["_post_sequence_info_pass"]:
-            RESOURCES["SEQUENCER"].context_data["_post_sequence_info_pass"].append(msg)
-    except KeyError:
-        RESOURCES["SEQUENCER"].context_data["_post_sequence_info_pass"] = [msg]
+    if "_post_sequence_info" not in RESOURCES["SEQUENCER"].context_data:
+        RESOURCES["SEQUENCER"].context_data["_post_sequence_info"] = OrderedDict()
+    RESOURCES["SEQUENCER"].context_data["_post_sequence_info"][msg] = "PASSED"
 
 
 def user_post_sequence_info_fail(msg):
     """
-    Hook to display relevant information at the end of a sequence.
-    Take care to only call at the end of tests to ensure that retries of the test do not clutter output
+    Adds information to be displayed to the user at the end of the sequence if the tests fail or error.
+    This information will be displayed in the order that post sequence info calls are made and will remove duplicates
     :param msg: String as it should be displayed
     :return:
     """
-    try:
-        # Prevents duplicate messages
-        if msg not in RESOURCES["SEQUENCER"].context_data["_post_sequence_info_fail"]:
-            RESOURCES["SEQUENCER"].context_data["_post_sequence_info_fail"].append(msg)
-    except KeyError:
-        RESOURCES["SEQUENCER"].context_data["_post_sequence_info_fail"] = [msg]
+    if "_post_sequence_info" not in RESOURCES["SEQUENCER"].context_data:
+        RESOURCES["SEQUENCER"].context_data["_post_sequence_info"] = OrderedDict()
+    RESOURCES["SEQUENCER"].context_data["_post_sequence_info"][msg] = "FAILED"
 
 
 def user_post_sequence_info(msg):
     """
-    Hook to display relevant information at the end of a sequence.
-    Take care to only call at the end of tests to ensure that retries of the test do not clutter output
+    Adds information to be displayed to the user at the end of the sequence
+    This information will be displayed in the order that post sequence info calls are made and will remove duplicates
     :param msg: String as it should be displayed
     :return:
     """
-    try:
-        # Prevents duplicate messages
-        if msg not in RESOURCES["SEQUENCER"].context_data["_post_sequence_info"]:
-            RESOURCES["SEQUENCER"].context_data["_post_sequence_info"].append(msg)
-    except KeyError:
-        RESOURCES["SEQUENCER"].context_data["_post_sequence_info"] = [msg]
+    if "_post_sequence_info" not in RESOURCES["SEQUENCER"].context_data:
+        RESOURCES["SEQUENCER"].context_data["_post_sequence_info"] = OrderedDict()
+    RESOURCES["SEQUENCER"].context_data["_post_sequence_info"][msg] = "ALL"
 
 
 RETRY_METHODS = {"RETRY ABORT SKIP": user_retry_abort_fail, "RETRY ABORT": user_retry_abort}
