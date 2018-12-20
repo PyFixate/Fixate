@@ -459,6 +459,34 @@ class MeasureRMS:
         self.ac = MeasureInterval()
 
 
+class Threshold:
+    def percent(self, upper: number, middle: number, lower: number):
+        """
+        :param upper: Upper Threshold
+        :param middle: Middle Threshold
+        :param lower: Lower Threshold
+        :return:
+        """
+        raise InstrumentFeatureUnavailable(
+            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+
+    def absolute(self, upper: number, middle: number, lower: number):
+        """
+        :param upper: Upper Threshold
+        :param middle: Middle Threshold
+        :param lower: Lower Threshold
+        :return:
+        """
+        raise InstrumentFeatureUnavailable(
+            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+
+
+class Define:
+    def __init__(self):
+        super().__init__()
+        self.threshold = Threshold()
+
+
 class Delay(CallableNoArgs):
     def __init__(self):
         super().__init__()
@@ -468,6 +496,7 @@ class Delay(CallableNoArgs):
 class Measure:
     def __init__(self):
         self.counter = MeasureAllSources()
+        self.define = Define()
         self.delay = Delay()
         self.duty = MeasureAllSources()
         self.fall_time = MeasureAllSources()
