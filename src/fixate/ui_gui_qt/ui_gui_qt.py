@@ -792,7 +792,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         """
         if self.closing:
             return
-        self.active_update(self.reformat_text(msg))
+
         self.history_update(self.reformat_text(msg))
 
     def _user_display_important(self, msg):
