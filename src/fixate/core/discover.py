@@ -209,6 +209,9 @@ def discover_visa():
     # TODO Wrap in exception handling
     visa_resources = []
     for resource in rm.list_resources():
+        if "ASRL" in resource:
+            # We don't want to autodiscover serial devices as random data on some serial lines can cause problems
+            continue
         ident = _visa_id_query(resource)
         if ident[0]:
             visa_resources.append(ident)
@@ -223,58 +226,6 @@ def discover_ftdi():
     for dev in devices:
         ftdi_resources.append(dev)
     return ftdi_resources
-
-
-def discover_serial(classes, com_ports=None, baud_rates=None):
-    """
-    Finds the available serial ports through the visa interface.
-    Ignores the instruments that respond to the *IDN? visa query
-    Enumerates through the rest of the serial ports at several baud rates and runs the parsed classes 'identify' method.
-    If an identity string is returned then the results is stored in config.
-    It is stored in config as a dictionary so that com ports are preserved while overridding the assumed classes if
-    a new com port is found there.
-    :param classes:
-    a list of classes that you want to search for connected equipment.
-    :return:
-    """
-    serial_resources = fixate.config.INSTRUMENTS.get("serial", {})
-    if com_ports is None:
-        com_ports = {dev.device for dev in serial.tools.list_ports.comports()}
-    visa_ports = {"COM{}".format(interf.split(":")[0].split("ASRL")[1]) for id, interf in
-                  fixate.config.INSTRUMENTS.get("visa", []) if "ASRL" in interf}
-
-    com_ports = com_ports - visa_ports
-
-    for port in com_ports:
-        for cls_name, cls in classes:
-            if cls.INSTR_TYPE == "SERIAL":
-                instr = cls(com_port=port)
-                if baud_rates is None:
-                    baud_rates_loop = cls._baud_rates
-                else:
-                    baud_rates_loop = baud_rates
-
-                for rate in baud_rates_loop:
-                    try:
-                        instr.baud_rate = rate
-                        instr.instrument.timeout = 0.1
-                        try:
-                            instr_id = instr.identify(as_string=True)
-                        except IOError:
-                            pass
-                        else:
-                            if instr_id:
-                                serial_resources[port] = (instr_id, rate)
-                                break
-                    except Exception as e:
-                        pass
-                    finally:
-                        try:
-                            instr.instrument.close()
-                        except:
-                            pass
-    fixate.config.INSTRUMENTS["serial"] = serial_resources
-    return serial_resources
 
 
 def filter_connected(instruments, classes):

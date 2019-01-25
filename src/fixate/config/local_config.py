@@ -25,6 +25,7 @@ def load_local_config():
 
 
 def save_local_config():
+    # TODO merge the config in case an instrument is not connected this run
     backup = StringIO()
     if os.path.isfile(local_config_path):
         # Backup local config
