@@ -84,6 +84,8 @@ class MSO_X_3000(DSO):
             ("events.trigger", self.query_bool, ":TER?"),
             # Measure
             ("measure.delay._call", self.query_after_acquire, "MEAS:DEL? {self._store[source1]},{self._store[source2]}"),
+            ("measure.define.threshold.percent", self.write, "MEAS:DEF THR,PERC,{upper},{middle},{lower}"),
+            ("measure.define.threshold.absolute", self.write, "MEAS:DEF THR,ABS,{upper},{middle},{lower}"),
             ("measure.delay.edges.rising.rising", self.write, "MEAS:DEF DEL, +1, +1"),
             ("measure.delay.edges.rising.falling", self.write, "MEAS:DEF DEL, +1, -1"),
             ("measure.delay.edges.falling.rising", self.write, "MEAS:DEF DEL, -1, +1"),
