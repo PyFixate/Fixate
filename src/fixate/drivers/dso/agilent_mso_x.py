@@ -463,7 +463,7 @@ class MSO_X_3000(DSO):
         :return:
         """
         for x in range(timeout * 10):
-            if self.query_ascii_value("*TER?"):
+            if self.query_ascii_value(":TER?"):
                 self._triggers_read += 1
                 return
             time.sleep(0.1)
