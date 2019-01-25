@@ -13,13 +13,13 @@ class MSO_X_3000(DSO):
         super().__init__(instrument)
         self.display = "on"
         self.is_connected = True
+        self._mode = "STOP"
+        self._wave_acquired = False
+        self._triggers_read = 0
         self.reset()
         self.instrument.query_delay = 0.2
         self._store = {}
         self.api = [
-            ("run", self.write, "RUN"),
-            ("single", self.write, "SINGLE"),
-            ("stop", self.write, "STOP"),
             ("source1.ch1", self.store, {"source1": "CHAN1"}),
             ("source1.ch2", self.store, {"source1": "CHAN2"}),
             ("source1.ch3", self.store, {"source1": "CHAN3"}),
@@ -238,6 +238,43 @@ class MSO_X_3000(DSO):
         self.init_api()
         self.instrument.timeout = 1000
 
+    def single(self):
+        """
+        Sets up the oscilliscope for a single shot triggered measurement
+        Does multiple steps to ensure that at the end of this call that the oscilloscope is primed for a trigger
+        1. Sets mode to stop to ensure that only one measurement will occur
+        2. Clears the status registers
+        3. Sets the mode to single
+        4. Monitors the registers until the trigger is armed
+        :return:
+        """
+        self._triggers_read = 0
+        self.query(":STOP;*CLS;*OPC?")
+        self.instrument.write(":SINGLE")
+        while True:
+            if self.query_ascii_value(":AER?"):
+                break
+            time.sleep(0.1)
+        self._mode = "SINGLE"
+        self._wave_acquired = False
+
+    def run(self):
+        self._triggers_read = 0
+        self.query(":STOP;*CLS;*OPC?")
+        self.instrument.write(":RUN")
+        while True:
+            if self.query_ascii_value(":AER?"):
+                break
+            time.sleep(0.1)
+        self._mode = "RUN"
+        self._wave_acquired = False
+
+    def stop(self):
+        self._triggers_read = 0
+        self.instrument.write(":STOP")
+        self._mode = "STOP"
+        self._wave_acquired = False
+
     def _write(self, value):
         self.instrument.write(value)
         self._raise_if_error()
@@ -356,7 +393,7 @@ class MSO_X_3000(DSO):
         return signal
 
     def reset(self):
-        self.instrument.write("*CLS;*RST")
+        self.instrument.write("*CLS;*RST;:STOP")
         time.sleep(0.15)
         self._check_errors()
 
@@ -407,6 +444,46 @@ class MSO_X_3000(DSO):
     def query_value(self, base_str, *args, **kwargs):
         formatted_string = self._format_string(base_str, **kwargs)
         return self.query_ascii_value(formatted_string)
+
+    def query_after_acquire(self, base_str, *args, **kwargs):
+        self.wait_for_acquire()
+        try:
+            self.query_value(base_str, *args, **kwargs)
+        except:
+            self.instrument.clear()
+            raise
+
+    def wait_for_trigger(self, timeout):
+        """
+        :param timeout: timeout in seconds waiting for a trigger
+        Exception raised on timeout
+        :return:
+        """
+        for x in range(timeout * 10):
+            if self.query_ascii_value("*TER?"):
+                self._triggers_read += 1
+                return
+            time.sleep(0.1)
+        raise TimeoutError("Timeout waiting for trigger")
+
+    def wait_for_acquire(self):
+        if not self._triggers_read:
+            self.wait_for_trigger(1)
+
+        if self._wave_acquired:
+            return
+
+        elif self._mode == "SINGLE":
+            # Wait for mode to change to stop
+            while not self.query_ascii_value(":OPER:COND?") & 1 << 3:
+                pass
+            self._wave_acquired = True
+            return
+        elif self._mode == "RUN":
+            self._wave_acquired = True  # Can't detect a complete acquire, just going to have to risk it
+            return
+        else:
+            raise Exception("Cannot acquire waveform in this mode: {}".format(self._mode))
 
     def read_raw(self):
         data = self.instrument.read_raw()
