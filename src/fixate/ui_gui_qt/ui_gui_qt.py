@@ -141,7 +141,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.worker.moveToThread(self.worker_thread)
         self.worker_thread.started.connect(self.worker.run_thread)
 
-        self.fail_queue = None
+        self.user_action_queue = None
         self.abort_queue = None
 
         # UI Binds
@@ -545,9 +545,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         """
 
         # Release user input waiting loops
-        if self.fail_queue is not None:
-            self.fail_queue.put(False)
-            self.fail_queue = None
+        if self.user_action_queue is not None:
+            self.user_action_queue.put(False)
+            self.user_action_queue = None
         if self.abort_queue is not None:
             self.abort_queue.put(True)
             self.abort_queue = None
@@ -592,6 +592,41 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     def event_output(self, message, status="True"):
         self.output_signal.emit(message, str(status))
 
+    def gui_text_input(self, message):
+        self.sig_text_input.emit(message)
+        self.blocked = True
+        result = self.input_queue.get(True)
+        self.blocked = False
+        self.sig_working.emit()
+        return result
+
+    def gui_choices(self, message, choices):
+        self.sig_choices_input.emit(message, choices)
+        self.blocked = True
+        result = self.input_queue.get(True)
+        self.blocked = False
+        self.sig_working.emit()
+        return result
+
+    def gui_user_action_pass_fail(self, message, q, abort):
+        """
+        Non blocking user call
+        :param message:
+        :param q:
+        :param abort:
+        :return:
+        """
+        self.sig_choices_input.emit(message, ["PASS", "FAIL"])
+        self.sig_timer.emit()
+        self.user_action_queue = q
+        self.abort_queue = abort
+
+    def gui_user_action_fail(self, message, q, abort):
+        self.sig_choices_input.emit(message, ["FAIL"])
+        self.sig_timer.emit()
+        self.user_action_queue = q
+        self.abort_queue = abort
+
     def gui_user_input(self, message, choices=None, blocking=True):
         result = None
         if choices is not None:  # Button Prompt
@@ -609,7 +644,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             self.blocked = False
             self.sig_working.emit()
         else:
-            self.fail_queue = choices[1]
+            self.user_action_queue = choices[1]
             self.abort_queue = choices[2]
         return result
 
@@ -627,9 +662,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.button_reset()
 
     def button_2_click(self):
-        if self.fail_queue is not None:
-            self.fail_queue.put(self.Button_2.text())
-            self.fail_queue = None
+        if self.user_action_queue is not None:
+            self.user_action_queue.put(self.Button_2.text())
+            self.user_action_queue = None
             self.abort_timer.stop()
             self.abort_queue = None
         else:
