@@ -462,7 +462,10 @@ class MSO_X_3000(DSO):
         Exception raised on timeout
         :return:
         """
-        for x in range(timeout * 10):
+        start = time.time()
+        while True:
+            if time.time() - start > timeout:
+                break
             if self.query_ascii_value(":TER?"):
                 self._triggers_read += 1
                 return
