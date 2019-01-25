@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import inspect
 import fixate.config
-from fixate.core.discover import discover_serial, filter_connected, open_visa_instrument, discover_visa
+from fixate.core.discover import filter_connected, open_visa_instrument, discover_visa
 from fixate.core.exceptions import InstrumentNotConnected, InstrumentFeatureUnavailable
 
 try:
