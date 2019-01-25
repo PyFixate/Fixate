@@ -478,7 +478,7 @@ class MSO_X_3000(DSO):
 
         elif self._mode == "SINGLE":
             # Wait for mode to change to stop
-            while not self.query_ascii_value(":OPER:COND?") & 1 << 3:
+            while not int(self.query_ascii_value(":OPER:COND?")) & 1 << 3:
                 pass
             self._wave_acquired = True
             return
