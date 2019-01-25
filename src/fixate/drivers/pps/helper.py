@@ -22,15 +22,12 @@ def open(restrictions=None):
     if restrictions is None:
         restrictions = {}
 
-    com_ports = restrictions.get('com_ports', None)
-    baud_rates = restrictions.get('baud_rates', None)
     classes = fixate.config.DRIVERS.get("PPS", {})
 
     instruments = filter_connected(fixate.config.INSTRUMENTS or {}, classes)
     if not instruments:
         # All discovery methods for implemented instruments should be called
         discover_visa()
-        discover_serial(classes, com_ports=com_ports, baud_rates=baud_rates)
         instruments = filter_connected(fixate.config.INSTRUMENTS or {}, classes)
     # This is where the restrictions would come in
     if instruments:
@@ -138,7 +135,7 @@ class Address:
     def dhcp(self, value: bool):
         raise InstrumentFeatureUnavailable(
             "{} not available on this device".format(inspect.currentframe().f_code.co_name))
-    
+
 
 class PPS(metaclass=ABCMeta):
     _baud_rates = []
@@ -154,12 +151,10 @@ class PPS(metaclass=ABCMeta):
         self.address = Address()
         self.series = Channel()
         self.parallel = Channel()
-        
+
     def series(self):
-        
         raise InstrumentFeatureUnavailable(
             "{} not available on this device".format(inspect.currentframe().f_code.co_name))
-        
 
     def idn(self):
         raise InstrumentFeatureUnavailable(
