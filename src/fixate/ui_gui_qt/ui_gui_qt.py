@@ -98,6 +98,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     sig_working = pyqtSignal()
     sig_progress = pyqtSignal()
     sig_finish = pyqtSignal()
+    sig_progress_finished = pyqtSignal()
 
     # Deprecated Replace with Active , History and Error Window signals
     output_signal = pyqtSignal(str, str)
@@ -189,6 +190,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_error_clear.connect(self.error_clear)
         self.sig_image_update.connect(self._image_update)
         self.sig_image_clear.connect(self._image_clear)
+        self.sig_progress_finished.connect(self.progress_bar_finished)
         # Deprecated
         # self.update_image.connect(self.display_image)
         # self.output_signal.connect(self.display_output)
@@ -503,6 +505,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.ProgressBar.setValue(self.worker.worker.get_current_task())
         if self.worker.worker.sequencer.tests_failed > 0 or self.worker.worker.sequencer.tests_errored > 0:
             self.ProgressBar.setStyleSheet(ERROR_STYLE)
+
+    def progress_bar_finished(self):
+        self.ProgressBar.setValue(self.ProgressBar.maximum())
 
     def get_input(self, message, choices):
         self.Events.append(message)
@@ -851,6 +856,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     def _print_sequence_end(self, status, passed, failed, error, skipped, sequence_status):
         if self.closing:
             return
+        self.sig_progress_finished.emit()
 
         self.history_update("#" * wrapper.width)
         self.history_update(self.reformat_text("Sequence {}".format(sequence_status)))
@@ -895,6 +901,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.closing:
             return
 
+        self.sig_progress.emit()
         sequencer = RESOURCES["SEQUENCER"]
         self.history_update("-" * wrapper.width)
         self.history_update(

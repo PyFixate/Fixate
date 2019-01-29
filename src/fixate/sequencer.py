@@ -153,7 +153,7 @@ class Sequencer:
     def tests_completed(self):
         """Count the number of tests remaining"""
         current_index = "0"
-        search_index = 0
+        search_index = -1
 
         for index, test in enumerate(self.context):
             if index == 0:
