@@ -20,6 +20,10 @@ class VirtualAddressMap:
         return list(zip(self.virtual_pin_list,
                         bits(self._virtual_pin_values, num_bits=len(self.virtual_pin_list), order="LSB")))
 
+    def active_pins(self):
+        return [self.virtual_pin_list[pin] for pin, value in
+                enumerate(bits(self._virtual_pin_values, num_bits=len(self.virtual_pin_list), order="LSB")) if value]
+
     def install_address_handler(self, handler):
         """
         :param handler
@@ -565,6 +569,9 @@ class JigDriver(metaclass=JigMeta):
 
     def __getitem__(self, item):
         return self.virtual_map[item]
+
+    def active_pins(self):
+        return self.virtual_map.active_pins()
 
     def reset(self):
         """
