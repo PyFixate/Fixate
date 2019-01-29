@@ -21,7 +21,7 @@ class VirtualAddressMap:
                         bits(self._virtual_pin_values, num_bits=len(self.virtual_pin_list), order="LSB")))
 
     def active_pins(self):
-        return [self.virtual_pin_list[pin] for pin, value in
+        return [(self.virtual_pin_list[pin], self.mux_assigned_pins[self.virtual_pin_list[pin]]) for pin, value in
                 enumerate(bits(self._virtual_pin_values, num_bits=len(self.virtual_pin_list), order="LSB")) if value]
 
     def install_address_handler(self, handler):
