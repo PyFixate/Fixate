@@ -13,11 +13,16 @@ class VirtualAddressMap:
         self.address_handlers = []
         self.virtual_pin_list = []
         self._virtual_pin_values = 0b0
+        self.mux_assigned_pins = {}
 
     @property
     def pin_values(self):
         return list(zip(self.virtual_pin_list,
                         bits(self._virtual_pin_values, num_bits=len(self.virtual_pin_list), order="LSB")))
+
+    def active_pins(self):
+        return [(self.virtual_pin_list[pin], self.mux_assigned_pins[self.virtual_pin_list[pin]]) for pin, value in
+                enumerate(bits(self._virtual_pin_values, num_bits=len(self.virtual_pin_list), order="LSB")) if value]
 
     def install_address_handler(self, handler):
         """
@@ -46,10 +51,14 @@ class VirtualAddressMap:
         """
         mux.pin_mask = []
         for itm in mux.pin_list:
+            if itm in self.mux_assigned_pins:
+                raise ValueError("Pin {} in {} already assigned in {}".format(itm, mux,
+                                                                              self.mux_assigned_pins[itm]))
             try:
                 mux.pin_mask.append(self.virtual_pin_list.index(itm))
             except ValueError as e:
                 raise ValueError("Multiplexer pin {} not found in Virtual Address Map".format(itm)) from e
+            self.mux_assigned_pins[itm] = mux
         mux.update_callback = self.update_pin_values
 
     def update_defaults(self):
@@ -428,6 +437,9 @@ class VirtualMux:
                 current_bits = int(ceil(log(len(branch), 2)))
                 self._map_tree(signal, current_index, base_bits + current_bits)
 
+    def __repr__(self):
+        return self.__class__.__name__
+
 
 def shift_nested(values, shift_arr):
     """
@@ -557,6 +569,9 @@ class JigDriver(metaclass=JigMeta):
 
     def __getitem__(self, item):
         return self.virtual_map[item]
+
+    def active_pins(self):
+        return self.virtual_map.active_pins()
 
     def reset(self):
         """
