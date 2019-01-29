@@ -79,9 +79,9 @@ TEST_SEQUENCE in this case is a list of all the tests to run.
 You can see how this list corresponds to the output we had before.
 Fixate will launch it by running the following implemented functions in this order
 
-- SimpleTest.setup()
+- SimpleTest.set_up()
 - SimpleTest.test()
-- SimpleTest.teardown()
+- SimpleTest.tear_down()
 - MyTestList.enter()
 - ParameterisedTest(1).test()
 - ParameterisedTest(2).test()
