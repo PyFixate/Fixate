@@ -450,7 +450,7 @@ class MSO_X_3000(DSO):
     def query_after_acquire(self, base_str, *args, **kwargs):
         self.wait_for_acquire()
         try:
-            self.query_value(base_str, *args, **kwargs)
+            return self.query_value(base_str, *args, **kwargs)
         except:
             self.instrument.close()
             self.instrument.open()
@@ -462,7 +462,10 @@ class MSO_X_3000(DSO):
         Exception raised on timeout
         :return:
         """
-        for x in range(timeout * 10):
+        start = time.time()
+        while True:
+            if time.time() - start > timeout:
+                break
             if self.query_ascii_value(":TER?"):
                 self._triggers_read += 1
                 return
@@ -478,7 +481,7 @@ class MSO_X_3000(DSO):
 
         elif self._mode == "SINGLE":
             # Wait for mode to change to stop
-            while not int(self.query_ascii_value(":OPER:COND?")) & 1 << 3:
+            while int(self.query_ascii_value(":OPER:COND?")) & 1 << 3:
                 pass
             self._wave_acquired = True
             return
