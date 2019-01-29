@@ -6,10 +6,10 @@ from fixate.core.checks import *
 class SimpleTest(TestClass):
     """You *need* a description...?"""
 
-    def setup(self):
+    def set_up(self):
         user_info("Tests can have setup")
 
-    def teardown(self):
+    def tear_down(self):
         user_info("Tests can have teardown")
 
     def test(self):
