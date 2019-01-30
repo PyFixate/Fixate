@@ -163,7 +163,7 @@ def _visa_id_query(instrument):
         instr = fixate.config.RESOURCES["VISA_RESOURCE_MANAGER"].open_resource(instrument, query_delay=0.1)
 
         instr.timeout = 100
-
+        instr.clear()
         resp = instr.query("*IDN?")
 
         if resp:
@@ -215,7 +215,12 @@ def discover_visa():
         ident = _visa_id_query(resource)
         if ident[0]:
             visa_resources.append(ident)
-    fixate.config.INSTRUMENTS["visa"] = visa_resources
+    if fixate.config.INSTRUMENTS.get("visa", []):
+        for inst in visa_resources:
+            if inst not in fixate.config.INSTRUMENTS["visa"]:
+                fixate.config.INSTRUMENTS["visa"].append(inst)
+    else:
+        fixate.config.INSTRUMENTS["visa"] = visa_resources
     return visa_resources
 
 
