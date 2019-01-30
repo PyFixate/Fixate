@@ -13,16 +13,20 @@ class VirtualAddressMap:
         self.address_handlers = []
         self.virtual_pin_list = []
         self._virtual_pin_values = 0b0
+        self._virtual_pin_values_active = 0b0
+        self._virtual_pin_values_clear = 0b0
         self.mux_assigned_pins = {}
+        self._clearing_time = 0
 
     @property
     def pin_values(self):
         return list(zip(self.virtual_pin_list,
-                        bits(self._virtual_pin_values, num_bits=len(self.virtual_pin_list), order="LSB")))
+                        bits(self._virtual_pin_values_active, num_bits=len(self.virtual_pin_list), order="LSB")))
 
     def active_pins(self):
         return [(self.virtual_pin_list[pin], self.mux_assigned_pins[self.virtual_pin_list[pin]]) for pin, value in
-                enumerate(bits(self._virtual_pin_values, num_bits=len(self.virtual_pin_list), order="LSB")) if value]
+                enumerate(bits(self._virtual_pin_values_active, num_bits=len(self.virtual_pin_list), order="LSB")) if
+                value]
 
     def install_address_handler(self, handler):
         """
@@ -60,6 +64,7 @@ class VirtualAddressMap:
                 raise ValueError("Multiplexer pin {} not found in Virtual Address Map".format(itm)) from e
             self.mux_assigned_pins[itm] = mux
         mux.update_callback = self.update_pin_values
+        mux._clear_callback = self.update_clearing_pin_values
 
     def update_defaults(self):
         """
@@ -84,6 +89,14 @@ class VirtualAddressMap:
             handler.update_output(shifted & mask)
             start_addr = addr
 
+    def update_clearing_output(self):
+        start_addr = 0x00
+        for addr, handler in self.address_handlers:
+            shifted = self._virtual_pin_values_clear >> start_addr
+            mask = (1 << (addr - start_addr)) - 1
+            handler.update_output(shifted & mask)
+            start_addr = addr
+
     def update_input(self):
         """
         Iterates through the address_handlers and reads the values back to update the pin values for the digital inputs
@@ -101,7 +114,7 @@ class VirtualAddressMap:
 
     def update_pin_values(self, values, trigger_update=True):
         """
-        :param values is a list of (index, value) tuples
+        :param values: is a list of (index, value) tuples
         Takes the values list and sets the individual bits in _virtual_pin_values that correspond to the index, value
         pairs. Then calls the update_output function.
         """
@@ -114,7 +127,42 @@ class VirtualAddressMap:
                 # Set bit
                 self._virtual_pin_values |= mask
         if trigger_update:
-            self.update_output()
+            if self._virtual_pin_values_active == self._virtual_pin_values:
+                pass  # No change in pins
+            elif self._virtual_pin_values_clear == self._virtual_pin_values_active:
+                # No clearing values required
+                self.update_output()
+            else:
+                # Do clearing output before desired signals
+                self.update_clearing_output()
+                self._virtual_pin_values_active = self._virtual_pin_values_clear
+                time.sleep(self._clearing_time)
+                self.update_output()
+            # As a trigger has occurred reset our values to match the virtual values and clearing time back to 0
+            self._clearing_time = 0
+            self._virtual_pin_values_active = self._virtual_pin_values
+            self._virtual_pin_values_clear = self._virtual_pin_values
+
+    def update_clearing_pin_values(self, values, clearing_time):
+        """
+        :param values: is a list of (index, value) tuples
+        Takes the values list and sets the individual bits in _virtual_pin_values_clear that correspond to the
+        index, value pairs. These values are then called using the logic
+        1. Update clearing pin values
+        2. Sleep for clearing time
+        3. Update the new output
+        This can be used for break before make logic in individual multiplexers
+        :return:
+        """
+        self._clearing_time = max(self._clearing_time, clearing_time)
+        for index, value in values:
+            # Get the mask
+            mask = 1 << index
+            # Clear bit
+            self._virtual_pin_values_clear &= ~mask
+            if value:
+                # Set bit
+                self._virtual_pin_values_clear |= mask
 
     def update_pin_by_name(self, name, value, trigger_update=True):
         index = self.virtual_pin_list.index(name)
@@ -159,6 +207,7 @@ class VirtualMux:
     default_signal = ""
     state = ""
     state_update_time = time.time()
+    clearing_time = 0
 
     def __call__(self, signal_output, trigger_update=True):
         self.multiplex(signal_output, trigger_update)
@@ -183,7 +232,6 @@ class VirtualMux:
         Converts a desired signal into an address to parse to the VirtualAddressMap
         Updates the virtual address map with the values
         """
-        values = []
         if signal_output is "":
             virtual_address = 0
         else:
@@ -192,20 +240,59 @@ class VirtualMux:
             except ValueError as e:
                 raise ValueError("signal_output {} not found in multiplexer".format(signal_output)) from e
 
+        values = self._build_values_update(virtual_address)
+        self.clear_callback()
+        self.update_callback(values, trigger_update)
+        if signal_output != self.state:
+            self.state_update_time = time.time()
+        self.state = signal_output
+
+    def _build_values_update(self, virtual_address):
+        values = []
         for index, b in enumerate(bits(virtual_address, num_bits=len(self.pin_list), order="LSB")):
             try:
                 values.append((self.pin_mask[index], b))
             except IndexError:
                 # Should only ever happen in development
-                sys.stderr("SIGNAL OUTPUT: {}".format(signal_output))
                 sys.stderr("SIGNAL: {}".format(virtual_address))
                 sys.stderr("PIN MASK: {}".format(self.pin_mask))
                 sys.stderr("PIN LIST: {}".format(self.pin_list))
                 raise
-        self.update_callback(values, trigger_update)
-        if signal_output != self.state:
-            self.state_update_time = time.time()
-        self.state = signal_output
+        return values
+
+    def _clear_callback(self, values, clearing_time):
+        """
+        Callback function for setting the state the mux has during the clearing of relays Overridden by the the virtual
+        address map.
+        :return:
+        """
+        raise NotImplementedError("Callback not set. Consider installing virtual mux into a virtual address map")
+
+    def clear_callback(self):
+        """
+        Callback function for setting the state the mux has during the clearing of relays
+        Override this function to set up custom behaviors during the clearing of relays.
+        For example. Setting all signals to off and then the new signal will cause the mux to act with a break before
+        make multiplexer with a clearing time that is set at the JigDriver or VirtualAddressMap level.
+        Must call to self._clear_callback to have any affect on the clearing state.
+        The clearing_time sets the minimum time that the mux stays in the clearing state before moving to the desired
+        signal state
+        Usage:
+        For setting all states to 0
+
+        def clear_callback(self):
+            values = self._build_values_update(0b0)
+            self._clear_callback(values, self.clearing_time)
+
+        For setting all states to a signal called "default"
+
+        def clear_callback(self):
+            virtual_address = self.signal_map["default"]
+            values = self._build_values_update(virtual_address)
+            self._clear_callback(values, self.clearing_time)
+
+        :return:
+        """
 
     def update_callback(self, values, trigger_update):
         raise NotImplementedError("Callback not set. Consider installing virtual mux into a virtual address map")
@@ -517,12 +604,10 @@ class TestAddressHandler(AddressHandler):
 class RelayMatrixMux(VirtualMux):
     clearing_time = 0.01
 
-    def multiplex(self, signal_output, trigger_update=True):
-        assert trigger_update, "A RelayMatrixMux will immediately update when a new signal is selected"
-        if self.state != signal_output:
-            self.update_callback([(pin, False) for pin in self.pin_mask], True)
-            time.sleep(self.clearing_time)
-        super().multiplex(signal_output, True)
+    def clear_callback(self):
+        virtual_address = self.signal_map.get(self.default_signal, 0b0)
+        values = self._build_values_update(virtual_address)
+        self._clear_callback(values, self.clearing_time)
 
 
 class JigMeta(type):
