@@ -142,7 +142,7 @@ class TestVirtualAddressMap(TestCase):
 
     def test_get_pin_values(self):
         self.v_map.update_output = MagicMock()
-        self.v_map._virtual_pin_values = 0b10110100
+        self.v_map._virtual_pin_values_active = 0b10110100
         self.v_map.virtual_pin_list = ['0', '1', '2', '3', '4', '5', '6', '7']
         self.assertEqual(self.v_map.pin_values,
                          [('0', 0), ('1', 0), ('2', 1), ('3', 0), ('4', 1), ('5', 1), ('6', 0), ('7', 1)])
