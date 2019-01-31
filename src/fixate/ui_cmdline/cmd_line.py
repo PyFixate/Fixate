@@ -1,6 +1,5 @@
 import traceback
 import sys
-import msvcrt
 import time
 import textwrap
 from queue import Empty
@@ -17,6 +16,7 @@ wrapper.break_long_words = False
 
 wrapper.drop_whitespace = True
 
+kb = KBHit()
 
 def kb_hit_monitor(cmd_q):
     while True:
@@ -30,8 +30,8 @@ def kb_hit_monitor(cmd_q):
                 break
             except Empty:
                 pass
-            if msvcrt.kbhit():  # Check for key press
-                key_press = msvcrt.getch()
+            if kb.kbhit():  # Check for key press
+                key_press = kb.getch()
                 key = key_presses.get(key_press, None)
                 if key is not None:
                     q.put(key)
