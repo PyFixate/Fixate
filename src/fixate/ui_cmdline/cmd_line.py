@@ -4,6 +4,7 @@ import time
 import textwrap
 from queue import Empty
 from pubsub import pub
+from .kbhit import KBHit
 from queue import Queue
 from fixate.core.exceptions import UserInputError
 from fixate.core.common import ExcThread
