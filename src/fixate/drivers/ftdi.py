@@ -1,6 +1,7 @@
 import ctypes
 import struct
 import time
+import os
 from fixate.core.common import bits
 from fixate.core.exceptions import InstrumentError, InstrumentNotConnected
 import fixate.config
@@ -123,10 +124,17 @@ class PARITY(object):
     FT_PARITY_SPACE = UCHAR(4)
 
 
-try:
-    ftdI2xx = ctypes.WinDLL("FTD2XX.dll")
-except Exception as e:
-    raise ImportError("Unable to find FTD2XX.dll.\nPlugging in FDTI device will install DLL.") from e
+if os.name == 'nt':
+    try:
+        ftdI2xx = ctypes.WinDLL("FTD2XX.dll")
+    except Exception as e:
+        raise ImportError("Unable to find FTD2XX.dll.\nPlugging in FDTI device will install DLL.") from e
+else:
+    try:
+        ftdI2xx = ctypes.cdll.LoadLibrary('/usr/local/lib/libftd2xx.so')
+    except Exception as e:
+        raise ImportError("Unable to find libftd2xx.so.\nInstall as per https://www.ftdichip.com/Drivers/D2XX/Linux/ReadMe-linux.txt") from e
+
 
 _ipdwNumDevs = DWORD(0)
 _p_ipdwNumDevs = LPDWORD(_ipdwNumDevs)
