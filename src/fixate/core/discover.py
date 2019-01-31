@@ -169,7 +169,7 @@ def _visa_id_query(instrument):
         if resp:
             instr.close()
             del instr
-            return resp, instrument
+            return [resp, instrument]
 
         instr.read_termination = '\n'
         instr.write_termination = '\n'
@@ -179,8 +179,8 @@ def _visa_id_query(instrument):
         if resp:
             instr.close()
             del instr
-            return resp, instrument
-        return False, instrument
+            return [resp, instrument]
+        return [False, instrument]
 
     except VisaIOError as e:
         if e.error_code != VI_ERROR_TMO:
@@ -190,7 +190,7 @@ def _visa_id_query(instrument):
             """
             # TODO Should be logged
             # print(e)
-        return False, instrument
+        return [False, instrument]
 
 
 def discover_visa():
