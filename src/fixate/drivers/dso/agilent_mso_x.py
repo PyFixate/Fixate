@@ -1,4 +1,5 @@
 import struct
+import visa
 from fixate.core.exceptions import InstrumentError
 from fixate.drivers.dso.helper import DSO
 import time
@@ -83,7 +84,9 @@ class MSO_X_3000(DSO):
             ("acquire.high_resolution", self.write, "ACQ:TYPE HRES"),
             ("events.trigger", self.query_bool, ":TER?"),
             # Measure
-            ("measure.delay._call", self.query_after_acquire, "MEAS:DEL? {self._store[source1]},{self._store[source2]}"),
+            (
+                "measure.delay._call", self.query_after_acquire,
+                "MEAS:DEL? {self._store[source1]},{self._store[source2]}"),
             ("measure.define.threshold.percent", self.write, "MEAS:DEF THR,PERC,{upper},{middle},{lower}"),
             ("measure.define.threshold.absolute", self.write, "MEAS:DEF THR,ABS,{upper},{middle},{lower}"),
             ("measure.delay.edges.rising.rising", self.write, "MEAS:DEF DEL, +1, +1"),
@@ -91,7 +94,8 @@ class MSO_X_3000(DSO):
             ("measure.delay.edges.falling.rising", self.write, "MEAS:DEF DEL, -1, +1"),
             ("measure.delay.edges.falling.falling", self.write, "MEAS:DEF DEL, -1, -1"),
             ("measure.phase", self.query_after_acquire, "MEAS:PHAS? {self._store[source1]},{self._store[source2]}"),
-            ("measure.vratio.cycle", self.query_after_acquire, "MEAS:VRAT? CYCL,{self._store[source1]},{self._store[source2]}"),
+            ("measure.vratio.cycle", self.query_after_acquire,
+             "MEAS:VRAT? CYCL,{self._store[source1]},{self._store[source2]}"),
             ("measure.vratio.display", self.query_after_acquire,
              "MEAS:VRAT? DISP,{self._store[source1]},{self._store[source2]}"),
             # Ch1 Measure
@@ -251,10 +255,16 @@ class MSO_X_3000(DSO):
         :return:
         """
         self._triggers_read = 0
-        self.query(":STOP;*CLS;*OPC?")
+        # Stop
+        # Clear status registers (CLS)
+        # enable the trigger mask in the event register (SRE)
+        # operation complete (OPC)
+        self.query(":STOP;*CLS;SRE 1;*OPC?")
         self.instrument.write(":SINGLE")
+        # Enables the Event service request register (SRE)
+        self.instrument.enable_event(visa.constants.EventType.service_request, visa.constants.VI_QUEUE)
         while True:
-            if self.query_ascii_value(":AER?"):
+            if self.instrument.query_ascii_values(":AER?")[0]:
                 break
             time.sleep(0.1)
         self._mode = "SINGLE"
@@ -458,19 +468,17 @@ class MSO_X_3000(DSO):
 
     def wait_for_trigger(self, timeout):
         """
+        Waits for trigger for a set amount of time.
+        If no trigger occurs, cancel the current measurement request
         :param timeout: timeout in seconds waiting for a trigger
         Exception raised on timeout
         :return:
         """
-        start = time.time()
-        while True:
-            if time.time() - start > timeout:
-                break
-            if self.query_ascii_value(":TER?"):
-                self._triggers_read += 1
-                return
-            time.sleep(0.1)
-        raise TimeoutError("Timeout waiting for trigger")
+        try:
+            self.instrument.wait_on_event(visa.constants.EventType.service_request, timeout * 1000)
+        except visa.constants.VI_ERROR_TMO:
+            self.instrument.clear()
+            raise
 
     def wait_for_acquire(self):
         if not self._triggers_read:
@@ -481,8 +489,12 @@ class MSO_X_3000(DSO):
 
         elif self._mode == "SINGLE":
             # Wait for mode to change to stop
-            while int(self.query_ascii_value(":OPER:COND?")) & 1 << 3:
-                pass
+            try:
+                while int(self.instrument.query_ascii_values(":OPER:COND?")[0]) & 1 << 3:
+                    time.sleep(0.1)
+            except visa.constants.VI_ERROR_TMO:
+                self.instrument.clear()
+                raise
             self._wave_acquired = True
             return
         elif self._mode == "RUN":
