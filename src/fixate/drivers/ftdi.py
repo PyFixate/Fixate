@@ -53,6 +53,14 @@ class FT_STATUS(object):
     FT_NOT_SUPPORTED = DWORD(17)
     FT_OTHER_ERROR = DWORD(18)
 
+    def get_status_message(self, value):
+        for msg, itm in FT_STATUS.__dict__.items():
+            try:
+                if itm.value == value:
+                    return msg
+            except AttributeError:
+                pass
+
 
 class FT_DEVICE(object):
     FT_DEVICE_232BM = DWORD(0)
