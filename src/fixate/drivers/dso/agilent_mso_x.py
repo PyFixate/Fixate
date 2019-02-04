@@ -259,7 +259,7 @@ class MSO_X_3000(DSO):
         # Clear status registers (CLS)
         # enable the trigger mask in the event register (SRE)
         # operation complete (OPC)
-        self.query(":STOP;*CLS;SRE 1;*OPC?")
+        self.query(":STOP;*CLS;*SRE 1;*OPC?")
         self.instrument.write(":SINGLE")
         # Enables the Event service request register (SRE)
         self.instrument.enable_event(visa.constants.EventType.service_request, visa.constants.VI_QUEUE)
