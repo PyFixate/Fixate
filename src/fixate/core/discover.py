@@ -158,10 +158,8 @@ def _visa_get_instrument(queries):
 
 
 def _visa_id_query(instrument):
+    instr = fixate.config.RESOURCES["VISA_RESOURCE_MANAGER"].open_resource(instrument, query_delay=0.1)
     try:
-
-        instr = fixate.config.RESOURCES["VISA_RESOURCE_MANAGER"].open_resource(instrument, query_delay=0.1)
-
         instr.timeout = 100
         instr.clear()
         resp = instr.query("*IDN?")
