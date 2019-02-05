@@ -260,9 +260,9 @@ class MSO_X_3000(DSO):
         # enable the trigger mask in the event register (SRE)
         # operation complete (OPC)
         self.query(":STOP;*CLS;*SRE 1;*OPC?")
-        self.instrument.write(":SINGLE")
         # Enables the Event service request register (SRE)
         self.instrument.enable_event(visa.constants.EventType.service_request, visa.constants.VI_QUEUE)
+        self.instrument.write(":SINGLE")
         while True:
             if self.instrument.query_ascii_values(":AER?")[0]:
                 break
@@ -272,10 +272,11 @@ class MSO_X_3000(DSO):
 
     def run(self):
         self._triggers_read = 0
-        self.query(":STOP;*CLS;*OPC?")
+        self.query(":STOP;*CLS;*SRE 1;*OPC?")
+        self.instrument.enable_event(visa.constants.EventType.service_request, visa.constants.VI_QUEUE)
         self.instrument.write(":RUN")
         while True:
-            if self.query_ascii_value(":AER?"):
+            if self.instrument.query_ascii_values(":AER?")[0]:
                 break
             time.sleep(0.1)
         self._mode = "RUN"
