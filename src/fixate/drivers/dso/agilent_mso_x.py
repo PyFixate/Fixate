@@ -476,7 +476,8 @@ class MSO_X_3000(DSO):
         """
         try:
             self.instrument.wait_on_event(visa.constants.EventType.service_request, timeout * 1000)
-        except visa.VisaIOError as e:
+            self._triggers_read += 1
+        except visa.VisaIOError:
             self.instrument.clear()
             raise
 
