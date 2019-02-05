@@ -1,13 +1,15 @@
-import sys
-import textwrap
 import traceback
+import sys
+import time
+import textwrap
 from queue import Empty
-from queue import Queue
 from pubsub import pub
-from pynput import keyboard
-import fixate.config
-from fixate.config import RESOURCES
+from fixate.ui_cmdline.kbhit import KBHit
+from queue import Queue
 from fixate.core.exceptions import UserInputError
+from fixate.core.common import ExcThread
+from fixate.config import RESOURCES
+import fixate.config
 
 cmd_line_queue = Queue()
 wrapper = textwrap.TextWrapper(width=75)
@@ -15,53 +17,45 @@ wrapper.break_long_words = False
 
 wrapper.drop_whitespace = True
 
+kb = KBHit()
+
+def kb_hit_monitor(cmd_q):
+    while True:
+        resp = cmd_q.get()
+        if resp is None:
+            break  # Command send to close kb_hit monitor
+        q, abort, key_presses = resp  # Begin active monitoring
+        while True:
+            try:
+                abort.get_nowait()
+                break
+            except Empty:
+                pass
+            if kb.kbhit():  # Check for key press
+                key_press = kb.getch()
+                key = key_presses.get(key_press, None)
+                if key is not None:
+                    q.put(key)
+                    break
+            time.sleep(0.05)
+
 
 class KeyboardHook:
     def __init__(self):
         self.user_fail_queue = Queue()
         self.key_monitor = None
-        self.listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
-        self.q = None
-        self.abort = None
-        self.keys = None
-
-    def on_press(self, key):
-        if self.q is None:
-            return
-
-        if self.abort is not None:
-            try:
-                self.abort.get_nowait()
-                self.q = None
-                self.keys = None
-                self.abort = None
-                return
-            except Empty:
-                if self.keys is None:
-                    return
-                lookup = self.keys.get(key, None)
-                if lookup is not None:
-                    self.q.put(lookup)
-                    self.q = None
-                    self.keys = None
-                    self.abort = None
-                    return
-
-    def on_release(self, key):
-        pass
 
     def install(self):
-        self.listener.start()
+        self.key_monitor = ExcThread(target=kb_hit_monitor,
+                                     args=(self.user_fail_queue,))
+        self.key_monitor.start()
 
     def uninstall(self):
-        if self.listener:
-            self.listener.stop()
-        self.listener = None
-
-    def set(self, q, abort, key_map):
-        self.q = q
-        self.abort = abort
-        self.keys = key_map
+        if self.key_monitor:
+            self.user_fail_queue.put(None)
+            self.key_monitor.stop()
+            self.key_monitor.join()
+        self.key_monitor = None
 
 
 key_hook = KeyboardHook()
@@ -108,7 +102,6 @@ def _user_action(msg, q, abort):
     This is for tests that aren't entirely dependant on the automated system.
     This works by monitoring a queue to see if the test completed successfully.
     Also while doing this it is monitoring if the escape key is pressed to signal to the system that the test fails.
-
     Use this in situations where you want the user to do something (like press all the keys on a keypad) where the
     system is automatically monitoring for success but has no way of monitoring failure.
     :param msg:
@@ -124,7 +117,7 @@ def _user_action(msg, q, abort):
     print(reformat_text(msg))
     print("Press escape to fail the test or space to pass")
     global key_hook
-    key_hook.set(q, abort, {keyboard.Key.esc: False, keyboard.Key.space: True})
+    key_hook.user_fail_queue.put((q, abort, {b'\x1b': False, b' ': True}))
 
 
 def _user_ok(msg, q):
@@ -159,6 +152,8 @@ def _user_choices(msg, q, choices, target, attempts=5):
      Optional
      Validation function to check if the user response is valid
     :param attempts:
+    :param args:
+    :param kwargs:
     :return:
     """
     choicesstr = "\n" + ', '.join(choices[:-1]) + ' or ' + choices[-1] + ' '
@@ -188,7 +183,7 @@ def _user_input(msg, q, target=None, attempts=5, kwargs=None):
      Optional
      Validation function to check if the user response is valid
     :param attempts:
-
+    :param args:
     :param kwargs:
     :return:
     """
@@ -216,6 +211,7 @@ def _user_input(msg, q, target=None, attempts=5, kwargs=None):
 def _user_display(msg):
     """
     :param msg:
+    :param important: creates a line of "!" either side of the message
     :return:
     """
     print(reformat_text(msg))
@@ -224,6 +220,7 @@ def _user_display(msg):
 def _user_display_important(msg):
     """
     :param msg:
+    :param important: creates a line of "!" either side of the message
     :return:
     """
     print("")
@@ -305,7 +302,7 @@ def round_to_3_sig_figures(chk):
         ret_dict[element] = getattr(chk, element, None)
         try:
             ret_dict[element] = "{:.3g}".format(ret_dict[element])
-        except Exception as e:
+        except:
             pass
     return ret_dict
 
