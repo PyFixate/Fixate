@@ -493,7 +493,7 @@ class MSO_X_3000(DSO):
             try:
                 while int(self.instrument.query_ascii_values(":OPER:COND?")[0]) & 1 << 3:
                     time.sleep(0.1)
-            except visa.constants.VI_ERROR_TMO:
+            except visa.VisaIOError:
                 self.instrument.clear()
                 raise
             self._wave_acquired = True
