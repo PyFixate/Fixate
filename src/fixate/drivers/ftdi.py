@@ -34,40 +34,32 @@ if struct.calcsize("P") == 8:  # 64 bit
 else:
     FT_HANDLE = ctypes.c_ulong
 
+FT_STATUS = {
+    0: "FT_OK",
+    1: "FT_INVALID_HANDLE",
+    2: "FT_DEVICE_NOT_FOUND",
+    3: "FT_DEVICE_NOT_OPENED",
+    4: "FT_IO_ERROR",
+    5: "FT_INSUFFICIENT_RESOURCES",
+    6: "FT_INVALID_PARAMETER",
+    7: "FT_INVALID_BAUD_RATE",
+    8: "FT_DEVICE_NOT_OPENED_FOR_ERASE",
+    9: "FT_DEVICE_NOT_OPENED_FOR_WRITE",
+    10: "FT_FAILED_TO_WRITE_DEVICE",
+    11: "FT_EEPROM_READ_FAILED",
+    12: "FT_EEPROM_WRITE_FAILED",
+    13: "FT_EEPROM_ERASE_FAILED",
+    14: "FT_EEPROM_NOT_PRESENT",
+    15: "FT_EEPROM_NOT_PROGRAMMED",
+    16: "FT_INVALID_ARGS",
+    17: "FT_NOT_SUPPORTED",
+    18: "FT_OTHER_ERROR",
+}
 
-class FT_STATUS(object):
-    FT_OK = DWORD(0)
-    FT_INVALID_HANDLE = DWORD(1)
-    FT_DEVICE_NOT_FOUND = DWORD(2)
-    FT_DEVICE_NOT_OPENED = DWORD(3)
-    FT_IO_ERROR = DWORD(4)
-    FT_INSUFFICIENT_RESOURCES = DWORD(5)
-    FT_INVALID_PARAMETER = DWORD(6)
-    FT_INVALID_BAUD_RATE = DWORD(7)
-    FT_DEVICE_NOT_OPENED_FOR_ERASE = DWORD(8)
-    FT_DEVICE_NOT_OPENED_FOR_WRITE = DWORD(9)
-    FT_FAILED_TO_WRITE_DEVICE = DWORD(10)
-    FT_EEPROM_READ_FAILED = DWORD(11)
-    FT_EEPROM_WRITE_FAILED = DWORD(12)
-    FT_EEPROM_ERASE_FAILED = DWORD(13)
-    FT_EEPROM_NOT_PRESENT = DWORD(14)
-    FT_EEPROM_NOT_PROGRAMMED = DWORD(15)
-    FT_INVALID_ARGS = DWORD(16)
-    FT_NOT_SUPPORTED = DWORD(17)
-    FT_OTHER_ERROR = DWORD(18)
 
-
-def get_status_message(value):
-    """
-    :param value: Integer representing the error message
-    :return:
-    """
-    for msg, itm in FT_STATUS.__dict__.items():
-        try:
-            if itm.value == value:
-                return msg
-        except AttributeError:
-            pass
+def check_return(return_code):
+    if return_code != 0:
+        raise Exception("FTD2XX Error: {}".format(FT_STATUS.get(return_code, "FT_UNKNOWN_ERROR")))
 
 
 class FT_DEVICE(object):
@@ -137,8 +129,8 @@ else:
     try:
         ftdI2xx = ctypes.cdll.LoadLibrary('/usr/local/lib/libftd2xx.so')
     except Exception as e:
-        raise ImportError("Unable to find libftd2xx.so.\nInstall as per https://www.ftdichip.com/Drivers/D2XX/Linux/ReadMe-linux.txt") from e
-
+        raise ImportError(
+            "Unable to find libftd2xx.so.\nInstall as per https://www.ftdichip.com/Drivers/D2XX/Linux/ReadMe-linux.txt") from e
 
 _ipdwNumDevs = DWORD(0)
 _p_ipdwNumDevs = LPDWORD(_ipdwNumDevs)
@@ -146,10 +138,7 @@ _p_ipdwNumDevs = LPDWORD(_ipdwNumDevs)
 
 def create_device_info_list():
     # FT_CreateDeviceInfoList needs to be called before info can be retrieved
-    cmd_status = ftdI2xx.FT_CreateDeviceInfoList(_p_ipdwNumDevs)
-    # print(stat)
-    if cmd_status != FT_STATUS.FT_OK.value:
-        raise Exception("FT_CreateDeviceInfoList failed: {}".format(get_status_message(cmd_status)))
+    check_return(ftdI2xx.FT_CreateDeviceInfoList(_p_ipdwNumDevs))
 
 
 def _get_device_info_detail(pDest):
@@ -162,26 +151,13 @@ def _get_device_info_detail(pDest):
     locid = DWORD()
     sn = ctypes.create_string_buffer(16)
     desc = ctypes.create_string_buffer(64)
-    cmd_status = ftdI2xx.FT_GetDeviceInfoDetail(dev,
-                                                flags,
-                                                typeid,
-                                                id,
-                                                locid,
-                                                sn,
-                                                desc,
-                                                ctypes.byref(handle))
-
-    if cmd_status != FT_STATUS.FT_OK.value:
-        raise Exception("FT_GetDeviceInfoDetail failed: {}".format(get_status_message(cmd_status)))
+    check_return(ftdI2xx.FT_GetDeviceInfoDetail(dev, flags, typeid, id, locid, sn, desc, ctypes.byref(handle)))
 
 
 # FT_GetDeviceInfoList
 def get_device_info_list():
     pDest = (FT_DEVICE_LIST_INFO_NODE * _ipdwNumDevs.value)()
-    cmd_status = ftdI2xx.FT_GetDeviceInfoList(pDest, ctypes.byref(_ipdwNumDevs))
-    if cmd_status != FT_STATUS.FT_OK.value:
-        raise Exception("FT_GetDeviceInfoList failed: {}".format(get_status_message(cmd_status)))
-
+    check_return(ftdI2xx.FT_GetDeviceInfoList(pDest, ctypes.byref(_ipdwNumDevs)))
     return pDest
 
 
@@ -223,16 +199,11 @@ class FTDI2xx(object):
         self.bb_inv_mask = 0
 
     def _connect(self):
-        cmd_status = ftdI2xx.FT_OpenEx(ctypes.c_char_p(self.ftdi_description),
-                                                  FLAGS.FT_OPEN_BY_DESCRIPTION,
-                                                  ctypes.byref(self.handle))
-        if cmd_status != FT_STATUS.FT_OK.value:
-            raise InstrumentError("FT_OpenEx failed: {}".format(get_status_message(cmd_status)))
+        check_return(ftdI2xx.FT_OpenEx(ctypes.c_char_p(self.ftdi_description), FLAGS.FT_OPEN_BY_DESCRIPTION,
+                                       ctypes.byref(self.handle)))
 
     def close(self):
-        cmd_status = ftdI2xx.FT_Close(self.handle)
-        if cmd_status != FT_STATUS.FT_OK.value:
-            raise InstrumentError("FT_Close failed: {}".format(get_status_message(cmd_status)))
+        check_return(ftdI2xx.FT_Close(self.handle))
 
     def __enter__(self):
         return self
@@ -289,9 +260,7 @@ class FTDI2xx(object):
     @baud_rate.setter
     def baud_rate(self, rate):
         try:
-            cmd_status = ftdI2xx.FT_SetBaudRate(self.handle, DWORD(rate))
-            if cmd_status != FT_STATUS.FT_OK.value:
-                raise InstrumentError("FT_SetBaudRate failed: {}".format(get_status_message(cmd_status)))
+            check_return(ftdI2xx.FT_SetBaudRate(self.handle, DWORD(rate)))
             self._baud_rate = rate
         except:
             self._baud_rate = None
@@ -306,27 +275,19 @@ class FTDI2xx(object):
                 lower nibble is pin value low (0) high (1)
             bit_mode; Type BIT_MODE
         """
-        cmd_status = ftdI2xx.FT_SetBitMode(self.handle, UCHAR(mask), self.bit_mode)
-        if cmd_status != FT_STATUS.FT_OK.value:
-            raise InstrumentError("FT_SetBitMode failed: {}".format(get_status_message(cmd_status)))
+        check_return(ftdI2xx.FT_SetBitMode(self.handle, UCHAR(mask), self.bit_mode))
         data_bus = UCHAR()
         if validate:
-            cmd_status = ftdI2xx.FT_GetBitMode(self.handle, ctypes.byref(data_bus))
-            if cmd_status != FT_STATUS.FT_OK.value:
-                raise InstrumentError("FT_GetBitMode failed: {}".format(get_status_message(cmd_status)))
+            check_return(ftdI2xx.FT_GetBitMode(self.handle, ctypes.byref(data_bus)))
             return data_bus.value & self.pin_value_mask == mask & self.pin_value_mask
 
     def get_cbus_pins(self):
+        check_return(ftdI2xx.FT_SetBitMode(self.handle, UCHAR(0), BIT_MODE.FT_BITMODE_CBUS_BITBANG))
+        data_bus = UCHAR()
         try:
-            cmd_status = ftdI2xx.FT_SetBitMode(self.handle, UCHAR(0), BIT_MODE.FT_BITMODE_CBUS_BITBANG)
-            if cmd_status != FT_STATUS.FT_OK.value:
-                raise InstrumentError("FT_SetBitMode failed: {}".format(get_status_message(cmd_status)))
-            data_bus = UCHAR()
-            cmd_status = ftdI2xx.FT_GetBitMode(self.handle, ctypes.byref(data_bus))
-            if cmd_status != FT_STATUS.FT_OK.value:
-                raise InstrumentError("FT_GetBitMode failed: {}".format(get_status_message(cmd_status)))
+            check_return(ftdI2xx.FT_GetBitMode(self.handle, ctypes.byref(data_bus)))
         finally:
-            cmd_status = ftdI2xx.FT_SetBitMode(self.handle, UCHAR(self.pin_value_mask), self.bit_mode)
+            check_return(ftdI2xx.FT_SetBitMode(self.handle, UCHAR(self.pin_value_mask), self.bit_mode))
         return data_bus.value
         # self.write_bit_mode(self.pin_value_mask)
 
@@ -338,12 +299,7 @@ class FTDI2xx(object):
             size = len(data)
         buffer = ctypes.create_string_buffer(bytes(data), size)
         bytes_written = DWORD()
-        cmd_status = ftdI2xx.FT_Write(self.handle,
-                                                 buffer,
-                                                 ctypes.sizeof(buffer),
-                                                 ctypes.byref(bytes_written))
-        if cmd_status != FT_STATUS.FT_OK.value:
-            raise InstrumentError("FT_Write failed: {}".format(get_status_message(cmd_status)))
+        check_return(ftdI2xx.FT_Write(self.handle, buffer, ctypes.sizeof(buffer), ctypes.byref(bytes_written)))
 
     def read(self):
         buffer = self._read()
@@ -360,31 +316,17 @@ class FTDI2xx(object):
         amount_in_rx_queue = DWORD()
         amount_in_tx_queue = DWORD()
         status = DWORD()
-        cmd_status = ftdI2xx.FT_GetStatus(self.handle,
-                                                     ctypes.byref(amount_in_rx_queue),
-                                                     ctypes.byref(amount_in_tx_queue),
-                                                     ctypes.byref(status))
-        if cmd_status != FT_STATUS.FT_OK.value:
-            raise InstrumentError("FT_GetStatus failed: {}".format(get_status_message(cmd_status)))
+        check_return(
+            ftdI2xx.FT_GetStatus(self.handle, ctypes.byref(amount_in_rx_queue), ctypes.byref(amount_in_tx_queue),
+                                 ctypes.byref(status)))
         buffer = ctypes.create_string_buffer(amount_in_rx_queue.value)
         bytes_read = DWORD()
-        cmd_status = ftdI2xx.FT_Read(self.handle,
-                                                ctypes.byref(buffer),
-                                                amount_in_rx_queue,
-                                                ctypes.byref(bytes_read))
-        if cmd_status != FT_STATUS.FT_OK.value:
-            raise InstrumentError("FT_Read failed: {}".format(get_status_message(cmd_status)))
+        check_return(ftdI2xx.FT_Read(self.handle, ctypes.byref(buffer), amount_in_rx_queue, ctypes.byref(bytes_read)))
         return buffer
 
     def _set_data_characteristics(self):
         if not [x for x in [self.word_length, self.stop_bits, self.parity] if x is None]:
-            cmd_status = ftdI2xx.FT_SetDataCharacteristics(self.handle,
-                                                                      self.word_length,
-                                                                      self.stop_bits,
-                                                                      self.parity)
-            if cmd_status != FT_STATUS.FT_OK.value:
-                raise InstrumentError(
-                    "FT_SetDatCharacteristics failed: {}".format(get_status_message(cmd_status)))
+            check_return(ftdI2xx.FT_SetDataCharacteristics(self.handle, self.word_length, self.stop_bits, self.parity))
             self._data_characteristics_set = True
             return
         raise ValueError("Please ensure that word length, stop bits and parity are set")
