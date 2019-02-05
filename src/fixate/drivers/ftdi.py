@@ -57,9 +57,13 @@ FT_STATUS = {
 }
 
 
+class FTD2XXError(BaseException):
+    pass
+
+
 def check_return(return_code):
     if return_code != 0:
-        raise Exception("FTD2XX Error: {}".format(FT_STATUS.get(return_code, "FT_UNKNOWN_ERROR")))
+        raise FTD2XXError(FT_STATUS.get(return_code, "FT_UNKNOWN_ERROR"))
 
 
 class FT_DEVICE(object):
