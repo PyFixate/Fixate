@@ -30,7 +30,7 @@ python -m fixate -p tiny.py
 
 Alternatively the full path to tiny.py can be provided.
 
-python -m fixate -p "path_to_python_installation"/Lib/site-packages/fixate/examples/
+python -m fixate -p "path_to_python_installation"/Lib/site-packages/fixate/examples/tiny.py
 
 ## Running the tests
 In general, it is recommended to run the "core" set of tests.
