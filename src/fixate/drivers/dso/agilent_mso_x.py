@@ -259,7 +259,7 @@ class MSO_X_3000(DSO):
         # Clear status registers (CLS)
         # enable the trigger mask in the event register (SRE)
         # operation complete (OPC)
-        self.query(":STOP;*CLS;*SRE 1;*OPC?")
+        self.instrument.query(":STOP;*CLS;*SRE 1;*OPC?")
         # Enables the Event service request register (SRE)
         self.instrument.enable_event(visa.constants.EventType.service_request, visa.constants.VI_QUEUE)
         self.instrument.write(":SINGLE")
@@ -461,7 +461,8 @@ class MSO_X_3000(DSO):
     def query_after_acquire(self, base_str, *args, **kwargs):
         self.wait_for_acquire()
         try:
-            return self.query_value(base_str, *args, **kwargs)
+            formatted_string = self._format_string(base_str, **kwargs)
+            return self.instrument.query_ascii_values(formatted_string)[0]
         except:
             self.instrument.close()
             self.instrument.open()
@@ -481,6 +482,9 @@ class MSO_X_3000(DSO):
         except visa.VisaIOError:
             self.instrument.clear()
             raise
+        finally:
+            self.instrument.disable_event(visa.constants.EventType.service_request, visa.constants.VI_QUEUE)
+            self.instrument.discard_events(visa.constants.EventType.service_request, visa.constants.VI_QUEUE)
 
     def wait_for_acquire(self):
         if not self._triggers_read:
