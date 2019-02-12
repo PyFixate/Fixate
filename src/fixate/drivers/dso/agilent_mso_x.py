@@ -255,11 +255,13 @@ class MSO_X_3000(DSO):
         :return:
         """
         self._triggers_read = 0
+        self._raise_if_error()  # Raises if any errors were made during setup
         # Stop
         # Clear status registers (CLS)
         # enable the trigger mask in the event register (SRE)
         # operation complete (OPC)
         self.instrument.query(":STOP;*CLS;*SRE 1;*OPC?")
+        self._store["time_base"] = self.instrument.query_ascii_values(":TIM:RANG?")[0]
         # Enables the Event service request register (SRE)
         self.instrument.enable_event(visa.constants.EventType.service_request, visa.constants.VI_QUEUE)
         self.instrument.write(":SINGLE")
@@ -267,6 +269,7 @@ class MSO_X_3000(DSO):
             if self.instrument.query_ascii_values(":AER?")[0]:
                 break
             time.sleep(0.1)
+
         self._mode = "SINGLE"
         self._wave_acquired = False
 
@@ -290,7 +293,6 @@ class MSO_X_3000(DSO):
 
     def _write(self, value):
         self.instrument.write(value)
-        self._raise_if_error()
 
     def acquire(self, acquire_type="normal", averaging_samples=0):
         """
@@ -472,10 +474,16 @@ class MSO_X_3000(DSO):
         """
         Waits for trigger for a set amount of time.
         If no trigger occurs, cancel the current measurement request
+        Two options available:
+        self._trigger_event(timeout) # Uses PyVisa Events
+        self._trigger_poll(timeout) # Polls :TER? register
         :param timeout: timeout in seconds waiting for a trigger
         Exception raised on timeout
         :return:
         """
+        self._trigger_poll(timeout)
+
+    def _trigger_event(self, timeout):
         try:
             self.instrument.wait_on_event(visa.constants.EventType.service_request, timeout * 1000)
             self._triggers_read += 1
@@ -486,21 +494,28 @@ class MSO_X_3000(DSO):
             self.instrument.disable_event(visa.constants.EventType.service_request, visa.constants.VI_QUEUE)
             self.instrument.discard_events(visa.constants.EventType.service_request, visa.constants.VI_QUEUE)
 
+    def _trigger_poll(self, timeout):
+        start = time.time()
+        while True:
+            trigger = self.instrument.query_ascii_values(":TER?")[0]
+            if trigger:
+                break
+            if time.time() - start > timeout:
+                raise TimeoutError("Trigger didn't occur in {}s".format(timeout))
+
     def wait_for_acquire(self):
         if not self._triggers_read:
             self.wait_for_trigger(1)
-
         if self._wave_acquired:
             return
 
         elif self._mode == "SINGLE":
             # Wait for mode to change to stop
-            try:
-                while int(self.instrument.query_ascii_values(":OPER:COND?")[0]) & 1 << 3:
-                    time.sleep(0.1)
-            except visa.VisaIOError:
-                self.instrument.clear()
-                raise
+            start = time.time()
+            timeout = self._store["time_base"] * 1.2
+            while int(self.instrument.query_ascii_values(":OPER:COND?")[0]) & 1 << 3:
+                if time.time() - start > timeout:
+                    raise TimeoutError("Waveform did not acquire in the specified time")
             self._wave_acquired = True
             return
         elif self._mode == "RUN":
@@ -515,6 +530,7 @@ class MSO_X_3000(DSO):
         return data
 
     def _check_errors(self):
+        time.sleep(0.1)
         resp = self.instrument.query("SYST:ERR?")
         code, msg = resp.strip('\n').split(',')
         code = int(code)
@@ -547,7 +563,6 @@ class MSO_X_3000(DSO):
     def _format_string(self, base_str, **kwargs):
         kwargs['self'] = self
         prev_string = base_str
-        cur_string = ""
         while True:
             cur_string = prev_string.format(**kwargs)
             if cur_string == prev_string:
