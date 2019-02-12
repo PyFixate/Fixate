@@ -261,7 +261,8 @@ class MSO_X_3000(DSO):
         # enable the trigger mask in the event register (SRE)
         # operation complete (OPC)
         self.instrument.query(":STOP;*CLS;*SRE 1;*OPC?")
-        self._store["time_base"] = self.instrument.query_ascii_values(":TIM:RANG?")[0]
+        self._store["time_base_wait"] = self.instrument.query_ascii_values(":TIM:RANG?")[0] + \
+                                        self.instrument.query_ascii_values(":TIM:POS?")[0]
         # Enables the Event service request register (SRE)
         self.instrument.enable_event(visa.constants.EventType.service_request, visa.constants.VI_QUEUE)
         self.instrument.write(":SINGLE")
@@ -482,6 +483,7 @@ class MSO_X_3000(DSO):
         :return:
         """
         self._trigger_poll(timeout)
+        # self._trigger_event(timeout)
 
     def _trigger_event(self, timeout):
         try:
@@ -502,6 +504,7 @@ class MSO_X_3000(DSO):
                 break
             if time.time() - start > timeout:
                 raise TimeoutError("Trigger didn't occur in {}s".format(timeout))
+        self._triggers_read += 1
 
     def wait_for_acquire(self):
         if not self._triggers_read:
@@ -512,7 +515,7 @@ class MSO_X_3000(DSO):
         elif self._mode == "SINGLE":
             # Wait for mode to change to stop
             start = time.time()
-            timeout = self._store["time_base"] * 1.2
+            timeout = self._store["time_base_wait"] * 1.2
             while int(self.instrument.query_ascii_values(":OPER:COND?")[0]) & 1 << 3:
                 if time.time() - start > timeout:
                     raise TimeoutError("Waveform did not acquire in the specified time")
