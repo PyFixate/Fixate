@@ -24,7 +24,20 @@ For a more complicated example using multi-level tests, try running multi_level_
 The test runner is executed by calling the package as a script with the test script to execute passed in using the
 '-p' command line argument, as well as the -c command line argument to specify the config file
 
+#### Running on Windows:
+
+If running from a pip installed version of fixate the path to the examples will be "path_to_python_installation"/Lib/site-packages/fixate/examples/ From this folder the following can be executed:
+
 python -m fixate -p tiny.py
+
+Alternatively the full path to tiny.py can be provided.
+
+python -m fixate -p "path_to_python_installation"/Lib/site-packages/fixate/examples/tiny.py
+
+#### Running on MacOS:
+
+Running on Mac is the same as running on Windows with the exception of the path to the examples. The path will be: "path_to_python_installation"/lib/pythonX.Y/site-packages/fixate/examples/
+Where X.Y is the version of python that is installed.
 
 ## Running the tests
 In general, it is recommended to run the "core" set of tests.

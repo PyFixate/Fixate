@@ -15,7 +15,7 @@ class SPD3303X(PPS):
     def __init__(self, instrument):
         super().__init__(instrument)
         self.instrument = instrument
-        self.instrument.timeout = 100
+        self.instrument.timeout = 1000
         self.instrument.query_delay = 0.1
         self.instrument.read_termination = self.read_termination
         self.instrument.write_termination = self.write_termination
