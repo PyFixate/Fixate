@@ -260,11 +260,14 @@ def deprecated(func):
     return inner
 
 
+# The first line of the doc string will be reflected in the test logs. Please don't change.
 class TestList:
     """
+    Test List
     The TestList is a container for TestClasses and TestLists to set up a test hierarchy.
     They operate similar to a python list except that it has additional methods that can be overridden to provide additional functionality
     """
+
     def __init__(self, seq=None):
         self.tests = []
         if seq is None:
