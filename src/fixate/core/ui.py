@@ -237,7 +237,7 @@ def user_serial(msg, target=_ten_digit_serial, attempts=5):
     return serial
 
 
-def user_post_sequence_info_fail(msg):
+def user_post_sequence_info_pass(msg):
     """
     Adds information to be displayed to the user at the end of the sequence passes
     This information will be displayed in the order that post sequence info calls are made and will remove duplicates
