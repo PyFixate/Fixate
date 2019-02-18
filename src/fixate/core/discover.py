@@ -1,63 +1,9 @@
-import inspect
-import os
-import sys
 import re
 
 import visa
 import fixate.config
 from fixate.drivers import ftdi
 from fixate.core.exceptions import InstrumentNotConnected
-
-pkgname = 'fixate'
-
-
-def discover_classes():
-    # Broken if pkgname occurs with other characters in the same step in path
-    path = os.path.realpath(__file__).split(pkgname)
-
-    if len(path) > 2:
-        new_path = ''
-        for pth in path:
-            if pth:
-                new_path += os.path.join(pth, pkgname)
-        path = new_path
-    elif len(path) == 2:
-        pass
-    else:
-        raise OSError("Cannot Find Parent Package {}".format(pkgname))
-
-    path = os.path.join(path[0], pkgname)
-    pkg_cnt = 0
-    for root, dirs, files in os.walk(path):
-        for _file in files:
-            if _file.endswith('.py'):
-                _file.replace('.py', '')
-                module_path = root.split(path)[1].split('\\')
-                module_path[0] = pkgname
-                module_path.append(_file.replace('.py', ''))
-                module_path = '.'.join(module_path)
-                for cls in _classes_in_module(module_path, os.path.join(root, _file)):
-                    # print(cls)
-                    yield cls
-        pkg_cnt += 1
-
-
-def discover_sub_classes(sub_class_match):
-    for cls in fixate.config.CLASS_LIST:
-        if issubclass(cls[1], sub_class_match):
-            # getmro looks for the inheritance.
-            # The leftmost mro return is the actual class. If it is the search class then we don't want it
-            if inspect.getmro(cls[1])[0] != sub_class_match:
-                yield cls
-
-
-def _classes_in_module(module, path_to_module):
-    try:
-        __import__(module)
-    except Exception as e:
-        return []
-    mod = sys.modules[module]
-    return inspect.getmembers(mod, inspect.isclass)
 
 
 def open_visa_instrument(instr_type):
