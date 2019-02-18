@@ -18,7 +18,6 @@ DRIVER_LIST = {"DMM": {"dmm.fluke_8846a.Fluke8846A"},
                "DSO": {'dso.agilent_mso_x.MSO_X_3000'},
                "FTDI": {"ftdi.FTDI2xx"}}
 CONFIG_LOADED = False
-CLASS_LIST = None
 INSTRUMENTS = {}
 DUT = None
 RESOURCES = {}

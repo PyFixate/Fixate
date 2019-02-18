@@ -1,15 +1,11 @@
 import unittest
 from fixate.drivers.funcgen.keysight_33500b import Keysight33500B
-from fixate.core.discover import discover_visa, filter_connected
 from fixate.core.exceptions import *
+from fixate.core.discover import open_visa_instrument
 
 
 def get_funcgen():
-    instruments = discover_visa()
-    connected = filter_connected(instruments, [("Keysight33500B", Keysight33500B)])
-    if not connected:
-        raise Exception("Cannot find valid function generator")
-    return connected["Keysight33500B"]
+    return open_visa_instrument("FUNC_GEN")
 
 
 class BaseSetup:

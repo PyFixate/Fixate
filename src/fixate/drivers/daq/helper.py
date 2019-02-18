@@ -1,7 +1,8 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 import fixate.config
 
-def open(restrictions=None):
+
+def open():
     """Open is the public api for the daq driver for discovering and opening a connection
     to a valid daq.
     At the moment opens just instantiates the DAQmx Driver

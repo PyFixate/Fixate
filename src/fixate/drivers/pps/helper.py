@@ -1,7 +1,7 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 import inspect
 import fixate.config
-from fixate.core.discover import filter_connected, open_visa_instrument, discover_visa
+from fixate.core.discover import filter_connected
 from fixate.core.exceptions import InstrumentNotConnected, InstrumentFeatureUnavailable
 
 try:
@@ -12,23 +12,14 @@ except ImportError:
     number = float
 
 
-def open(restrictions=None):
+def open():
     """
-    Currently only searches for Serial Devices
     :param restrictions:
     :return:
     """
     # All config values for implemented instruments should be called
-    if restrictions is None:
-        restrictions = {}
-
     classes = fixate.config.DRIVERS.get("PPS", {})
-
-    instruments = filter_connected(fixate.config.INSTRUMENTS or {}, classes)
-    if not instruments:
-        # All discovery methods for implemented instruments should be called
-        discover_visa()
-        instruments = filter_connected(fixate.config.INSTRUMENTS or {}, classes)
+    instruments = filter_connected(fixate.config.INSTRUMENTS, classes)
     # This is where the restrictions would come in
     if instruments:
         for instr in instruments:

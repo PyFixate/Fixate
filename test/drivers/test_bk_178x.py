@@ -7,6 +7,7 @@ from fixate.drivers.pps.bk_178x import BK178X
 out = sys.stdout
 nl = '\n'
 
+
 @unittest.skip("Requires instrument connected to run")
 class PacketFormedCorrectly(TestCase):
     length_packet = 26

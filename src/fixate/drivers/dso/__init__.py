@@ -1,1 +1,1 @@
-from fixate.drivers.dso.helper import open, discover, DSO
+from fixate.drivers.dso.helper import open, DSO
