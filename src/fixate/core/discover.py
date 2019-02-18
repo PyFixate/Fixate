@@ -89,7 +89,7 @@ def filter_connected(instruments, classes):
     """Iterates through a list of connected equipment and attempts to detect if they are matched to the given classes
     :return:
     """
-    rm = visa.ResourceManager()
+    rm = visa.ResourceManager()  # TODO remove this and place onus on instrument to know about visa
     result = {}
     for cls_name, cls in classes:
         if cls.INSTR_TYPE == 'VISA':
