@@ -7,5 +7,5 @@ Functions are dictacted by the metaclass in helper.py
 dmm.measure(*mode, **mode_params)
 dmm.reset()
 """
-from fixate.drivers.dmm.helper import open, discover, DMM
+from fixate.drivers.dmm.helper import open, DMM
 
