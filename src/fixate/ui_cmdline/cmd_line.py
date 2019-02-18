@@ -235,18 +235,17 @@ def _print_sequence_end(status, passed, failed, error, skipped, sequence_status)
     print("#" * wrapper.width)
     print(reformat_text("Sequence {}".format(sequence_status)))
     # print("Sequence {}".format(sequence_status))
-    post_sequence_info = []
-    if status == "PASSED":
-        post_sequence_info.extend(RESOURCES["SEQUENCER"].context_data.get("_post_sequence_info_pass", []))
-    elif status == "FAILED" or status == "ERROR":
-        post_sequence_info.extend(RESOURCES["SEQUENCER"].context_data.get("_post_sequence_info_fail", []))
-    post_sequence_info.extend(RESOURCES["SEQUENCER"].context_data.get("_post_sequence_info", []))
-
+    post_sequence_info = RESOURCES["SEQUENCER"].context_data.get("_post_sequence_info", {})
     if post_sequence_info:
         print("-" * wrapper.width)
         print("IMPORTANT INFORMATION")
-        for itm in post_sequence_info:
-            print(reformat_text(itm))
+        for msg, state in post_sequence_info.items():
+            if status == "PASSED":
+                if state == "PASSED" or state == "ALL":
+                    print(reformat_text(msg))
+            elif state != "PASSED":
+                print(reformat_text(msg))
+
     print("-" * wrapper.width)
     # reformat_text
     print(reformat_text("Status: {}".format(status)))

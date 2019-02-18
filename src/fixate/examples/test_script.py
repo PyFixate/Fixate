@@ -3,7 +3,7 @@ This is a test script that shows basic use case for the fixate library
 """
 from fixate.core.common import TestClass, TestList
 from fixate.core.checks import *
-from fixate.core.ui import user_input, user_info, user_ok
+from fixate.core.ui import *
 
 __version__ = '3'
 
@@ -15,7 +15,7 @@ class RedButton(TestClass):
     test_desc = "Red Button"
 
     def test(self):
-        user_input("Please Push the Red Button\n")
+        user_ok("Please Push the Red Button\n")
         chk_passes("Red Button Pushed")
 
 
@@ -235,19 +235,33 @@ class MultipleLineInstruction(TestClass):
         user_ok("Line 5")
 
 
-PASSES = [ReturnTrue(), ReturnFalse(skip=True), RaiseValueError(skip=True), RaiseValueErrorInComparison(skip=True),
-          RedButton(), GetUserInput(), MultiplePassedTestResults(), MultipleTestResults(skip=True),
-          MultipleTestResultsTestException(skip=True), ReturnTrue(), ParameterisedTest(50, 500),
-          ReturnTrue(), ParameterisedTest(10, 5), MultipleLineInstruction()]
+class PostSequenceInfo(TestClass):
+    def test(self):
+        user_post_sequence_info("Post sequence info is here and should always be here")
+        user_post_sequence_info_pass("Post sequence info that should only show if sequence passes")
+        user_post_sequence_info_fail("Post sequence info that should only show if sequence fails")
 
-FAILS = [ReturnTrue(), ReturnFalse(), RaiseValueError(skip=True), RaiseValueErrorInComparison(skip=True),
-         RedButton(), GetUserInput(), MultiplePassedTestResults(), MultipleTestResults(),
-         MultipleTestResultsTestException(skip=True), ReturnTrue(), ParameterisedTest(50, 500),
-         ReturnTrue(), ParameterisedTest(10, 5), MultipleLineInstruction()]
 
-ERRORS = [ReturnTrue(), ReturnFalse(), RaiseValueError(), RaiseValueErrorInComparison(), RedButton(),
-          GetUserInput(), MultiplePassedTestResults(), MultipleTestResults(), MultipleTestResultsTestException(),
-          ReturnTrue(), ParameterisedTest(50, 500), ReturnTrue(), ParameterisedTest(10, 5), MultipleLineInstruction()]
+class CheckPostSequenceInfo(TestClass):
+    def test(self):
+        user_info("When the sequence finishes, check the following in the active and history window:")
+        user_info("Post sequence info is here and should always be here")
+        user_ok("Post sequence info that should only show if sequence x where x is passes or fails")
+
+
+PASSES = [PostSequenceInfo(), CheckPostSequenceInfo(), ReturnTrue(), ReturnFalse(skip=True), RaiseValueError(skip=True),
+          RaiseValueErrorInComparison(skip=True), RedButton(), GetUserInput(), MultiplePassedTestResults(),
+          MultipleTestResults(skip=True), MultipleTestResultsTestException(skip=True), ReturnTrue(),
+          ParameterisedTest(50, 500), ReturnTrue(), ParameterisedTest(10, 5), MultipleLineInstruction(),
+          CheckPostSequenceInfo()]
+FAILS = [PostSequenceInfo(), CheckPostSequenceInfo(), ReturnTrue(), ReturnFalse(), RaiseValueError(skip=True),
+         RaiseValueErrorInComparison(skip=True), RedButton(), GetUserInput(), MultiplePassedTestResults(),
+         MultipleTestResults(), MultipleTestResultsTestException(skip=True), ReturnTrue(), ParameterisedTest(50, 500),
+         ReturnTrue(), ParameterisedTest(10, 5), MultipleLineInstruction(), CheckPostSequenceInfo()]
+ERRORS = [PostSequenceInfo(), CheckPostSequenceInfo(), ReturnTrue(), ReturnFalse(), RaiseValueError(),
+          RaiseValueErrorInComparison(), RedButton(), GetUserInput(), MultiplePassedTestResults(),
+          MultipleTestResults(), MultipleTestResultsTestException(), ReturnTrue(), ParameterisedTest(50, 500),
+          ReturnTrue(), ParameterisedTest(10, 5), MultipleLineInstruction(), CheckPostSequenceInfo()]
 
 TEST_SEQUENCE = PASSES
 
