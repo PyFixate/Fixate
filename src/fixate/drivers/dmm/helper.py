@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod, abstractproperty
 from fixate.core.discover import discover_sub_classes, open_visa_instrument
 
-def open(restrictions=None):
+def open():
     """Open is the public api for the dmm driver for discovering and opening a connection
     to a valid Digital Multimeter.
     At the moment opens the first dmm connected
@@ -10,7 +10,7 @@ def open(restrictions=None):
     :return:
     A instantiated class connected to a valid dmm
     """
-    return open_visa_instrument("DMM", restrictions)
+    return open_visa_instrument("DMM")
 
 
 def discover():

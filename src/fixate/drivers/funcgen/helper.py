@@ -11,7 +11,7 @@ except ImportError:
     number = float
 
 
-def open(restrictions=None):
+def open():
     """Open is the public api for the dmm driver for discovering and opening a connection
     to a valid Digital Multimeter
     :param restrictions:
@@ -19,7 +19,7 @@ def open(restrictions=None):
     :return:
     A instantiated class connected to a valid funcgen
     """
-    return open_visa_instrument("FUNC_GEN", restrictions)
+    return open_visa_instrument("FUNC_GEN")
 
 
 def discover():

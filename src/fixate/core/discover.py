@@ -60,7 +60,7 @@ def _classes_in_module(module, path_to_module):
     return inspect.getmembers(mod, inspect.isclass)
 
 
-def open_visa_instrument(instr_type, restrictions=None):
+def open_visa_instrument(instr_type):
     """open_visa_instrument implements the  public api for each of the drivers for discovering and opening a connection
     :param instr_type:
     The abstract base class to implement
