@@ -3,7 +3,7 @@ import os
 import sys
 import re
 
-from visa import VisaIOError
+import visa
 import fixate.config
 from fixate.drivers import ftdi
 from fixate.core.exceptions import InstrumentNotConnected
@@ -89,7 +89,7 @@ def filter_connected(instruments, classes):
     """Iterates through a list of connected equipment and attempts to detect if they are matched to the given classes
     :return:
     """
-    rm = fixate.config.RESOURCES["VISA_RESOURCE_MANAGER"]
+    rm = visa.ResourceManager()
     result = {}
     for cls_name, cls in classes:
         if cls.INSTR_TYPE == 'VISA':
@@ -98,7 +98,7 @@ def filter_connected(instruments, classes):
                 if re.search(cls.REGEX_ID, instr_id):
                     try:
                         result[cls_name] = cls(rm.open_resource(instr_interface))
-                    except VisaIOError:
+                    except visa.VisaIOError:
                         pass
         if cls.INSTR_TYPE == 'SERIAL':
             for com_port, info in instruments.get("serial", {}).items():
