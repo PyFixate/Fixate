@@ -4,6 +4,7 @@ import threading
 import inspect
 import ctypes
 import logging
+import warnings
 from fixate.core.exceptions import ParameterError, InvalidScalarQuantityError
 
 logger = logging.getLogger(__file__)
@@ -254,7 +255,8 @@ class ExcThread(threading.Thread):
 
 def deprecated(func):
     def inner(*args, **kwargs):
-        logger.warning("Function is deprecated. Please consider updating api calls")
+        warnings.warn("Function {} is deprecated. Please consider updating api calls".format(func.__name__),
+                      DeprecationWarning)
         return func(*args, **kwargs)
 
     return inner
@@ -265,6 +267,7 @@ class TestList:
     The TestList is a container for TestClasses and TestLists to set up a test hierarchy.
     They operate similar to a python list except that it has additional methods that can be overridden to provide additional functionality
     """
+
     def __init__(self, seq=None):
         self.tests = []
         if seq is None:

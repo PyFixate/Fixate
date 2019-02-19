@@ -1,7 +1,7 @@
 from threading import Lock
 from visa import constants
 from fixate.core.exceptions import InstrumentError, ParameterError
-from fixate.core.common import mode_builder
+from fixate.core.common import mode_builder, deprecated
 from fixate.drivers.dmm.helper import DMM
 import time
 
@@ -60,10 +60,6 @@ FILTERS = {
 
 
 class Fluke8846A(DMM):
-    """
-    TODO Implement changing between RMS and Vpp.
-    Force Vpp as default and call it explicitly when setting amplitude
-    """
     REGEX_ID = "FLUKE,8846A"
     INSTR_TYPE = "VISA"
 
@@ -84,9 +80,7 @@ class Fluke8846A(DMM):
         self._range_string = ""
         self._bandwidth = None
         self._mode = None
-        self._rtd_type = ""
-        self._diode_str = ""
-        self._range = None
+        self.legacy_mode = False  # Set to True to have explicit error checks on each read
         self._modes = {
             'voltage_ac': 'CONF:VOLTage:AC',
             'voltage_dc': 'CONF:VOLTage:DC',
@@ -138,6 +132,7 @@ class Fluke8846A(DMM):
             None: "",
         }
 
+    @deprecated
     def measure(self, *mode, trigger=True, **mode_params):
         """
          if parameters empty then uses previous set mode
@@ -173,14 +168,12 @@ class Fluke8846A(DMM):
                     mode_builder(MODES, {}, *mode, **mode_params))  # removed the list brackets
 
                 set_mode = [k for k, v in self._modes.items() if v in _measure_mode_string][0]
-                self._set_measurement_mode(set_mode, _range=mode_params.get('range', None))
+                self._set_measurement_mode(set_mode, mode_params.get('range', None))
                 # discard first reading
                 if trigger:
                     self._read_measurements()
 
         if trigger:
-            # measurements = self.instrument.query_ascii_values("READ?")
-            # self._is_error()
             measurements = self._read_measurements()
             return measurements
 
@@ -242,7 +235,8 @@ class Fluke8846A(DMM):
         return: values read from the DMM
         """
         values = self.instrument.query_ascii_values("READ?")
-        self._is_error()
+        if self.legacy_mode:
+            self._is_error()
         return values
 
     def _check_errors(self):
@@ -294,27 +288,7 @@ class Fluke8846A(DMM):
         self.instrument.close()
         self.instrument.open()
 
-        # Setting up previous measurement
-        self._write(self._build_mode_string())
-
-        if self._ANALOG_FLAG:
-            self.analog_filter(self._bandwidth or None)
-        elif self._DIGITAL_FLAG:
-            self.digital_filter()
-        self._write(["SYST:REM", "TRIG:DEL:AUTO OFF", "TRIG:SOUR IMM", "TRIG:COUN {}".format(self.samples)])
-
-    def _build_mode_string(self):
-        """
-        Creates list of configuration strings and combines into a single string
-        return: Configuration string
-        """
-        build_list = [self._modes.get(self._mode, ""), self._range_string, self._rtd_type,
-                      self._diode_str]
-        build_string = " ".join([x for x in build_list if x != ''])
-
-        return build_string
-
-    def _set_measurement_mode(self, mode, _range=None):
+    def _set_measurement_mode(self, mode, _range=None, suffix=''):
         """
         Helper function used to set the measurement mode for voltage_ac, voltage_dc, current_ac, current_dc,
         resistance, fresistance. Reduces previous duplicate code.
@@ -324,8 +298,10 @@ class Fluke8846A(DMM):
         :return:
         """
         self.mode = mode
-        self.range = _range
-        self._write(self._build_mode_string())
+        suffix = " {}".format(suffix)
+        if len(suffix) == 1:
+            suffix = ''
+        self._write(self._modes[self._mode] + self._range.get(_range) + suffix)
         self._is_error()
 
     def voltage_ac(self, _range=None):
@@ -334,7 +310,7 @@ class Fluke8846A(DMM):
     def voltage_dc(self, _range=None):
         self._set_measurement_mode('voltage_dc', _range)
 
-    def current_ac(self, _range=None, bandwidth=None):
+    def current_ac(self, _range=None):
         self._set_measurement_mode('current_ac', _range)
 
     def current_dc(self, _range=None):
@@ -361,8 +337,7 @@ class Fluke8846A(DMM):
         param _range: value set for the range
         param _resolution: value set for the resolution
         """
-        self._diode_str = "{} {}".format(int(bool(low_current)), int(bool(high_voltage)))
-        self._set_measurement_mode('diode')
+        self._set_measurement_mode('diode', suffix="{}, {}".format(int(bool(low_current)), int(bool(high_voltage))))
 
     def continuity(self):
         """
@@ -386,27 +361,18 @@ class Fluke8846A(DMM):
         self._write("*rst")
         time.sleep(0.05)
         # do we need to set the default filter here?
-        self._DIGITAL_FLAG = False
-        self._ANALOG_FLAG = False
-        self._range_string = ""
-        self._resolution_string = ""
         if value not in self._modes:
             raise ParameterError('Unknown mode {} for DMM'.format(value))
-        if self.mode != value:
-            self._mode = value
-        else:
-            pass
+        self._mode = value
 
     def digital_filter(self):
         """
         Sets up DMM digital filtering
         raise: TypeError if trying to set digital filter in an AC mode
         """
-        self._DIGITAL_FLAG = True
         if "ac" in self._mode:
             raise TypeError
         self._write(self._filters[self.mode] + ":FILT:DIG:STAT ON")
-        pass
 
     def analog_filter(self, bandwidth=None):
         """
@@ -414,7 +380,6 @@ class Fluke8846A(DMM):
         configuration must be set before calling filter.
         raise: ValueError if invalid filtering bandwidth is requested
         """
-        self._ANALOG_FLAG = True
         if "ac" in self._mode:
             self._bandwidth = bandwidth or 20
             if self._bandwidth not in [3, 20, 200]:
@@ -424,20 +389,3 @@ class Fluke8846A(DMM):
         elif any(x in self._mode for x in ["dc", "res"]):
             self._write(self._filters[self.mode] + ":FILT:STAT ON")
         pass
-
-    @property
-    def range(self):
-        return self._range
-
-    @range.setter
-    def range(self, set_range=None):
-        """
-        Creates range string for configuration string
-        param set_range: user defined value for the range
-        """
-        try:
-            self._range = float(set_range)
-            self._range_string = "{}".format(self.range)
-        except TypeError:
-            self._range = None
-            self._range_string = ""
