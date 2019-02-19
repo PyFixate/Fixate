@@ -74,6 +74,7 @@ class Fluke8846A(DMM):
         self.instrument.delay = 0
         self.is_connected = True
         self.reset()
+        self.samples = 1
         self._CLEAN_UP_FLAG = False
         self._ANALOG_FLAG = False
         self._DIGITAL_FLAG = False
@@ -106,20 +107,6 @@ class Fluke8846A(DMM):
             None: ""
         }
         self._init_string = ""  # Unchanging
-        self._range = {
-            'voltage_ac': 'SENS:VOLT:RANG:',
-            'voltage_dc': 'SENS:VOLT:RANG:',
-            'current_ac': 'SENS:CURR:AC:RANG:',
-            'current_dc': 'SENS:CURR:DC:RANG:',
-            'resistance': 'SENS:RES:RANG:',
-            'fresistance': 'SENS:RES:RANG:',
-            'period': 'SENS:PER:VOLT:RANG:',
-            'frequency': 'SENS:FREQ:VOLT:RANG:',
-            'temperature': 'SENS:TEMP:RANG:RTD',
-            'ftemperature': 'SENS:TEMP:RANG:FRTD',
-            'capacitance': 'SENS:CAP:RANG:',
-            None: "",
-        }  # Set by property
 
         self._resolution = {
             'voltage_ac': 'VOLT:RES',
@@ -132,50 +119,15 @@ class Fluke8846A(DMM):
             None: "",
         }
 
-    @deprecated
-    def measure(self, *mode, trigger=True, **mode_params):
-        """
-         if parameters empty then uses previous set mode
-         The mode and mode parameters are used in mode_build to search recursively through the
-         MODES dictionary to build the visa string necessary for the equipment to interpret the commands.
-         usage
-         measure('volt', 'dc')
-            parsed to visa:
-                'CONF:VOLTage:DC'
-                'SENSe:VOLTage:DC:FILTer:STATe ON'
-                'SENSe:VOLTage:DC:FILTer:DIGital:STATe OFF'
-            which is setting the voltage to dc with the analog filter on
-         measure('cur', 'ac', range=1)
-            parsed to visa:
-                'CONF:CURRent:AC'
-                'SENSe:CURRent:AC:BANDwidth 20'
-            which is setting the current to ac with the 20Hz filter enabled
+    @property
+    def samples(self):
+        return self._samples
 
-        for more advanced functions that cannot be explained with this function use adv_measure
-
-        NOTE:
-        Since updating the API, the measure() method has been changed to maintain backward compatibility.  measure()
-        still users mode_builder() to match the string entered with the mode string to be written, however instead of
-        writing this to the dmm, this configuration mode string is used to call the new API mode setters.
-        """
-        if mode:
-            self.reset()
-
-            with self.lock:
-                self._write(["SYST:REM", "TRIG:DEL:AUTO OFF", "TRIG:SOUR IMM", "TRIG:COUN {}".format(self.samples)])
-
-                _measure_mode_string = "CONF{}".format(
-                    mode_builder(MODES, {}, *mode, **mode_params))  # removed the list brackets
-
-                set_mode = [k for k, v in self._modes.items() if v in _measure_mode_string][0]
-                self._set_measurement_mode(set_mode, mode_params.get('range', None))
-                # discard first reading
-                if trigger:
-                    self._read_measurements()
-
-        if trigger:
-            measurements = self._read_measurements()
-            return measurements
+    @samples.setter
+    def samples(self, val):
+        self._write(["SAMP:COUN {}".format(self.samples)])
+        self._is_error()
+        self._samples = val
 
     def measurement(self):
         """
@@ -187,10 +139,15 @@ class Fluke8846A(DMM):
             raise InstrumentError('Please set DMM mode before taking a measurement!')
 
         with self.lock:
-            self._write(["SYST:REM", "TRIG:DEL:AUTO OFF", "TRIG:SOUR IMM", "TRIG:COUN 1"])
-            self.samples = 1
             measurements = self._read_measurements()
             return measurements[0]
+
+    def measurements(self):
+        if not self.mode:
+            raise InstrumentError('Please set DMM mode before taking a measurement!')
+
+        with self.lock:
+            return self._read_measurements()
 
     def reset(self):
         """
@@ -288,7 +245,7 @@ class Fluke8846A(DMM):
         self.instrument.close()
         self.instrument.open()
 
-    def _set_measurement_mode(self, mode, _range=None, suffix=''):
+    def _set_measurement_mode(self, mode, _range=None, suffix=None):
         """
         Helper function used to set the measurement mode for voltage_ac, voltage_dc, current_ac, current_dc,
         resistance, fresistance. Reduces previous duplicate code.
@@ -298,10 +255,14 @@ class Fluke8846A(DMM):
         :return:
         """
         self.mode = mode
-        suffix = " {}".format(suffix)
-        if len(suffix) == 1:
-            suffix = ''
-        self._write(self._modes[self._mode] + self._range.get(_range) + suffix)
+        mode_str = "{}".format(self._modes[self._mode])
+        if _range is not None:
+            mode_str += " {}".format(_range)
+        if suffix is not None:
+            mode_str += " {}".format(suffix)
+        self._write(mode_str)
+        self._write(["SYST:REM", "TRIG:DEL:AUTO ON", "TRIG:SOUR IMM", "TRIG:COUN 1",
+                     "SAMP:COUN {}".format(self.samples)])
         self._is_error()
 
     def voltage_ac(self, _range=None):
@@ -383,7 +344,7 @@ class Fluke8846A(DMM):
         if "ac" in self._mode:
             self._bandwidth = bandwidth or 20
             if self._bandwidth not in [3, 20, 200]:
-                raise ValueError
+                raise ValueError("Bandwidth must be 3, 20 or 200")
             self._write(self._filters[self.mode] + ":BAND {}".format(self._bandwidth))
 
         elif any(x in self._mode for x in ["dc", "res"]):

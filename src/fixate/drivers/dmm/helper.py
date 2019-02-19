@@ -94,9 +94,6 @@ class DMM(metaclass=ABCMeta):
     def diode(self, low_current=True, high_voltage=False):
         raise NotImplementedError()
 
-    def samples(self, num_samples=1):
-        raise NotImplementedError()
-
     @abstractproperty
     def range(self, set_range=None):
         pass
