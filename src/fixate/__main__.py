@@ -10,7 +10,6 @@ from zipimport import zipimporter
 from pubsub import pub
 import fixate.config
 from fixate.config import ASYNC_TASKS, RESOURCES
-from fixate.config.local_config import save_local_config
 from fixate.core.exceptions import SequenceAbort
 from fixate.core.ui import user_input, user_serial, user_ok
 from fixate.reporting import register_csv, unregister_csv
@@ -283,7 +282,6 @@ class FixateWorker:
             unregister_csv()
             if serial_number == "ABORT_FORCE" or test_selector == "ABORT_FORCE":
                 return 11
-            save_local_config()
             self.clean = True  # Let the supervisor know that the program is finishing normally
             if self.sequencer.end_status == "FAILED":
                 return 10

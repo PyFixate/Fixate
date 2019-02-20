@@ -22,4 +22,4 @@ output_ch2
 output_ch3
 output_ch4
 """
-from fixate.drivers.funcgen.helper import open, discover, FuncGen
+from fixate.drivers.funcgen.helper import open, FuncGen

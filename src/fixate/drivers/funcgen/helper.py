@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from fixate.core.exceptions import InstrumentFeatureUnavailable
-from fixate.core.discover import discover_sub_classes, open_visa_instrument
+from fixate.core.discover import open_visa_instrument
 import inspect
 
 try:
@@ -11,7 +11,7 @@ except ImportError:
     number = float
 
 
-def open(restrictions=None):
+def open():
     """Open is the public api for the dmm driver for discovering and opening a connection
     to a valid Digital Multimeter
     :param restrictions:
@@ -19,32 +19,7 @@ def open(restrictions=None):
     :return:
     A instantiated class connected to a valid funcgen
     """
-    return open_visa_instrument("FUNC_GEN", restrictions)
-
-
-def discover():
-    """Discovers the function generator classes implemented
-    :return:
-    """
-    return set(discover_sub_classes(FuncGen))
-
-
-def validate_specifications(_class, specifications):
-    """Validates the implemented funcgen class against the specifications provided
-    :return:
-    True if all specifications are met
-    False if one or more specifications are not met by the class
-    """
-    raise NotImplementedError()
-
-
-def instrument_update(value: str):
-    """
-    Generic function that can be set for each instrument based on the read write behaviours exhibited
-    :param value:
-    :return:
-    """
-    print(value)
+    return open_visa_instrument("FUNC_GEN")
 
 
 class Waveform:
@@ -175,9 +150,10 @@ class TriggerOut:
         raise InstrumentFeatureUnavailable(
             "{} not available on this device".format(inspect.currentframe().f_code.co_name))
 
-    def off (self):
+    def off(self):
         raise InstrumentFeatureUnavailable(
             "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+
 
 class Trigger:
     def __init__(self):

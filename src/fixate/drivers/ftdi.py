@@ -3,7 +3,7 @@ import struct
 import time
 import os
 from fixate.core.common import bits
-from fixate.core.exceptions import InstrumentError, InstrumentNotConnected
+from fixate.core.exceptions import InstrumentNotConnected
 import fixate.config
 import fixate.core.discover
 

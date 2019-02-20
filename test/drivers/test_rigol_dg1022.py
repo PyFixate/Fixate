@@ -1,15 +1,9 @@
 import unittest
-from fixate.drivers.funcgen.rigol_dg1022 import RigolDG1022
-from fixate.core.discover import discover_visa, filter_connected
-from fixate.core.exceptions import *
+from fixate.core.discover import open_visa_instrument
 
 
 def get_funcgen():
-    instruments = discover_visa()
-    connected = filter_connected(instruments, [("RigolDG1022", RigolDG1022)])
-    if not connected:
-        raise Exception("Cannot find valid function generator")
-    return connected["RigolDG1022"]
+    return open_visa_instrument("FUNC_GEN")
 
 
 class BaseSetup:

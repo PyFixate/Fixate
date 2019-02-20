@@ -1,7 +1,8 @@
 from abc import ABCMeta, abstractmethod, abstractproperty
-from fixate.core.discover import discover_sub_classes, open_visa_instrument
+from fixate.core.discover import open_visa_instrument
 
-def open(restrictions=None):
+
+def open():
     """Open is the public api for the dmm driver for discovering and opening a connection
     to a valid Digital Multimeter.
     At the moment opens the first dmm connected
@@ -10,23 +11,7 @@ def open(restrictions=None):
     :return:
     A instantiated class connected to a valid dmm
     """
-    return open_visa_instrument("DMM", restrictions)
-
-
-def discover():
-    """Discovers the dmm classes implemented
-    :return:
-    """
-    return set(discover_sub_classes(DMM))
-
-
-def validate_specifications(_class, specifications):
-    """Validates the implemented dmm class against the specifications provided
-    :return:
-    True if all specifications are met
-    False if one or more specifications are not met by the class
-    """
-    raise NotImplementedError()
+    return open_visa_instrument("DMM")
 
 
 class DMM(metaclass=ABCMeta):
@@ -105,4 +90,3 @@ class DMM(metaclass=ABCMeta):
     @abstractmethod
     def reset(self):
         pass
-
