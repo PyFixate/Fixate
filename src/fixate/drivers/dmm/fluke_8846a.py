@@ -134,13 +134,7 @@ class Fluke8846A(DMM):
         Sets up DMM triggering, creates list of measurements from the read buffer
         returns: a single value as a float
         """
-
-        if not self.mode:
-            raise InstrumentError('Please set DMM mode before taking a measurement!')
-
-        with self.lock:
-            measurements = self._read_measurements()
-            return measurements[0]
+        return self.measurements()[0]
 
     def measurements(self):
         if not self.mode:
