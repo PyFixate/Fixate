@@ -74,7 +74,7 @@ class Fluke8846A(DMM):
         self.instrument.delay = 0
         self.is_connected = True
         self.reset()
-        self.samples = 1
+        self._samples = 1
         self._CLEAN_UP_FLAG = False
         self._ANALOG_FLAG = False
         self._DIGITAL_FLAG = False
