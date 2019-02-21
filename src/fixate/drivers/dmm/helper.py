@@ -1,4 +1,3 @@
-from abc import ABCMeta, abstractmethod, abstractproperty
 from fixate.core.discover import open_visa_instrument
 
 
@@ -22,27 +21,18 @@ class DMM(metaclass=ABCMeta):
         self.instrument = instrument
         self.samples = 1
 
-    @abstractmethod
-    def measure(self, *mode, trigger=True, **mode_params):
-        pass
-
-    @abstractmethod
     def measurement(self):
         pass
 
-    @abstractmethod
     def voltage_ac(self, _range=None):
         pass
 
-    @abstractmethod
     def voltage_dc(self, _range=None):
         pass
 
-    @abstractmethod
     def current_ac(self, _range):
         pass
 
-    @abstractmethod
     def current_dc(self, _range):
         pass
 
@@ -79,14 +69,5 @@ class DMM(metaclass=ABCMeta):
     def diode(self, low_current=True, high_voltage=False):
         raise NotImplementedError()
 
-    @abstractproperty
-    def range(self, set_range=None):
-        pass
-
-    @abstractproperty
-    def mode(self):
-        pass
-
-    @abstractmethod
     def reset(self):
         pass
