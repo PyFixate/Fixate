@@ -4,7 +4,6 @@ import visa
 from pyvisa.errors import VisaIOError
 from pathlib import Path
 from shutil import copy2
-from os import replace
 
 from fixate.drivers.pps.bk_178x import BK178X
 
