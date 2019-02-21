@@ -13,7 +13,7 @@ def open():
     return open_visa_instrument("DMM")
 
 
-class DMM(metaclass=ABCMeta):
+class DMM:
     REGEX_ID = "DMM"
     is_connected = False
 
