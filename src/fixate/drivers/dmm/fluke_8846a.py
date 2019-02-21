@@ -63,8 +63,8 @@ class Fluke8846A(DMM):
     REGEX_ID = "FLUKE,8846A"
     INSTR_TYPE = "VISA"
 
-    def __init__(self, instrument):
-        super().__init__(instrument)
+    def __init__(self, instrument, *args, **kwargs):
+        self.instrument = instrument
         instrument.rtscts = 1
         self.lock = Lock()
         self.display = "on"
