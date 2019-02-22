@@ -1,5 +1,9 @@
 import cmd2
 import argparse
+import visa
+import json
+from fxconfig import backup_file, visa_id_query, FxConfigError
+from pyvisa.errors import VisaIOError
 
 
 """
@@ -26,31 +30,132 @@ fx> test serial
 
 """
 
+# I found these here: http://www.lihaoyi.com/post/BuildyourownCommandLinewithANSIescapecodes.html
+# But surely there is a library or some other magic that can do this for us?
+RED = "\u001b[31m"
+CYAN = "\u001b[36m"
+GREEN = "\u001b[32m"
+
+
+choices=["existing", "updated", "visa"]
 # create the top-level parser for the base command
 list_parser = argparse.ArgumentParser(prog='list')
-list_parser.add_argument('list_type', choices=["existing", "updated", "visa"])
+list_parser.add_argument('type', choices=choices)
+
+test_parser = argparse.ArgumentParser(prog='test')
+test_parser.add_argument('type', choices=choices)
 
 
 class FxConfigCmd(cmd2.Cmd):
+    def __init__(self):
+        super().__init__()
+        self.config_file_path = None
+        self.existing_config_dict = None
+        self.updated_config_dict = None
 
     @cmd2.with_argparser(list_parser)
     def do_list(self, args):
         """Display either existing, visa or updated instrument list."""
 
-        if args.list_type == "existing":
-            self.poutput("do existing")
+        if args.type == "existing":
+            self._print_config_dict(self.existing_config_dict)
 
-        elif args.list_type == "updated":
-            self.poutput("do updated")
+        elif args.type == "updated":
+            self._print_config_dict(self.updated_config_dict)
 
-        elif args.list_type == "visa":
-            self.poutput("do visa")
+        elif args.type == "visa":
+            self.poutput("Resources detected by VISA")
+            for resource_name in visa.ResourceManager().list_resources():
+                self.poutput(resource_name)
         else:
             raise Exception("we shouldn't have gotten here")
 
-    def do_save(self, args):
+    @cmd2.with_argparser(test_parser)
+    def do_test(self, args):
+        if args.type == "existing":
+            visa_resources = self.existing_config_dict["INSTRUMENTS"]["visa"]
+            serial_resources = self.existing_config_dict["INSTRUMENTS"]["serial"]
+            for idn, visa_resource_name in visa_resources:
+                try:
+                    new_idn = visa_id_query(visa_resource_name)
+                except (VisaIOError, FxConfigError):
+                    self._test_print_error(visa_resource_name, "Error opening or responding to IDN")
+                else:
+                    if new_idn.strip() == idn.strip():
+                        self._test_print_ok(visa_resource_name, idn.strip())
+                    else:
+                        self._test_print_error(visa_resource_name, "IDN Response does not match")
+            # TODO: add serial resources
+
+        elif args.type == "updated":
+            self.poutput("test updated")
+            # TODO: Implement updated. To do this, we will just create a function/method from
+            # the existing version and pass in the appropriate config_dict
+
+        elif args.type == "visa":
+            for visa_resource_name in visa.ResourceManager().list_resources():
+                try:
+                    new_idn = visa_id_query(visa_resource_name)
+                except (VisaIOError, FxConfigError):
+                    self._test_print_error(visa_resource_name, "Error opening or responding to IDN")
+                else:
+                    self._test_print_ok(visa_resource_name, new_idn.strip())
+
+        else:
+            raise Exception("we shouldn't have gotten here")
+
+    def do_save(self, line=None):
         """Save over the existing config file with updated."""
-        self.poutput("saving...")
+        if line:
+            config_file_path = line
+        elif self.config_file_path:
+            config_file_path = self.config_file_path
+        else:
+            config_file_path = None
+
+        if not config_file_path:
+            self.perror("No existing config loaded or path to save supplied")
+        else:
+            print("saving to {}".format(config_file_path))
+            backup_path = backup_file(config_file_path)
+
+            try:
+                with open(config_file_path, 'w') as config_file:
+                    json.dump(self.updated_config_dict, config_file, sort_keys=True, indent=4)
+            except Exception as e:
+                self.perror(e)
+                if backup_file:
+                    backup_path.replace(config_file_path)
+                raise
+
+    def do_open(self, line):
+        """Open config file"""
+        config_file_path = line
+
+        with open(config_file_path, 'r') as config_file:
+            self.existing_config_dict = json.load(config_file)
+
+        # create a copy of the config that can be edited
+        self.updated_config_dict = dict(self.existing_config_dict)
+        self.config_file_path = config_file_path
+        self.poutput("Config loaded")
+
+    def _print_config_dict(self, config_dict):
+        for visa_instrument in config_dict["INSTRUMENTS"]["visa"]:
+            self.poutput("VISA || " + visa_instrument[1].strip() + " || " + visa_instrument[0].strip())
+
+        for com_port, parameters in config_dict["INSTRUMENTS"]["serial"].items():
+            self.poutput("SERIAL || " + com_port + " || " + str(parameters))
+
+    def _test_print_error(self, name, msg):
+        self.poutput("ERROR: ", end="", color=RED)
+        self.poutput(str(name), end="", color=CYAN)
+        self.poutput(" - {}".format(msg))
+
+    def _test_print_ok(self, name, msg):
+        self.poutput("OK: ", end="", color=GREEN)
+        self.poutput(str(name), end="", color=CYAN)
+        self.poutput(" - {}".format(msg))
 
 
 if __name__ == '__main__':

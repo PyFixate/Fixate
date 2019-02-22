@@ -109,7 +109,11 @@ def backup_file(file_path):
     :return: Pathlib.Path object which is the path of the new file
     """
     backup_path = Path(file_path + ".bak")
-    copy2(file_path, backup_path)
+    file_path = Path(file_path)
+    if file_path.exists():
+        copy2(file_path, backup_path)
+    else:
+        backup_path = None
     return backup_path
 
 
