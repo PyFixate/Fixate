@@ -17,10 +17,10 @@ Commands
 fx> list existing                           # show the entries from config file
 fx> list visa                               # show resources returned by visa_resources()
 fx> list updated                            # show what will be saved modified state
-fx> add visa-serial <port> [<baudrate>]
-fx> add visa-tcp <host | ip address>
-fx> add serial-bk176x <port> <baudrate>
-fx> add visa list                           # print numbered show resources and user can enter a number.
+fx> add visa serial <port> [<baudrate>]
+fx> add visa tcp <host | ip address>
+fx> add serial <port> <baudrate>            # only works for BK precision power supply at the moment.
+fx> add visa usb                            # print numbered show resources and user can enter a number.
 fx> test existing                           # idn everything in existing config and report
 fx> test updated                            # idn everything in updated config and report
 fx> save                                    # replace existing with updated. existing will be first copied to *.bak
@@ -64,6 +64,9 @@ add_visa_serial_parser.add_argument("port")
 add_visa_serial_parser.add_argument("--baudrate")
 
 add_visa_tcp_parser.add_argument("ipaddr")
+
+add_serial_parser.add_argument("port")
+add_serial_parser.add_argument("baudrate")
 
 
 class FxConfigCmd(cmd2.Cmd):
@@ -130,9 +133,14 @@ class FxConfigCmd(cmd2.Cmd):
         else:
             self.poutput("VISA found no USB instruments")
 
+    def _do_add_serial(self, args):
+        idn = serial_id_query(args.port, args.baudrate)
+        self.updated_config_dict["INSTRUMENTS"]["serial"][args.port] = [idn, args.baudrate]
+
     add_visa_tcp_parser.set_defaults(func=_do_add_visa_tcp)
     add_visa_serial_parser.set_defaults(func=_do_add_visa_serial)
     add_visa_usb_parser.set_defaults(func=_do_add_usb)
+    add_serial_parser.set_defaults(func=_do_add_serial)
 
     @cmd2.with_argparser(list_parser)
     def do_list(self, args):
@@ -250,6 +258,7 @@ class FxConfigCmd(cmd2.Cmd):
                 if new_id.strip() == id.strip():
                     self._test_print_ok(port, str(params))
                 else:
+                    self.pfeedback("{} || {}".format(new_id, id))
                     self._test_print_error(port, "ID query does not match")
 
 
