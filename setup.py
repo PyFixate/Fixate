@@ -76,5 +76,9 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: Microsoft :: Windows",
         "Programming Language :: Python :: 3 :: Only"
-    ]
+    ],
+    entry_points="""
+        [console_scripts]
+        fxconfig=fixate.core.config_util:main
+        """,
 )
