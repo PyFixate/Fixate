@@ -4,6 +4,7 @@ import visa
 import json
 import copy
 from shutil import copy2
+from pathlib import Path
 from fixate.drivers.pps.bk_178x import BK178X
 from pyvisa.errors import VisaIOError
 
@@ -11,17 +12,18 @@ from pyvisa.errors import VisaIOError
 """
 Original plan is starting to become a mess. So explore an interactive shell instead
 
-fxconfig <config file>
+fxconfig
 
 Commands
 ========
 fx> list existing                           # show the entries from config file
 fx> list visa                               # show resources returned by visa_resources()
 fx> list updated                            # show what will be saved modified state
-fx> add visa serial <port> [<baudrate>]
+fx> delete                                  # print the updated config and prompt for an entry to delete
+fx> add visa serial <port>                  # Only works with default baud rate of 9600
 fx> add visa tcp <host | ip address>
 fx> add serial <port> <baudrate>            # only works for BK precision power supply at the moment.
-fx> add visa usb                            # print numbered show resources and user can enter a number.
+fx> add visa usb                            # print numbered list of resources and user can enter a number.
 fx> test existing                           # idn everything in existing config and report
 fx> test updated                            # idn everything in updated config and report
 fx> save                                    # replace existing with updated. existing will be first copied to *.bak
@@ -69,7 +71,10 @@ add_visa_tcp_parser.add_argument("ipaddr")
 add_serial_parser.add_argument("port")
 add_serial_parser.add_argument("baudrate")
 
-class FxConfigError(Exception): pass
+
+class FxConfigError(Exception):
+    pass
+
 
 class FxConfigCmd(cmd2.Cmd):
     prompt = "fx>"
@@ -217,6 +222,28 @@ class FxConfigCmd(cmd2.Cmd):
         self.config_file_path = config_file_path
         self.poutput("Config loaded")
 
+    def do_delete(self, line):
+        config_dict = self.updated_config_dict
+        delete_list = [None]    # ("visa", index) or ("serial", key)
+        delete_index = 1
+        for i, visa_instrument in enumerate(config_dict["INSTRUMENTS"]["visa"]):
+            self.poutput("{}: VISA || {} || {}".format(delete_index,
+                                                       visa_instrument[1].strip(),
+                                                       visa_instrument[0].strip()))
+            delete_list.append(("visa", i))
+            delete_index += 1
+
+        for com_port, parameters in config_dict["INSTRUMENTS"]["serial"].items():
+            self.poutput("{}: SERIAL || {} || {}".format(delete_index, com_port, str(parameters)))
+            delete_list.append(("serial", com_port))
+            delete_index += 1
+
+        self.poutput("Select an interface to delete or x to cancel")
+        selection = int(input())
+        if selection != "x":
+            entry_type, index = delete_list[selection]
+            del config_dict["INSTRUMENTS"][entry_type][index]
+
     def _print_config_dict(self, config_dict):
         for visa_instrument in config_dict["INSTRUMENTS"]["visa"]:
             self.poutput("VISA || " + visa_instrument[1].strip() + " || " + visa_instrument[0].strip())
@@ -251,16 +278,16 @@ class FxConfigCmd(cmd2.Cmd):
                     self._test_print_error(visa_resource_name, "IDN Response does not match")
 
         for port, params in serial_resources.items():
-            id, baudrate = params
+            idn, baudrate = params
             try:
                 new_id = serial_id_query(port, baudrate)
             except Exception as e:
                 self._test_print_error(e, "Error opening port '{}' or responding to ID query".format(port))
             else:
-                if new_id.strip() == id.strip():
+                if new_id.strip() == idn.strip():
                     self._test_print_ok(port, str(params))
                 else:
-                    self.pfeedback("{} || {}".format(new_id, id))
+                    self.pfeedback("{} || {}".format(new_id, idn))
                     self._test_print_error(port, "ID query does not match")
 
 
