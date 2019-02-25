@@ -1,277 +1,270 @@
+import cmd2
 import argparse
-import json
 import visa
+import json
+import copy
+from fxconfig import backup_file, visa_id_query, FxConfigError, serial_id_query
 from pyvisa.errors import VisaIOError
-from pathlib import Path
-from shutil import copy2
 
-from fixate.drivers.pps.bk_178x import BK178X
 
 """
-Example config file. Typically called local_config.json. note that INSTRUMENTS is the only top level key that
-is used anywhere.
+Original plan is starting to become a mess. So explore an interactive shell instead
 
- 
-{
-    "INSTRUMENTS": {
-        "serial": {
-            "COM1": [
-                "address: 0,checksum: 28,command: 49,model: 6823,serial_number: 3697210019,software_version: 29440,start: 170,",
-                9600
-            ]
-        },
-        "visa": [
-            [
-                "RIGOL TECHNOLOGIES,DG1022 ,DG1D144904270,,00.03.00.09.00.02.11\n",
-                "USB0::0x09C4::0x0400::DG1D144904270::INSTR"
-            ],
-            [
-                "FLUKE,8846A,3821015,08/02/10-11:53\r\n",
-                "ASRL13::INSTR"
-            ]
-        ]
-    }
-}
+fxconfig <config file>
+
+Commands
+========
+fx> list existing                           # show the entries from config file
+fx> list visa                               # show resources returned by visa_resources()
+fx> list updated                            # show what will be saved modified state
+fx> add visa serial <port> [<baudrate>]
+fx> add visa tcp <host | ip address>
+fx> add serial <port> <baudrate>            # only works for BK precision power supply at the moment.
+fx> add visa usb                            # print numbered show resources and user can enter a number.
+fx> test existing                           # idn everything in existing config and report
+fx> test updated                            # idn everything in updated config and report
+fx> save                                    # replace existing with updated. existing will be first copied to *.bak
+
+nice to have:
+fx> test visa serial <port> [<baudrate>]
+fx> test visa tcp <host | ip address>
+fx> test serial
+
 """
 
+# TODO: Prevent writing duplicate to the config.
 
-class FxConfigError(Exception): pass
-
-
-# Stolen from discover.py. This should probably get consolidated back there,
-# but I want to avoid messing with the internals for now.
-def visa_id_query(visa_resource_name):
-    """
-    Attempt to open `visa_resource_name` and if successful, send an *IDN? command. Return
-    the result of the idn command as a string.
-    :param visa_resource_name:
-    :return:
-    """
-    instr = visa.ResourceManager().open_resource(visa_resource_name, query_delay=0.1)
-    # 1 s timeout is overly conservative. But if we call clear() that can take a while for some instruments
-    instr.timeout = 1000
-    # instr.clear()
-    resp = instr.query("*IDN?")
-
-    if resp:
-        instr.close()
-        return resp.strip()
-
-    # At least one instrument (Siglent SPD3303X power supply) only responds
-    # when the line termination is set to \n
-    instr.read_termination = '\n'
-    instr.write_termination = '\n'
-
-    resp = instr.query("*IDN?")
-
-    if resp:
-        instr.close()
-        return resp.strip()
-
-    raise FxConfigError(
-        "Resource '{}' didn't respond to an IDN command".format(visa_resource_name))
+# I found these here: http://www.lihaoyi.com/post/BuildyourownCommandLinewithANSIescapecodes.html
+# But surely there is a library or some other magic that can do this for us?
+RED = "\u001b[31m"
+CYAN = "\u001b[36m"
+GREEN = "\u001b[32m"
 
 
-def serial_id_query(port, baudrate):
-    """
-    The only serial type instrument we use is the BK Precision 178x. So we just going to hard code
-    calling the identity method on that class.
-    :return:
-    """
+choices=["existing", "updated", "visa"]
+# create the top-level parser for the base command
+list_parser = argparse.ArgumentParser(prog='list')
+list_parser.add_argument('type', choices=choices)
 
-    pps = BK178X(port)
-    pps.baud_rate = baudrate        # baud_rate property implementation has the side effect of opening the port.
-    return pps.identify(as_string=True)
+test_parser = argparse.ArgumentParser(prog='test')
+test_parser.add_argument('type', choices=choices)
 
+add_parser = argparse.ArgumentParser(prog='add')
+add_subparsers = add_parser.add_subparsers(title="add command")
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="""
-        Fixate Config Helper Utility""")
+add_visa_parser = add_subparsers.add_parser('visa')
+add_serial_parser = add_subparsers.add_parser('serial')
 
-    parser.add_argument("config", help="Path to config file")
-    # parser.add_argument("new_config", help="New file to write to")
+add_visa_subparsers = add_visa_parser.add_subparsers()
+add_visa_serial_parser = add_visa_subparsers.add_parser('serial')
+add_visa_tcp_parser = add_visa_subparsers.add_parser('tcp')
+add_visa_usb_parser = add_visa_subparsers.add_parser('usb')
 
-    return parser.parse_args()
+add_visa_serial_parser.add_argument("port")
+add_visa_serial_parser.add_argument("--baudrate")
 
+add_visa_tcp_parser.add_argument("ipaddr")
 
-def print_curent_config(config_dict):
-    for visa_instrument in config_dict["INSTRUMENTS"]["visa"]:
-        print("VISA || " + visa_instrument[1].strip() + " || " + visa_instrument[0].strip())
-
-    for com_port, parameters in config_dict["INSTRUMENTS"]["serial"].items():
-        print("SERIAL || " + com_port + " || " + str(parameters))
+add_serial_parser.add_argument("port")
+add_serial_parser.add_argument("baudrate")
 
 
-def backup_file(file_path):
-    """
-    Create a backup of `file_path` in the same directory. Appends ".bak" to the file name.
-    :param file_path:
-    :return: Pathlib.Path object which is the path of the new file
-    """
-    backup_path = Path(file_path + ".bak")
-    file_path = Path(file_path)
-    if file_path.exists():
-        copy2(file_path, backup_path)
-    else:
-        backup_path = None
-    return backup_path
+class FxConfigCmd(cmd2.Cmd):
+    prompt = "fx>"
 
+    def __init__(self):
+        super().__init__()
+        self.config_file_path = None
+        self.existing_config_dict = None
+        self.updated_config_dict = None
 
-def interactively_update_config(config_file_path):
-    """
+        # Enable file-system path completion for the save and open commands
+        self.complete_save = self.path_complete
+        self.complete_open = self.path_complete
 
-    For each instrument in the old config
-      if it's USB & detected by visa now, keep it
-      if it's USB & not detected by visa now, prompt the user to delete
-      if it's serial, prompt the user if they want to send IDN
-          if yes and it matches, keep it
-          if yes and it doesn't match, prompt the user to delete or update
-          if no prompt the user to delete. Otherwise keep.
-    For each USB instrument that is detected, but not in the old config,
-    prompt user to IDN. If IDN is successful, prompt if they want to keep.
+    def postloop(self):
+        # Print a new line so the shell prompt get printed on a it's own line after we exit
+        self.poutput("")
 
-      After all that is done, ask the user if they want to add any new serial
-      devices. If yes, prompt for serial port, send IDN, add to config if successful.
+    @cmd2.with_argparser(add_parser)
+    def do_add(self, args):
+        args.func(self, args)
 
-    Also need to repeat the whole process for "serial" instrument
-    the only "serial" instrument we have to date in the BK precision power supply
-    Driver classes for a serial instrument need to implement the instr.identify(as_string=True)
-    method. The string returned by identify is stored in the config.
-    :param config_file_path:
-    :return:
-    """
+    def _do_add_visa_tcp(self, args):
+        # TODO: Extend the optional parameter to allow port & SOCKET mode to be specified
+        resource_name = "TCPIP0::{}::INSTR".format(args.ipaddr)
+        self.poutput("Adding '{}'.".format(resource_name))
 
-    # A list visa instruments. Each instrument is represented as a two element list:
-    # [<idn string>, <visa resource name>]
-    # A concrete example with a single entry would be:
-    # [
-    #   ["RIGOL TECHNOLOGIES,DG1022 ,DG1D144904270,,00.03.00.09.00.02.11\n",
-    #   "USB0::0x09C4::0x0400::DG1D144904270::INSTR"],
-    # ]
-    new_visa = []
+        try:
+            idn = visa_id_query(resource_name)
+        except Exception as e:
+            self.perror("instrument not found")
+            self.perror(e)
+        else:
+            self.updated_config_dict["INSTRUMENTS"]["visa"].append([idn.strip(), resource_name])
 
-    # A dict of serial instruments. A.K.A the BK power supply.
-    # Keyed on port name, then instrument specific details, which is a list e.g.
-    # {
-    #       "COM37": [
-    #           "address: 0,checksum: 28,command: 49,model: 6823,serial_number: 3697210019,software_version: 29440,start: 170,",
-    #           9600
-    #       ]
-    # }
-    new_serial = {}
+    def _do_add_visa_serial(self, args):
+        resource_name = "ASRL{}::INSTR".format(args.port)
+        self.poutput("Attempting to add '{}'.".format(resource_name))
 
-    print("** Resources Reported By Visa **")
-    rm = visa.ResourceManager()
-    visa_resource_list = rm.list_resources()
-    for resource in visa_resource_list:
-        print(resource)
-    print()
+        try:
+            idn = visa_id_query(resource_name)
+        except Exception as e:
+            self.perror("instrument not found")
+            self.perror(e)
+        else:
+            self.updated_config_dict["INSTRUMENTS"]["visa"].append([idn.strip(), resource_name])
 
-    print("** Existing instruments **")
-    with open(config_file_path, 'r') as config_file:
-        config_dict = json.load(config_file)
-        print_curent_config(config_dict)
-
-        for visa_instrument in config_dict["INSTRUMENTS"]["visa"]:
-            idn_response, resource_name = visa_instrument
-            idn_response = idn_response.strip()
-
-            if resource_name.startswith("USB"):
-                # USB instruments are kept if they are detected by the ResourceManger
-                if resource_name in visa_resource_list:
-                    print("Existing USB Instrument '{}' was found by the visa resource manager".format(resource_name))
-                    new_visa.append(visa_instrument)
-                else:
-                    print("Existing USB Instrument '{}' not found by the visa resource manager".format(resource_name))
-                    answer = input("Do you want to keep it? [y]/n")
-                    if answer == "n":
-                        # to delete, we simply don't add to new_visa
-                        print("'{}' deleted".format(resource_name))
-                    else:
-                        print("'{}' kept".format(resource_name))
-                        new_visa.append(visa_instrument)
-
-            elif resource_name.startswith("ASRL"):
-                if resource_name in visa_resource_list:
-                    print("Existing Serial Instrument '{}' was found by the visa resource manager".format(resource_name))
-                    print("Config IDN string was '{}'".format(idn_response))
-
-                    answer = input("Do you want to check IDN? y/[n]")
-                    if answer == "y":
-                        try:
-                            idn = visa_id_query(resource_name)
-                        except (FxConfigError, VisaIOError):
-                            print("Error trying to run IDN command")
-                            pass
-                        else:
-                            print("Instrument '{}' returned IDN String '{}'".format(resource_name, idn))
-                            if idn == idn_response:
-                                print("Existing IDN has been kept")
-                            else:
-                                print("IDN String updated in config")
-                            new_visa.append((idn, resource_name))
-
-                    else:
-                        answer = input("Do you want to keep it? [y]/n")
-                        if answer == "n":
-                            # to delete, we simply don't add to new_visa
-                            print("'{}' deleted".format(resource_name))
-                        else:
-                            print("'{}' kept".format(resource_name))
-                            new_visa.append(visa_instrument)
-
-                else:
-                    print("Existing Serial Instrument '{}' not found by the visa resource manager".format(resource_name))
-                    answer = input("Do you want to keep it? [y]/n")
-                    if answer == "n":
-                        # to delete, we simply don't add to new_visa
-                        print("'{}' deleted".format(resource_name))
-                    else:
-                        print("'{}' kept".format(resource_name))
-                        new_visa.append(visa_instrument)
-
-            elif resource_name.startswith("TCP"):
-                print("Existing TCP Instrument '{}' will be kept".format(resource_name))
-                new_visa.append(visa_instrument)
-
+    def _do_add_usb(self, args):
+        rm = visa.ResourceManager()
+        resource_list = [x for x in rm.list_resources() if x.startswith("USB")]
+        if len(resource_list) > 0:
+            for i, resource_name in enumerate(resource_list):
+                self.poutput("{}: {}".format(i+1, resource_name))
+            self.poutput("Select an interface to add")
+            selection = input()
+            selection = int(selection) - 1
+            if 0 <= selection < len(resource_list):
+                resource_name = resource_list[selection]
+                self.updated_config_dict["INSTRUMENTS"]["visa"].append([visa_id_query(resource_name).strip(), resource_name])
+                self.poutput("'{}' added to config.".format(resource_name))
             else:
-                # if there is a visa resource we don't recognise, keep it for now.
-                print("Existing resource '{}' type is no know & will be kept".format(resource_name))
-                new_visa.append(visa_instrument)
+                self.poutput("Selection not valid")
+        else:
+            self.poutput("VISA found no USB instruments")
 
-    config_dict["INSTRUMENTS"]["visa"] = new_visa
-    # config_dict["INSTRUMENTS"]["serial"] = new_serial
+    def _do_add_serial(self, args):
+        idn = serial_id_query(args.port, args.baudrate)
+        self.updated_config_dict["INSTRUMENTS"]["serial"][args.port] = [idn, args.baudrate]
 
-    with open(config_file_path, 'w') as config_file:
-        json.dump(config_dict, config_file, sort_keys=True, indent=4)
+    add_visa_tcp_parser.set_defaults(func=_do_add_visa_tcp)
+    add_visa_serial_parser.set_defaults(func=_do_add_visa_serial)
+    add_visa_usb_parser.set_defaults(func=_do_add_usb)
+    add_serial_parser.set_defaults(func=_do_add_serial)
+
+    @cmd2.with_argparser(list_parser)
+    def do_list(self, args):
+        """Display either existing, visa or updated instrument list."""
+
+        if args.type == "existing":
+            self._print_config_dict(self.existing_config_dict)
+
+        elif args.type == "updated":
+            self._print_config_dict(self.updated_config_dict)
+
+        elif args.type == "visa":
+            self.poutput("Resources detected by VISA")
+            for resource_name in visa.ResourceManager().list_resources():
+                self.poutput(resource_name)
+        else:
+            raise Exception("we shouldn't have gotten here")
+
+    @cmd2.with_argparser(test_parser)
+    def do_test(self, args):
+        if args.type == "existing":
+            self._test_config_dict(self.existing_config_dict)
+
+        elif args.type == "updated":
+            self._test_config_dict(self.updated_config_dict)
+
+        elif args.type == "visa":
+            for visa_resource_name in visa.ResourceManager().list_resources():
+                try:
+                    new_idn = visa_id_query(visa_resource_name)
+                except (VisaIOError, FxConfigError):
+                    self._test_print_error(visa_resource_name, "Error opening or responding to IDN")
+                else:
+                    self._test_print_ok(visa_resource_name, new_idn.strip())
+
+        else:
+            raise Exception("we shouldn't have gotten here")
+
+    def do_save(self, line=None):
+        """Save over the existing config file with updated."""
+        if line:
+            config_file_path = line
+        elif self.config_file_path:
+            config_file_path = self.config_file_path
+        else:
+            config_file_path = None
+
+        if not config_file_path:
+            self.perror("No existing config loaded or path to save supplied")
+        else:
+            print("saving to {}".format(config_file_path))
+            backup_path = backup_file(config_file_path)
+
+            try:
+                with open(config_file_path, 'w') as config_file:
+                    json.dump(self.updated_config_dict, config_file, sort_keys=True, indent=4)
+            except Exception as e:
+                self.perror(e)
+                if backup_file:
+                    backup_path.replace(config_file_path)
+                raise
+
+    def do_open(self, line):
+        """Open config file"""
+        config_file_path = line
+
+        with open(config_file_path, 'r') as config_file:
+            self.existing_config_dict = json.load(config_file)
+
+        # create a copy of the config that can be edited
+        self.updated_config_dict = copy.deepcopy(self.existing_config_dict)
+        self.config_file_path = config_file_path
+        self.poutput("Config loaded")
+
+    def _print_config_dict(self, config_dict):
+        for visa_instrument in config_dict["INSTRUMENTS"]["visa"]:
+            self.poutput("VISA || " + visa_instrument[1].strip() + " || " + visa_instrument[0].strip())
+
+        for com_port, parameters in config_dict["INSTRUMENTS"]["serial"].items():
+            self.poutput("SERIAL || " + com_port + " || " + str(parameters))
+
+    def _test_print_error(self, name, msg):
+        self.poutput("ERROR: ", end="", color=RED)
+        self.poutput(str(name), end="", color=CYAN)
+        self.poutput(" - {}".format(msg))
+
+    def _test_print_ok(self, name, msg):
+        self.poutput("OK: ", end="", color=GREEN)
+        self.poutput(str(name), end="", color=CYAN)
+        self.poutput(" - {}".format(msg))
+
+    def _test_config_dict(self, config_dict):
+        visa_resources = config_dict["INSTRUMENTS"]["visa"]
+        serial_resources = config_dict["INSTRUMENTS"]["serial"]
+        for idn, visa_resource_name in visa_resources:
+            try:
+                new_idn = visa_id_query(visa_resource_name)
+            except (VisaIOError, FxConfigError):
+                self._test_print_error(visa_resource_name, "Error opening or responding to IDN")
+            except Exception as e:
+                self.perror(e)
+            else:
+                if new_idn.strip() == idn.strip():
+                    self._test_print_ok(visa_resource_name, idn.strip())
+                else:
+                    self._test_print_error(visa_resource_name, "IDN Response does not match")
+
+        for port, params in serial_resources.items():
+            id, baudrate = params
+            try:
+                new_id = serial_id_query(port, baudrate)
+            except Exception as e:
+                self._test_print_error(e, "Error opening port '{}' or responding to ID query".format(port))
+            else:
+                if new_id.strip() == id.strip():
+                    self._test_print_ok(port, str(params))
+                else:
+                    self.pfeedback("{} || {}".format(new_id, id))
+                    self._test_print_error(port, "ID query does not match")
 
 
-def main():
-    args = parse_args()
-
-    print("Fixate instrument config utility:")
-
-    backup_path = backup_file(args.config)
-
-    try:
-        interactively_update_config(args.config)
-    except:
-        backup_path.replace(args.config)
-        raise
+if __name__ == '__main__':
+    app = FxConfigCmd()
+    app.cmdloop()
 
 
-if __name__ == "__main__":
-    main()
-    # args = parse_args()
-    #
-    # with open(args.config, 'r') as config_file:
-    #     config_dict = json.load(config_file)
-    #
-    #     print("Serial Instruments in config file")
-    #     for serial_instrument in config_dict["INSTRUMENTS"]["serial"]:
-    #         print(serial_instrument)
-    #
-    #     print("Identity from connected PS")
-    #     for port, params in config_dict["INSTRUMENTS"]["serial"].items():
-    #         id, baudrate = params
-    #         print(serial_id_query(port, baudrate))
+
