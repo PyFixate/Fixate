@@ -2,6 +2,7 @@ import cmd2
 import argparse
 import visa
 import json
+import copy
 from fxconfig import backup_file, visa_id_query, FxConfigError, serial_id_query
 from pyvisa.errors import VisaIOError
 
@@ -31,6 +32,8 @@ fx> test serial
 
 """
 
+# TODO: Prevent writing duplicate to the config.
+
 # I found these here: http://www.lihaoyi.com/post/BuildyourownCommandLinewithANSIescapecodes.html
 # But surely there is a library or some other magic that can do this for us?
 RED = "\u001b[31m"
@@ -46,15 +49,25 @@ list_parser.add_argument('type', choices=choices)
 test_parser = argparse.ArgumentParser(prog='test')
 test_parser.add_argument('type', choices=choices)
 
-# add_parser = argparse.ArgumentParser(prog='add')
-# add_visa = add_parser.add_subparsers()
-# add_visa.
-# add_parser.add_argument('')
+add_parser = argparse.ArgumentParser(prog='add')
+add_subparsers = add_parser.add_subparsers(title="add command")
+
+add_visa_parser = add_subparsers.add_parser('visa')
+add_serial_parser = add_subparsers.add_parser('serial')
+
+add_visa_subparsers = add_visa_parser.add_subparsers()
+add_visa_serial_parser = add_visa_subparsers.add_parser('serial')
+add_visa_tcp_parser = add_visa_subparsers.add_parser('tcp')
+add_visa_usb_parser = add_visa_subparsers.add_parser('usb')
+
+add_visa_serial_parser.add_argument("port")
+add_visa_serial_parser.add_argument("--baudrate")
+
+add_visa_tcp_parser.add_argument("ipaddr")
 
 
 class FxConfigCmd(cmd2.Cmd):
     prompt = "fx>"
-
 
     def __init__(self):
         super().__init__()
@@ -69,6 +82,57 @@ class FxConfigCmd(cmd2.Cmd):
     def postloop(self):
         # Print a new line so the shell prompt get printed on a it's own line after we exit
         self.poutput("")
+
+    @cmd2.with_argparser(add_parser)
+    def do_add(self, args):
+        args.func(self, args)
+
+    def _do_add_visa_tcp(self, args):
+        # TODO: Extend the optional parameter to allow port & SOCKET mode to be specified
+        resource_name = "TCPIP0::{}::INSTR".format(args.ipaddr)
+        self.poutput("Adding '{}'.".format(resource_name))
+
+        try:
+            idn = visa_id_query(resource_name)
+        except Exception as e:
+            self.perror("instrument not found")
+            self.perror(e)
+        else:
+            self.updated_config_dict["INSTRUMENTS"]["visa"].append([idn.strip(), resource_name])
+
+    def _do_add_visa_serial(self, args):
+        resource_name = "ASRL{}::INSTR".format(args.port)
+        self.poutput("Attempting to add '{}'.".format(resource_name))
+
+        try:
+            idn = visa_id_query(resource_name)
+        except Exception as e:
+            self.perror("instrument not found")
+            self.perror(e)
+        else:
+            self.updated_config_dict["INSTRUMENTS"]["visa"].append([idn.strip(), resource_name])
+
+    def _do_add_usb(self, args):
+        rm = visa.ResourceManager()
+        resource_list = [x for x in rm.list_resources() if x.startswith("USB")]
+        if len(resource_list) > 0:
+            for i, resource_name in enumerate(resource_list):
+                self.poutput("{}: {}".format(i+1, resource_name))
+            self.poutput("Select an interface to add")
+            selection = input()
+            selection = int(selection) - 1
+            if 0 <= selection < len(resource_list):
+                resource_name = resource_list[selection]
+                self.updated_config_dict["INSTRUMENTS"]["visa"].append([visa_id_query(resource_name).strip(), resource_name])
+                self.poutput("'{}' added to config.".format(resource_name))
+            else:
+                self.poutput("Selection not valid")
+        else:
+            self.poutput("VISA found no USB instruments")
+
+    add_visa_tcp_parser.set_defaults(func=_do_add_visa_tcp)
+    add_visa_serial_parser.set_defaults(func=_do_add_visa_serial)
+    add_visa_usb_parser.set_defaults(func=_do_add_usb)
 
     @cmd2.with_argparser(list_parser)
     def do_list(self, args):
@@ -139,7 +203,7 @@ class FxConfigCmd(cmd2.Cmd):
             self.existing_config_dict = json.load(config_file)
 
         # create a copy of the config that can be edited
-        self.updated_config_dict = dict(self.existing_config_dict)
+        self.updated_config_dict = copy.deepcopy(self.existing_config_dict)
         self.config_file_path = config_file_path
         self.poutput("Config loaded")
 
