@@ -18,25 +18,25 @@ class DMM:
     is_connected = False
 
     def measurement(self):
-        pass
+        raise NotImplementedError()
 
     def voltage_ac(self, _range=None):
-        pass
+        raise NotImplementedError()
 
     def voltage_dc(self, _range=None):
-        pass
+        raise NotImplementedError()
 
     def current_ac(self, _range):
-        pass
+        raise NotImplementedError()
 
     def current_dc(self, _range):
-        pass
+        raise NotImplementedError()
 
     def analog_filter(self, bandwidth=None):
-        pass
+        raise NotImplementedError()
 
     def digital_filter(self):
-        pass
+        raise NotImplementedError()
 
     def resistance(self, _range=None):
         raise NotImplementedError()
@@ -66,4 +66,4 @@ class DMM:
         raise NotImplementedError()
 
     def reset(self):
-        pass
+        raise NotImplementedError()
