@@ -4,6 +4,8 @@ import threading
 import inspect
 import ctypes
 import logging
+import warnings
+from functools import wraps
 from fixate.core.exceptions import ParameterError, InvalidScalarQuantityError
 
 logger = logging.getLogger(__file__)
@@ -253,10 +255,11 @@ class ExcThread(threading.Thread):
 
 
 def deprecated(func):
+    @wraps(func)
     def inner(*args, **kwargs):
-        logger.warning("Function is deprecated. Please consider updating api calls")
+        warnings.warn("Function {} is deprecated. Please consider updating api calls".format(func.__name__),
+                      DeprecationWarning)
         return func(*args, **kwargs)
-
     return inner
 
 
