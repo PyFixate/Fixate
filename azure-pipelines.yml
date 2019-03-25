@@ -22,14 +22,10 @@ jobs:
         versionSpec: '$(python.version)'
         architecture: 'x64'
     
-    - script: pip install -r requirements.txt
-      displayName: 'Install Test Requirements'
-      
     - script: |
-        pip install -r requirements-test
-        pip install -e .
-        python -m pytest --junitxml=junit/test-results.xml --cov=fixate --cov-report=xml --cov-report=html
-      displayName: 'Test with pytest'
+        python -m pip install tox
+        tox -e py
+      displayName: 'Test with tox & pytest'
     
     - task: PublishTestResults@2
       inputs:
