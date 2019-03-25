@@ -1,1 +1,4 @@
-pytest
+pytest==3.10.0
+pytest-mock
+pytest-cov
+wheel
