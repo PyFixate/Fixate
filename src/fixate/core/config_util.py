@@ -220,6 +220,11 @@ class FxConfigCmd(cmd2.Cmd):
         with open(config_file_path, 'r') as config_file:
             self.existing_config_dict = json.load(config_file)
 
+        # Ensure our config has the bare minimum { "INSTRUMENTS": {"visa":[], "serial":{}}}
+        instruments_dict = self.existing_config_dict.setdefault("INSTRUMENTS", {})
+        instruments_dict.setdefault("visa", [])
+        instruments_dict.setdefault("serial", {})
+
         # create a copy of the config that can be edited
         self.updated_config_dict = copy.deepcopy(self.existing_config_dict)
         self.config_file_path = config_file_path
@@ -345,7 +350,7 @@ def backup_file(file_path):
     :param file_path:	
     :return: Pathlib.Path object which is the path of the new file	
     """
-    backup_path = Path(file_path + ".bak")
+    backup_path = Path(file_path).with_suffix(".json.bak")
     file_path = Path(file_path)
     if file_path.exists():
         copy2(file_path, backup_path)
