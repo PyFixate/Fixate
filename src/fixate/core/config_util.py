@@ -6,13 +6,14 @@ import copy
 from shutil import copy2
 from pathlib import Path
 from fixate.drivers.pps.bk_178x import BK178X
+import fixate.config
 from pyvisa.errors import VisaIOError
 
+DEFAULT_CONFIG_FILE = Path(fixate.config.__path__[0]) / "local_config.json"
 
 """
-Original plan is starting to become a mess. So explore an interactive shell instead
-
-fxconfig
+fxconfig is a configuration utility that helps find connected instruments and add them to fixate's driver
+configuration file.
 
 Commands
 ========
@@ -27,11 +28,7 @@ fx> add visa usb                            # print numbered list of resources a
 fx> test existing                           # idn everything in existing config and report
 fx> test updated                            # idn everything in updated config and report
 fx> save                                    # replace existing with updated. existing will be first copied to *.bak
-
-nice to have:
-fx> test visa serial <port> [<baudrate>]
-fx> test visa tcp <host | ip address>
-fx> test serial
+fx> open <path>                             # default to the path for the active environment
 
 """
 
@@ -211,8 +208,14 @@ class FxConfigCmd(cmd2.Cmd):
                 raise
 
     def do_open(self, line):
-        """Open config file"""
-        config_file_path = line
+        """
+        Open config file
+
+        """
+        if line:
+            config_file_path = line
+        else:
+            config_file_path = DEFAULT_CONFIG_FILE
 
         with open(config_file_path, 'r') as config_file:
             self.existing_config_dict = json.load(config_file)
@@ -220,7 +223,7 @@ class FxConfigCmd(cmd2.Cmd):
         # create a copy of the config that can be edited
         self.updated_config_dict = copy.deepcopy(self.existing_config_dict)
         self.config_file_path = config_file_path
-        self.poutput("Config loaded")
+        self.poutput("Config loaded: {}".format(self.config_file_path))
 
     def do_delete(self, line):
         config_dict = self.updated_config_dict
