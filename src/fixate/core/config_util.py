@@ -29,6 +29,7 @@ fx> test existing                           # idn everything in existing config 
 fx> test updated                            # idn everything in updated config and report
 fx> save                                    # replace existing with updated. existing will be first copied to *.bak
 fx> open <path>                             # default to the path for the active environment
+fx> new <path>                              # like open, but creates a new file that didn't exist. Error if file exists
 
 """
 
@@ -217,6 +218,10 @@ class FxConfigCmd(cmd2.Cmd):
         else:
             config_file_path = DEFAULT_CONFIG_FILE
 
+        self._load_config_into_dict(config_file_path)
+
+    def _load_config_into_dict(self, config_file_path):
+
         with open(config_file_path, 'r') as config_file:
             self.existing_config_dict = json.load(config_file)
 
@@ -229,6 +234,22 @@ class FxConfigCmd(cmd2.Cmd):
         self.updated_config_dict = copy.deepcopy(self.existing_config_dict)
         self.config_file_path = config_file_path
         self.poutput("Config loaded: {}".format(self.config_file_path))
+
+    def do_new(self, line):
+        """
+        Create a new config file. Same basic operation as open.
+        """
+        if line:
+            config_file_path = Path(line)
+        else:
+            config_file_path = DEFAULT_CONFIG_FILE
+
+        if config_file_path.exists():
+            raise Exception("Path '{}' already exists".format(config_file_path))
+        else:
+            with open(config_file_path, 'w') as config_file:
+                config_file.write("{}")             # bare minimum valid json. _load_config_into_dict will do the rest.
+        self._load_config_into_dict(config_file_path)
 
     def do_delete(self, line):
         config_dict = self.updated_config_dict
