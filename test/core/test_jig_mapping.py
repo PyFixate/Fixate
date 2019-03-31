@@ -12,6 +12,7 @@ try:
 except ImportError:
     import map_data
 
+
 class TestVirtualAddressMap(TestCase):
     """
 
