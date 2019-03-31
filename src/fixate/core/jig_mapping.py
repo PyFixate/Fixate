@@ -1,12 +1,7 @@
 import time
 import sys
-import warnings
 from math import ceil, log
 from fixate.core.common import bits, deprecated
-
-
-class MuxWarning(Warning):
-    pass
 
 
 class VirtualAddressMap:
@@ -61,8 +56,8 @@ class VirtualAddressMap:
         mux.pin_mask = []
         for itm in mux.pin_list:
             if itm in self.mux_assigned_pins:
-                warnings.warn("Pin {} in {} already assigned in {}".format(itm, mux, self.mux_assigned_pins[itm]),
-                              MuxWarning)
+                raise ValueError("Pin {} in {} already assigned in {}".format(itm, mux,
+                                                                              self.mux_assigned_pins[itm]))
             try:
                 mux.pin_mask.append(self.virtual_pin_list.index(itm))
             except ValueError as e:
