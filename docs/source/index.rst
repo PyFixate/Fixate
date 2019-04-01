@@ -18,6 +18,7 @@ Whether you are trying to help do complete repetitive tests on your workbench to
    
    quickstart
    example_walkthrough
+   release-notes
 
 Indices and tables
 ==================
