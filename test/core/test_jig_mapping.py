@@ -1,7 +1,8 @@
+import time
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-from fixate.core.jig_mapping import VirtualAddressMap, AddressHandler, VirtualMux
+from fixate.core.jig_mapping import VirtualAddressMap, AddressHandler, VirtualMux, JigDriver
 
 try:
     # This try/except is temporary while moving tests to pytest. running
@@ -11,6 +12,7 @@ try:
     from . import map_data
 except ImportError:
     import map_data
+
 
 class TestVirtualAddressMap(TestCase):
     """
@@ -299,3 +301,86 @@ class TestDuplicateSignalNames(TestCase):
     def test_map_combo(self):
         mux = map_data.TestMultipleDefsFails()
         self.assertRaisesRegex(ValueError, "Test5 is a duplicate of Test4", mux.map_combo)
+
+
+class AddrHand(AddressHandler):
+    pin_list = ["K{}".format(x) for x in range(1, 11)]
+
+    def __init__(self, update_mock, **kwargs):
+        super().__init__(**kwargs)
+        self.update_mock = update_mock
+
+    def update_output(self, value):
+        self.update_mock.update_output(value, time.time())
+
+
+class Mux1(VirtualMux):
+    clearing_time = 0.2
+    pin_list = ["K1", "K2", "K3"]
+    map_list = [
+        ("1", "K1"),
+        ("2", "K2"),
+        ("3", "K3"),
+        ("13", "K1", "K3")
+    ]
+
+    def clear_callback(self):
+        virtual_address = self.signal_map.get(self.default_signal, 0b0)
+        values = self._build_values_update(virtual_address)
+        self._clear_callback(values, self.clearing_time)
+
+
+class Mux2(VirtualMux):
+    pin_list = ["K4", "K5", "K6"]
+    map_list = [
+        ("4", "K4"),
+        ("5", "K5"),
+        ("6", "K6"),
+        ("46", "K4", "K6")
+    ]
+
+
+class Mux3(VirtualMux):
+    clearing_time = 0.5
+    pin_list = ["K7", "K8", "K9"]
+    map_list = [
+        ("7", "K7"),
+        ("8", "K8"),
+        ("9", "K9"),
+        ("79", "K7", "K9")
+    ]
+
+    def clear_callback(self):
+        virtual_address = self.signal_map.get(self.default_signal, 0b0)
+        values = self._build_values_update(virtual_address)
+        self._clear_callback(values, self.clearing_time)
+
+
+class MuxDuplicate(VirtualMux):
+    pin_list = ["K7", "K8", "K9"]
+
+
+class TestRelayMuxClearingTime(TestCase):
+    start = time.time()
+
+    def setUp(self):
+        self.handler_mock = MagicMock()
+
+        class TestJig(JigDriver):
+            multiplexers = (Mux1(), Mux2(), Mux3())
+            address_handlers = (AddrHand(self.handler_mock),)
+
+        self.jig = TestJig()
+
+    def test_duplicate_muxes(self):
+        class TestJig(JigDriver):
+            multiplexers = (Mux1(), Mux1(), Mux3())
+            address_handlers = (AddrHand(self.handler_mock),)
+
+        self.assertRaises(ValueError, TestJig)
+
+    def test_no_update(self):
+        self.jig.mux.Mux1("")
+        self.jig.mux.Mux2("")
+        self.jig.mux.Mux3("")
+        self.assertEquals(None, self.handler_mock.update_output.assert_not_called())
