@@ -1,8 +1,9 @@
 import time
+import pytest
 from unittest import TestCase
 from unittest.mock import MagicMock
 
-from fixate.core.jig_mapping import VirtualAddressMap, AddressHandler, VirtualMux, JigDriver
+from fixate.core.jig_mapping import VirtualAddressMap, AddressHandler, VirtualMux, JigDriver, MuxWarning
 
 try:
     # This try/except is temporary while moving tests to pytest. running
@@ -148,6 +149,18 @@ class TestVirtualAddressMap(TestCase):
         self.v_map.virtual_pin_list = ['0', '1', '2', '3', '4', '5', '6', '7']
         self.assertEqual(self.v_map.pin_values,
                          [('0', 0), ('1', 0), ('2', 1), ('3', 0), ('4', 1), ('5', 1), ('6', 0), ('7', 1)])
+
+    def test_pin_on_duplicate_mux(self):
+        with pytest.warns(MuxWarning):
+            # Setup pin list
+            self.v_map.virtual_pin_list = ['1', '2', '3', '4', '5', '6', '7', '8']
+            virtual_mux = MagicMock()
+            virtual_mux.pin_list = ['2', '5', '7', '8']
+            self.v_map.install_multiplexer(virtual_mux)
+
+            virtual_mux2 = MagicMock()
+            virtual_mux2.pin_list = ['1', '3', '4', '8']
+            self.v_map.install_multiplexer(virtual_mux2)
 
 
 class TestAddressHandler(TestCase):
@@ -374,10 +387,11 @@ class TestRelayMuxClearingTime(TestCase):
 
     def test_duplicate_muxes(self):
         class TestJig(JigDriver):
-            multiplexers = (Mux1(), Mux1(), Mux3())
-            address_handlers = (AddrHand(self.handler_mock),)
+                multiplexers = (Mux1(), Mux1(), Mux3())
+                address_handlers = (AddrHand(self.handler_mock),)
 
-        self.assertRaises(ValueError, TestJig)
+        with pytest.warns(MuxWarning):
+            TestJig()
 
     def test_no_update(self):
         self.jig.mux.Mux1("")
