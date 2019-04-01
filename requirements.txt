@@ -4,3 +4,4 @@ pyqt5
 pynput
 ruamel.yaml
 pyserial
+cmd2

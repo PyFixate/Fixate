@@ -18,6 +18,9 @@ DRIVER_LIST = {"DMM": {"dmm.fluke_8846a.Fluke8846A"},
                "DSO": {'dso.agilent_mso_x.MSO_X_3000'},
                "FTDI": {"ftdi.FTDI2xx"}}
 CONFIG_LOADED = False
+
+# INSTRUMENTS gets populated when fixate.config.load_json_config is called.
+# load_json_config store config directly into the __dict__ of the config module
 INSTRUMENTS = {}
 DUT = None
 RESOURCES = {}
