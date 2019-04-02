@@ -31,7 +31,7 @@ def test_check_smaller_datetime_time():
         chk_smaller(now_plus, now)
 
 
-def test_check_smaller_datetime_ctime_string():
+def test_check_smaller_datetime_milli():
     now = datetime.datetime(2000, 1, 1, 1, 1, 1, 1)
     now_minus = datetime.datetime(2000, 1, 1, 1, 1, 1, 0)
     assert chk_smaller(now_minus, now)
