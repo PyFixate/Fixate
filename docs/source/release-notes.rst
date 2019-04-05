@@ -30,8 +30,8 @@ Improvements
 - Many small code improvements with dead code removed
 - VirtualMux definitions will now warn when a pin name is used twice.
 - The Fluke 8846A driver now uses auto trigger. In general this will make using the DMM faster and more reliable.
-- The Fluke 8846A no longer does error queries after each command. This makes the driver faster. The old behaviour can be reinstated using by setting self.legacy_mode = False.
-- Change the DMM driver base class to rasise NotImplementedError, rather than silently pass on method that aren't overridden.
+- The Fluke 8846A no longer does error queries after each command. This makes the driver faster. The old behaviour can be reinstated using by setting self.legacy_mode = True.
+- Change the DMM driver base class to raise NotImplementedError, rather than silently pass on methods that aren't overridden.
 - The Agilent/Keysight DSO driver updated to significantly improve acquisition & measurement reliability
 - The FTDI driver now support 64-bit python as well as 32-bit python.
 - Command line UI now works on Windows and Linux (test on a Rpi running Ubuntu)
