@@ -6,13 +6,14 @@ import copy
 from shutil import copy2
 from pathlib import Path
 from fixate.drivers.pps.bk_178x import BK178X
+import fixate.config
 from pyvisa.errors import VisaIOError
 
+DEFAULT_CONFIG_FILE = Path(fixate.config.__path__[0]) / "local_config.json"
 
 """
-Original plan is starting to become a mess. So explore an interactive shell instead
-
-fxconfig
+fxconfig is a configuration utility that helps find connected instruments and add them to fixate's driver
+configuration file.
 
 Commands
 ========
@@ -27,11 +28,8 @@ fx> add visa usb                            # print numbered list of resources a
 fx> test existing                           # idn everything in existing config and report
 fx> test updated                            # idn everything in updated config and report
 fx> save                                    # replace existing with updated. existing will be first copied to *.bak
-
-nice to have:
-fx> test visa serial <port> [<baudrate>]
-fx> test visa tcp <host | ip address>
-fx> test serial
+fx> open <path>                             # default to the path for the active environment
+fx> new <path>                              # like open, but creates a new file that didn't exist. Error if file exists
 
 """
 
@@ -211,16 +209,47 @@ class FxConfigCmd(cmd2.Cmd):
                 raise
 
     def do_open(self, line):
-        """Open config file"""
-        config_file_path = line
+        """
+        Open config file
+
+        """
+        if line:
+            config_file_path = line
+        else:
+            config_file_path = DEFAULT_CONFIG_FILE
+
+        self._load_config_into_dict(config_file_path)
+
+    def _load_config_into_dict(self, config_file_path):
 
         with open(config_file_path, 'r') as config_file:
             self.existing_config_dict = json.load(config_file)
 
+        # Ensure our config has the bare minimum { "INSTRUMENTS": {"visa":[], "serial":{}}}
+        instruments_dict = self.existing_config_dict.setdefault("INSTRUMENTS", {})
+        instruments_dict.setdefault("visa", [])
+        instruments_dict.setdefault("serial", {})
+
         # create a copy of the config that can be edited
         self.updated_config_dict = copy.deepcopy(self.existing_config_dict)
         self.config_file_path = config_file_path
-        self.poutput("Config loaded")
+        self.poutput("Config loaded: {}".format(self.config_file_path))
+
+    def do_new(self, line):
+        """
+        Create a new config file. Same basic operation as open.
+        """
+        if line:
+            config_file_path = Path(line)
+        else:
+            config_file_path = DEFAULT_CONFIG_FILE
+
+        if config_file_path.exists():
+            raise Exception("Path '{}' already exists".format(config_file_path))
+        else:
+            with open(config_file_path, 'w') as config_file:
+                config_file.write("{}")             # bare minimum valid json. _load_config_into_dict will do the rest.
+        self._load_config_into_dict(config_file_path)
 
     def do_delete(self, line):
         config_dict = self.updated_config_dict
@@ -342,7 +371,7 @@ def backup_file(file_path):
     :param file_path:	
     :return: Pathlib.Path object which is the path of the new file	
     """
-    backup_path = Path(file_path + ".bak")
+    backup_path = Path(file_path).with_suffix(".json.bak")
     file_path = Path(file_path)
     if file_path.exists():
         copy2(file_path, backup_path)
