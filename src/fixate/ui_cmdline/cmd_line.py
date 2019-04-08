@@ -2,6 +2,7 @@ import traceback
 import sys
 import time
 import textwrap
+from math import isclose
 from queue import Empty
 from pubsub import pub
 from fixate.ui_cmdline.kbhit import KBHit
@@ -300,7 +301,13 @@ def round_to_3_sig_figures(chk):
     for element in ["_min", "_max", "test_val", "nominal", "tol"]:
         ret_dict[element] = getattr(chk, element, None)
         try:
-            ret_dict[element] = "{:.3g}".format(ret_dict[element])
+            new = "{:.3g}".format(ret_dict[element])
+            if isinstance(ret_dict[element], int):
+                new_check = int(new)
+            elif isinstance(ret_dict[element], float):
+                new_check = float(new)
+            assert isclose(ret_dict[element], new_check, abs_tol=1e-2)
+            ret_dict[element] = new
         except:
             pass
     return ret_dict
