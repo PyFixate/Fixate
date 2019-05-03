@@ -5,7 +5,7 @@ Release Notes
 Version 0.5.0
 *************
 
-Release Date xx/xx/xx
+Release Date 03/05/2019
 
 Breaking Changes
 ################
