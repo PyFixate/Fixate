@@ -10,9 +10,9 @@ jobs:
         versionSpec: '3.5'
         architecture: 'x64'
 
-  - script: |
-      pip install black
-      black --check src
+    - script: |
+        pip install black
+        black --check src
 
 - job: 'Test_Windows_x64'
   pool:
