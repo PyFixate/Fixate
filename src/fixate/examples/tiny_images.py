@@ -55,7 +55,9 @@ class ParameterisedTest(TestClass):
         user_ok("The second base image should be on screen. Press OK to continue")
         user_image("base_test_2.jpg")
         user_image("overlay_test.png")
-        user_ok("The overlay should be on screen. It doesn't match the new base image. Press OK to continue")
+        user_ok(
+            "The overlay should be on screen. It doesn't match the new base image. Press OK to continue"
+        )
         user_image("base_test_2.jpg")
         user_ok("The overlay should be cleared, leaving the base. Press OK to continue")
         user_ok("The screen should be clear. Press OK to continue")

@@ -8,6 +8,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+
 class Ui_FixateUI(object):
     def setupUi(self, FixateUI):
         FixateUI.setObjectName("FixateUI")
@@ -66,7 +67,9 @@ class Ui_FixateUI(object):
         self.TestTree.setObjectName("TestTree")
         self.TestTree.headerItem().setText(0, "Name")
         self.TestTree.headerItem().setText(1, "Status")
-        self.TestTree.headerItem().setTextAlignment(1, QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.TestTree.headerItem().setTextAlignment(
+            1, QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.TestTree.header().setVisible(True)
         self.TestTree.header().setCascadingSectionResizes(False)
         self.TestTree.header().setDefaultSectionSize(120)
@@ -87,7 +90,9 @@ class Ui_FixateUI(object):
         self.InfoLayout.setContentsMargins(-1, -1, 0, -1)
         self.InfoLayout.setObjectName("InfoLayout")
         self.ActiveTest = QtWidgets.QLabel(self.MainWindow)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(10)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.ActiveTest.sizePolicy().hasHeightForWidth())
@@ -116,10 +121,14 @@ class Ui_FixateUI(object):
         self.ActiveTest.setObjectName("ActiveTest")
         self.InfoLayout.addWidget(self.ActiveTest)
         self.TestDescription = QtWidgets.QLabel(self.MainWindow)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.TestDescription.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.TestDescription.sizePolicy().hasHeightForWidth()
+        )
         self.TestDescription.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -153,10 +162,14 @@ class Ui_FixateUI(object):
         self.IndicatorLayout.setContentsMargins(0, 0, 0, 0)
         self.IndicatorLayout.setObjectName("IndicatorLayout")
         self.WorkingIndicator = QtWidgets.QLabel(self.IndicatorContainer)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.WorkingIndicator.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.WorkingIndicator.sizePolicy().hasHeightForWidth()
+        )
         self.WorkingIndicator.setSizePolicy(sizePolicy)
         self.WorkingIndicator.setToolTip("")
         self.WorkingIndicator.setStatusTip("")
@@ -172,7 +185,9 @@ class Ui_FixateUI(object):
         self.MainLayout.addLayout(self.TitleLayout)
         self.ImageView = ResizeImageView(self.MainWindow)
         self.ImageView.setEnabled(True)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.ImageView.sizePolicy().hasHeightForWidth())
@@ -198,7 +213,9 @@ class Ui_FixateUI(object):
         self.ButtonLayout.setObjectName("ButtonLayout")
         self.Button_1 = QtWidgets.QPushButton(self.MainWindow)
         self.Button_1.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.Button_1.sizePolicy().hasHeightForWidth())
@@ -211,7 +228,9 @@ class Ui_FixateUI(object):
         self.ButtonLayout.addWidget(self.Button_1)
         self.Button_2 = QtWidgets.QPushButton(self.MainWindow)
         self.Button_2.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.Button_2.sizePolicy().hasHeightForWidth())
@@ -221,7 +240,9 @@ class Ui_FixateUI(object):
         self.ButtonLayout.addWidget(self.Button_2)
         self.Button_3 = QtWidgets.QPushButton(self.MainWindow)
         self.Button_3.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.Button_3.sizePolicy().hasHeightForWidth())
@@ -234,7 +255,9 @@ class Ui_FixateUI(object):
         self.ButtonLayout.setStretch(2, 1)
         self.MainLayout.addLayout(self.ButtonLayout)
         self.EventTabs = QtWidgets.QTabWidget(self.MainWindow)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.EventTabs.sizePolicy().hasHeightForWidth())
@@ -257,7 +280,9 @@ class Ui_FixateUI(object):
         self.ActiveLayout.setVerticalSpacing(2)
         self.ActiveLayout.setObjectName("ActiveLayout")
         self.ActiveEvent = QtWidgets.QTextEdit(self.Active)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.ActiveEvent.sizePolicy().hasHeightForWidth())
@@ -267,7 +292,9 @@ class Ui_FixateUI(object):
         font.setFamily("Arial")
         font.setPointSize(18)
         self.ActiveEvent.setFont(font)
-        self.ActiveEvent.viewport().setProperty("cursor", QtGui.QCursor(QtCore.Qt.IBeamCursor))
+        self.ActiveEvent.viewport().setProperty(
+            "cursor", QtGui.QCursor(QtCore.Qt.IBeamCursor)
+        )
         self.ActiveEvent.setFocusPolicy(QtCore.Qt.NoFocus)
         self.ActiveEvent.setToolTip("")
         self.ActiveEvent.setStatusTip("")
@@ -278,7 +305,9 @@ class Ui_FixateUI(object):
         self.ActiveEvent.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.ActiveEvent.setLineWidth(1)
         self.ActiveEvent.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.ActiveEvent.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+        self.ActiveEvent.setSizeAdjustPolicy(
+            QtWidgets.QAbstractScrollArea.AdjustToContents
+        )
         self.ActiveEvent.setAutoFormatting(QtWidgets.QTextEdit.AutoNone)
         self.ActiveEvent.setDocumentTitle("")
         self.ActiveEvent.setUndoRedoEnabled(False)
@@ -290,7 +319,9 @@ class Ui_FixateUI(object):
         self.ActiveLayout.addWidget(self.ActiveEvent, 0, 0, 1, 1)
         self.UserInputBox = SubmissionTextBox(self.Active)
         self.UserInputBox.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.UserInputBox.sizePolicy().hasHeightForWidth())
@@ -312,7 +343,9 @@ class Ui_FixateUI(object):
         font.setBold(False)
         font.setWeight(50)
         self.UserInputBox.setFont(font)
-        self.UserInputBox.viewport().setProperty("cursor", QtGui.QCursor(QtCore.Qt.IBeamCursor))
+        self.UserInputBox.viewport().setProperty(
+            "cursor", QtGui.QCursor(QtCore.Qt.IBeamCursor)
+        )
         self.UserInputBox.setAcceptDrops(False)
         self.UserInputBox.setToolTip("")
         self.UserInputBox.setStatusTip("")
@@ -342,7 +375,9 @@ class Ui_FixateUI(object):
         self.HistoryLayout.setContentsMargins(1, 1, 1, 1)
         self.HistoryLayout.setObjectName("HistoryLayout")
         self.Events = QtWidgets.QTextEdit(self.History)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.Events.sizePolicy().hasHeightForWidth())
@@ -352,7 +387,9 @@ class Ui_FixateUI(object):
         font.setFamily("Courier New")
         font.setPointSize(9)
         self.Events.setFont(font)
-        self.Events.viewport().setProperty("cursor", QtGui.QCursor(QtCore.Qt.IBeamCursor))
+        self.Events.viewport().setProperty(
+            "cursor", QtGui.QCursor(QtCore.Qt.IBeamCursor)
+        )
         self.Events.setFocusPolicy(QtCore.Qt.NoFocus)
         self.Events.setToolTip("")
         self.Events.setStatusTip("")
@@ -384,7 +421,9 @@ class Ui_FixateUI(object):
         self.ErrorLayout.setContentsMargins(1, 1, 1, 1)
         self.ErrorLayout.setObjectName("ErrorLayout")
         self.Errors = QtWidgets.QTextEdit(self.ErrorLog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.Errors.sizePolicy().hasHeightForWidth())
@@ -407,7 +446,9 @@ class Ui_FixateUI(object):
         font.setBold(True)
         font.setWeight(75)
         self.Errors.setFont(font)
-        self.Errors.viewport().setProperty("cursor", QtGui.QCursor(QtCore.Qt.IBeamCursor))
+        self.Errors.viewport().setProperty(
+            "cursor", QtGui.QCursor(QtCore.Qt.IBeamCursor)
+        )
         self.Errors.setFocusPolicy(QtCore.Qt.NoFocus)
         self.Errors.setToolTip("")
         self.Errors.setStatusTip("")
@@ -445,19 +486,23 @@ class Ui_FixateUI(object):
         self.ProgressBar.setAccessibleName("")
         self.ProgressBar.setAccessibleDescription("")
         self.ProgressBar.setAutoFillBackground(False)
-        self.ProgressBar.setStyleSheet("QProgressBar{\n"
-"    padding: 1px;\n"
-"    margin-right: 32px;\n"
-"}\n"
-"\n"
-"QProgressBar::chunk{\n"
-"    background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,\n"
-"                                      stop: 0 #baf3bc, stop: 0.6 #05d431);\n"
-"    margin: 0px;\n"
-"    width: 1px;\n"
-"}")
+        self.ProgressBar.setStyleSheet(
+            "QProgressBar{\n"
+            "    padding: 1px;\n"
+            "    margin-right: 32px;\n"
+            "}\n"
+            "\n"
+            "QProgressBar::chunk{\n"
+            "    background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,\n"
+            "                                      stop: 0 #baf3bc, stop: 0.6 #05d431);\n"
+            "    margin: 0px;\n"
+            "    width: 1px;\n"
+            "}"
+        )
         self.ProgressBar.setProperty("value", 0)
-        self.ProgressBar.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.ProgressBar.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.ProgressBar.setTextVisible(True)
         self.ProgressBar.setObjectName("ProgressBar")
         self.FrameLayout.addWidget(self.ProgressBar)
@@ -470,8 +515,15 @@ class Ui_FixateUI(object):
 
     def retranslateUi(self, FixateUI):
         _translate = QtCore.QCoreApplication.translate
-        self.EventTabs.setTabText(self.EventTabs.indexOf(self.Active), _translate("FixateUI", "Active"))
-        self.EventTabs.setTabText(self.EventTabs.indexOf(self.History), _translate("FixateUI", "History"))
-        self.EventTabs.setTabText(self.EventTabs.indexOf(self.ErrorLog), _translate("FixateUI", "Errors"))
+        self.EventTabs.setTabText(
+            self.EventTabs.indexOf(self.Active), _translate("FixateUI", "Active")
+        )
+        self.EventTabs.setTabText(
+            self.EventTabs.indexOf(self.History), _translate("FixateUI", "History")
+        )
+        self.EventTabs.setTabText(
+            self.EventTabs.indexOf(self.ErrorLog), _translate("FixateUI", "Errors")
+        )
+
 
 from fixate.ui_gui_qt.subclassed_widgets import ResizeImageView, SubmissionTextBox

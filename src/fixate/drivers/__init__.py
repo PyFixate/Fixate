@@ -16,7 +16,11 @@ class DriverMeta(type):
     def __new__(mcs, clsname, bases, dct):
         for name, attr in dct.items():
             if isfunction(attr):
-                if name.startswith('_') or name in ('connect', 'disconnect') or name in dct.get('_connect_ignore', []):
+                if (
+                    name.startswith("_")
+                    or name in ("connect", "disconnect")
+                    or name in dct.get("_connect_ignore", [])
+                ):
                     # Don't wrap these functions with _ensure_connected
                     continue
                 dct[name] = _ensure_connected(attr)
@@ -37,6 +41,7 @@ class Driver(metaclass=DriverMeta):
     Exceptions to this rule are connect, disconnect and function strings as can be defined by creating a list called
     _connect_ignore on class definition
     """
+
     is_connected = False
 
     # _connect_ignore = ['ignored_func1','ignored_func2'] # Set this parameter in derived class definition if required
@@ -139,6 +144,7 @@ class DriverManager:
 
 
 if __name__ == "__main__":
+
     class MyDmm(Driver):
         def __init__(self):
             self.subcls = OtherClass()
@@ -153,11 +159,9 @@ if __name__ == "__main__":
         def _unconnected_hell(self):
             print("Goodbye Cruel World")
 
-
     class OtherClass:
         def another_func(self):
             print("Other func")
-
 
     dm = DriverManager(dmm=MyDmm())
     print("Driver Manager Instantiated")
@@ -171,6 +175,6 @@ if __name__ == "__main__":
     dm.dmm.hello()
     help(dm.dmm.hello)
     dm.dmm.disconnect()
-    'World'
+    "World"
     # dm.remove_drivers(['dmm'])
     # dm.dmm.hello()

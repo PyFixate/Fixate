@@ -7,55 +7,34 @@ import time
 
 MODES = {
     ":VOLTage": {
-        ":DC": {
-            "[:RATio]": {},
-            " [{range}]":
-                {", [{resolution}]": {}}},
-        ":AC": {
-            " [{range}]": {
-                ", [{resolution}]": {}}}},
+        ":DC": {"[:RATio]": {}, " [{range}]": {", [{resolution}]": {}}},
+        ":AC": {" [{range}]": {", [{resolution}]": {}}},
+    },
     ":CURRent": {
-        ":DC": {
-            " [{range}]": {
-                ", [{resolution}]": {}}},
-        ":AC": {
-            " [{range}]": {
-                ", [{resolution}]": {}}}},
-    ":RESistance": {
-        " [{range}]": {
-            ", [{resolution}]": {}}},
-    ":FRESistance": {
-        " [{range}]": {
-            ", [{resolution}]": {}}},
-    ":FREQuency": {
-        " [{range}]": {
-            ", [{resolution}]": {}}},
-    ":PERiod": {
-        " [{range}]": {
-            ", [{resolution}]": {}}},
-    ":CAPacitance": {
-        " [{range}]": {
-            ", [{resolution}]": {}}},
-    ":TEMPerature": {
-        ":FRTD": {
-            " [{RTD_type}]": {}},
-        ":RTD": {
-            " [{RTD_type}]": {}}},
+        ":DC": {" [{range}]": {", [{resolution}]": {}}},
+        ":AC": {" [{range}]": {", [{resolution}]": {}}},
+    },
+    ":RESistance": {" [{range}]": {", [{resolution}]": {}}},
+    ":FRESistance": {" [{range}]": {", [{resolution}]": {}}},
+    ":FREQuency": {" [{range}]": {", [{resolution}]": {}}},
+    ":PERiod": {" [{range}]": {", [{resolution}]": {}}},
+    ":CAPacitance": {" [{range}]": {", [{resolution}]": {}}},
+    ":TEMPerature": {":FRTD": {" [{RTD_type}]": {}}, ":RTD": {" [{RTD_type}]": {}}},
     ":CONTinuity": {},
-    ":DIODe": {
-        " [{low_current}]": {
-            ", [{high_voltage}]": {}}}
+    ":DIODe": {" [{low_current}]": {", [{high_voltage}]": {}}},
 }
 
 FILTERS = {
     "[SENSe:VOLTage]": {
         "[:DC]:FILTer:STATe ON; VOLTage:DC:FILTEr:DIGital:STATe OFF": {},
-        ":AC:BANDwidth 20": {}},
+        ":AC:BANDwidth 20": {},
+    },
     "[SENSe:CURRent]": {
         "[:DC]:FILTer:STATe ON; CURRent:DC:FILTEr:DIGital:STATe OFF": {},
-        ":AC:BANDwidth 20": {}},
+        ":AC:BANDwidth 20": {},
+    },
     "[SENSe:RESistance]:FILTer:STATe ON; RESistance:FILTEr:DIGital:STATe OFF": {},
-    "[SENSe:FRESistance]:FILTer:STATe ON; FRESistance:FILTEr:DIGital:STATe OFF": {}
+    "[SENSe:FRESistance]:FILTer:STATe ON; FRESistance:FILTEr:DIGital:STATe OFF": {},
 }
 
 
@@ -81,41 +60,43 @@ class Fluke8846A(DMM):
         self._range_string = ""
         self._bandwidth = None
         self._mode = None
-        self.legacy_mode = False  # Set to True to have explicit error checks on each read
+        self.legacy_mode = (
+            False
+        )  # Set to True to have explicit error checks on each read
         self._modes = {
-            'voltage_ac': 'CONF:VOLTage:AC',
-            'voltage_dc': 'CONF:VOLTage:DC',
-            "current_ac": 'CONF:CURRent:AC',
-            "current_dc": 'CONF:CURRent:DC',
-            "resistance": 'CONF:RESistance',
-            "fresistance": 'CONF:FRESistance',
-            "period": 'CONF:PERiod',
-            'frequency': 'CONF:FREQuency',
-            "temperature": 'CONF:TEMPerature:RTD',
-            "ftemperature": 'CONF:TEMPerature:FRTD',
-            "capacitance": 'CONF:CAPacitance',
-            "continuity": 'CONF:CONTinuity',
-            "diode": 'CONF:DIODe'
+            "voltage_ac": "CONF:VOLTage:AC",
+            "voltage_dc": "CONF:VOLTage:DC",
+            "current_ac": "CONF:CURRent:AC",
+            "current_dc": "CONF:CURRent:DC",
+            "resistance": "CONF:RESistance",
+            "fresistance": "CONF:FRESistance",
+            "period": "CONF:PERiod",
+            "frequency": "CONF:FREQuency",
+            "temperature": "CONF:TEMPerature:RTD",
+            "ftemperature": "CONF:TEMPerature:FRTD",
+            "capacitance": "CONF:CAPacitance",
+            "continuity": "CONF:CONTinuity",
+            "diode": "CONF:DIODe",
         }
         self._filters = {
-            'voltage_ac': 'SENS:VOLT:AC',
-            'voltage_dc': 'SENS:VOLT:DC',
-            "current_ac": 'SENS:CURR:AC',
-            "current_dc": 'SENS:CURR:DC',
-            "resistance": 'SENS:RES',
-            'fresistance': 'SENS:FRES',
-            None: ""
+            "voltage_ac": "SENS:VOLT:AC",
+            "voltage_dc": "SENS:VOLT:DC",
+            "current_ac": "SENS:CURR:AC",
+            "current_dc": "SENS:CURR:DC",
+            "resistance": "SENS:RES",
+            "fresistance": "SENS:FRES",
+            None: "",
         }
         self._init_string = ""  # Unchanging
 
         self._resolution = {
-            'voltage_ac': 'VOLT:RES',
-            'voltage_dc': 'VOLT:RES',
-            'current_ac': 'CURR:AC:RES',
-            'current_dc': 'CURR:DC:RES',
-            'resistance': 'RES:RES',
-            'fresistance': 'RES:RES',
-            'capacitance': 'CAP:RES',
+            "voltage_ac": "VOLT:RES",
+            "voltage_dc": "VOLT:RES",
+            "current_ac": "CURR:AC:RES",
+            "current_dc": "CURR:DC:RES",
+            "resistance": "RES:RES",
+            "fresistance": "RES:RES",
+            "capacitance": "CAP:RES",
             None: "",
         }
 
@@ -138,7 +119,7 @@ class Fluke8846A(DMM):
 
     def measurements(self):
         if not self.mode:
-            raise InstrumentError('Please set DMM mode before taking a measurement!')
+            raise InstrumentError("Please set DMM mode before taking a measurement!")
 
         with self.lock:
             return self._read_measurements()
@@ -197,7 +178,7 @@ class Fluke8846A(DMM):
         """
         resp = self.instrument.query("SYST:ERR?")
         try:
-            code, msg = resp.strip('\n').split(',')
+            code, msg = resp.strip("\n").split(",")
             code = int(code)
             msg = msg.strip('"')
         except:
@@ -222,8 +203,15 @@ class Fluke8846A(DMM):
             if silent:
                 return errors
             else:
-                raise InstrumentError("Error(s) Returned from DMM\n" +
-                                      "\n".join(["Code: {}\nMessage:{}".format(code, msg) for code, msg in errors]))
+                raise InstrumentError(
+                    "Error(s) Returned from DMM\n"
+                    + "\n".join(
+                        [
+                            "Code: {}\nMessage:{}".format(code, msg)
+                            for code, msg in errors
+                        ]
+                    )
+                )
 
     def error_cleanup(self):
         """
@@ -255,36 +243,43 @@ class Fluke8846A(DMM):
         if suffix is not None:
             mode_str += " {}".format(suffix)
         self._write(mode_str)
-        self._write(["SYST:REM", "TRIG:DEL:AUTO ON", "TRIG:SOUR IMM", "TRIG:COUN 1",
-                     "SAMP:COUN {}".format(self.samples)])
+        self._write(
+            [
+                "SYST:REM",
+                "TRIG:DEL:AUTO ON",
+                "TRIG:SOUR IMM",
+                "TRIG:COUN 1",
+                "SAMP:COUN {}".format(self.samples),
+            ]
+        )
         self._is_error()
 
     def voltage_ac(self, _range=None):
-        self._set_measurement_mode('voltage_ac', _range)
+        self._set_measurement_mode("voltage_ac", _range)
 
     def voltage_dc(self, _range=None):
-        self._set_measurement_mode('voltage_dc', _range)
+        self._set_measurement_mode("voltage_dc", _range)
 
     def current_ac(self, _range=None):
-        self._set_measurement_mode('current_ac', _range)
+        self._set_measurement_mode("current_ac", _range)
 
     def current_dc(self, _range=None):
-        self._set_measurement_mode('current_dc', _range)
+        self._set_measurement_mode("current_dc", _range)
 
     def resistance(self, _range=None):
-        self._set_measurement_mode('resistance', _range)
+        self._set_measurement_mode("resistance", _range)
 
     def fresistance(self, _range=None):
-        self._set_measurement_mode('fresistance', _range)
+        self._set_measurement_mode("fresistance", _range)
 
     def frequency(self, _range=None):
-        self._set_measurement_mode('frequency', _range)
+        self._set_measurement_mode("frequency", _range)
 
     def period(self, _range=None):
-        self._set_measurement_mode('period', _range)
+        self._set_measurement_mode("period", _range)
 
     def capacitance(self, _range=None):
-        self._set_measurement_mode('capacitance', _range)
+        self._set_measurement_mode("capacitance", _range)
 
     def diode(self, low_current=True, high_voltage=False):
         """
@@ -292,7 +287,10 @@ class Fluke8846A(DMM):
         param _range: value set for the range
         param _resolution: value set for the resolution
         """
-        self._set_measurement_mode('diode', suffix="{}, {}".format(int(bool(low_current)), int(bool(high_voltage))))
+        self._set_measurement_mode(
+            "diode",
+            suffix="{}, {}".format(int(bool(low_current)), int(bool(high_voltage))),
+        )
 
     def continuity(self):
         """
@@ -300,7 +298,7 @@ class Fluke8846A(DMM):
         param _range: value set for the range
         param _resolution: value set for the resolution
         """
-        self._set_measurement_mode('continuity')
+        self._set_measurement_mode("continuity")
 
     @property
     def mode(self):
@@ -317,7 +315,7 @@ class Fluke8846A(DMM):
         time.sleep(0.05)
         # do we need to set the default filter here?
         if value not in self._modes:
-            raise ParameterError('Unknown mode {} for DMM'.format(value))
+            raise ParameterError("Unknown mode {} for DMM".format(value))
         self._mode = value
 
     def digital_filter(self):

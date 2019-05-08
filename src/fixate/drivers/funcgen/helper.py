@@ -25,67 +25,112 @@ def open():
 class Waveform:
     def sin(self):
         raise InstrumentFeatureUnavailable(
-            "Feature {} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "Feature {} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def square(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def ramp(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def pulse(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def arb(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def triangle(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def noise(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def dc(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def prbs(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class SyncPolarity:
     def normal(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def inverted(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class SyncMode:
     def normal(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def carrier(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def marker(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def source(self, channel: str):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class Sync:
@@ -95,7 +140,10 @@ class Sync:
 
     def _call(self, output: bool):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def __call__(self, output: bool):
         """
@@ -140,19 +188,31 @@ class TriggerOut:
 
     def _call(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def rising(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def falling(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def off(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class Trigger:
@@ -163,11 +223,17 @@ class Trigger:
 
     def delay(self, seconds: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def immediate(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     # def external(self):  # Turn into class
     #     raise InstrumentFeatureUnavailable(
@@ -179,7 +245,10 @@ class Trigger:
 
     def timer(self, seconds: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class External:
@@ -188,15 +257,24 @@ class External:
 
     def _call(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def rising(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def falling(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class Manual:
@@ -205,11 +283,17 @@ class Manual:
 
     def _call(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def initiate(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class Modulate:
@@ -228,7 +312,10 @@ class Modulate:
 
     def _call(self, value: bool):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class ModulateInternal:
@@ -240,15 +327,24 @@ class ModulateInternal:
 
     def _call(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def frequency(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def rate(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class ModulateSource:
@@ -257,15 +353,24 @@ class ModulateSource:
 
     def external(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def channel1(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def channel2(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class ModulateAM:
@@ -274,15 +379,24 @@ class ModulateAM:
 
     def _call(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def depth(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def dssc(self, value: bool):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class ModulateFM:
@@ -291,11 +405,17 @@ class ModulateFM:
 
     def _call(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def freq_dev(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
         # def frequency(self, value: number):
         #     raise InstrumentFeatureUnavailable(
@@ -308,11 +428,17 @@ class ModulatePM:
 
     def _call(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def phase_dev(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class ModulateFSK:
@@ -321,15 +447,24 @@ class ModulateFSK:
 
     def _call(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def hop_freq(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def rate(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class ModulateBPSK:
@@ -338,15 +473,24 @@ class ModulateBPSK:
 
     def _call(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def phase(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def rate(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class ModulateSum:
@@ -355,45 +499,75 @@ class ModulateSum:
 
     def _call(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def modulate_percent(self, percent: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class ModulateShape:
     def sin(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def square(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def triangle(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def up_ramp(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def down_ramp(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def noise(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def prbs(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def arb(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class ChannelBase:
@@ -408,7 +582,10 @@ class ChannelBase:
 
     def _call(self, value: bool):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def frequency(self, value: number):
         """
@@ -417,31 +594,52 @@ class ChannelBase:
         :return:
         """
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def vpp(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def vrms(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def dbm(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def offset(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def phase(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def duty(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
         # def output(self, value: bool):
         #     raise InstrumentFeatureUnavailable(
@@ -454,11 +652,17 @@ class Load:
 
     def _call(self, ohms: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def infinite(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class Burst:
@@ -471,11 +675,17 @@ class Burst:
 
     def _call(self, value: bool):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def phase(self, degrees: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class BurstNCycle:
@@ -487,15 +697,24 @@ class BurstNCycle:
 
     def _call(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def burst_period(self, seconds: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def infinite(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class Cycles:
@@ -504,11 +723,17 @@ class Cycles:
 
     def _call(self, cycles: int):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def infinite(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class BurstGated:
@@ -517,15 +742,24 @@ class BurstGated:
 
     def _call(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def positive(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def negative(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class FuncGen(metaclass=ABCMeta):
@@ -647,6 +881,7 @@ class FuncGen(metaclass=ABCMeta):
     >>>fg.channel1.burst.gated.negative()
     >>>fg.channel1.burst.phase(0) # Degrees
     """
+
     REGEX_ID = "FUNCGEN"
 
     def __init__(self, instrument):
@@ -667,8 +902,18 @@ class FuncGen(metaclass=ABCMeta):
 
     # Deprecated Functions
     # @abstractmethod
-    def function(self, waveform, channel=1, frequency=None, amplitude=None,
-                 phase=None, delay=None, offset=None, duty_cycle=None, symmetry=None):
+    def function(
+        self,
+        waveform,
+        channel=1,
+        frequency=None,
+        amplitude=None,
+        phase=None,
+        delay=None,
+        offset=None,
+        duty_cycle=None,
+        symmetry=None,
+    ):
         pass
 
     # @abstractmethod
@@ -734,30 +979,39 @@ class FuncGen(metaclass=ABCMeta):
 
     @output_ch1.setter
     def output_ch1(self, val):
-        raise InstrumentFeatureUnavailable("Feature output_ch1 not available on this device")
+        raise InstrumentFeatureUnavailable(
+            "Feature output_ch1 not available on this device"
+        )
 
     @output_ch2.setter
     def output_ch2(self, val):
-        raise InstrumentFeatureUnavailable("Feature output_ch2 not available on this device")
+        raise InstrumentFeatureUnavailable(
+            "Feature output_ch2 not available on this device"
+        )
 
     @output_ch3.setter
     def output_ch3(self, val):
-        raise InstrumentFeatureUnavailable("Feature output_ch3 not available on this device")
+        raise InstrumentFeatureUnavailable(
+            "Feature output_ch3 not available on this device"
+        )
 
     @output_ch4.setter
     def output_ch4(self, val):
-        raise InstrumentFeatureUnavailable("Feature output_ch4 not available on this device")
+        raise InstrumentFeatureUnavailable(
+            "Feature output_ch4 not available on this device"
+        )
 
     @output_sync.setter
     def output_sync(self, val):
-        raise InstrumentFeatureUnavailable("Feature output_ch4 not available on this device")
+        raise InstrumentFeatureUnavailable(
+            "Feature output_ch4 not available on this device"
+        )
 
 
 if __name__ == "__main__":
 
     import types
     from functools import partialmethod, update_wrapper
-
 
     class TestClass:
         channel1 = ChannelBase()
@@ -767,7 +1021,7 @@ if __name__ == "__main__":
         modulate = Modulate()
 
         def write(self, base_str, *args, **kwargs):
-            kwargs['self'] = self
+            kwargs["self"] = self
             print(base_str)
             # print(base_str.format(*args, **kwargs))
 
@@ -782,7 +1036,6 @@ if __name__ == "__main__":
 
         def __init__(self):
             self.api = [
-
                 # waveform selection
                 ("channel1.waveform.sin", self.write, "FUNC SIN"),
                 ("channel1.waveform.square", self.write, "FUNC SQU"),
@@ -793,7 +1046,6 @@ if __name__ == "__main__":
                 ("channel1.waveform.noise", self.write, "FUNC NOIS"),
                 ("channel1.waveform.dc", self.write, "FUNC DC"),
                 # ("channel1.waveform.PRBS", self.write, ""), # Not implemented on Rigol
-
                 ("channel2.waveform.sin", self.write, "FUNC:CH2 SIN"),
                 ("channel2.waveform.square", self.write, "FUNC:CH2 SQU"),
                 ("channel2.waveform.ramp", self.write, "FUNC:CH2 RAMP"),
@@ -803,7 +1055,6 @@ if __name__ == "__main__":
                 ("channel2.waveform.noise", self.write, "FUNC:CH2 NOIS"),
                 ("channel2.waveform.dc", self.write, "FUNC:CH2 DC"),
                 # ("channel2.waveform.PRBS", self.write, ""), # Not implemented on Rigol
-
                 # Channel Configuration
                 ("channel1.vrms", self.write, "VOLT:UNIT VRMS\nVOLT {value}"),
                 ("channel1.vpp", self.write, "VOLT:UNIT VPP\nVOLT {value}"),
@@ -812,7 +1063,6 @@ if __name__ == "__main__":
                 ("channel1.phase", self.write, "PHAS {value}"),
                 ("channel1.duty", self.write, "COUN:DCYC"),
                 ("channel1.frequency", self.write, "FREQ {value}"),
-
                 ("channel2.vrms", self.write, "VOLT:UNIT:CH2 VRMS\nVOLT {value}"),
                 ("channel2.vpp", self.write, "VOLT:UNIT:CH2 VPP\nVOLT {value}"),
                 ("channel2.dbm", self.write, "VOLT:UNIT:CH2 DBM\nVOLT {value}"),
@@ -820,11 +1070,17 @@ if __name__ == "__main__":
                 ("channel2.phase", self.write, "PHAS:CH2{value}"),
                 ("channel2.duty", self.write, "COUN:DCYC"),
                 ("channel2.frequency", self.write, "FREQ:CH2 {value}"),
-
                 # Channel Activation
-                ("channel1.__call__", self.write, "OUTP {value}"),  # True won't work here needs to be ON or 1, OFF or 0
-                ("channel2.__call__", self.write, "OUTP {value}"),  # True won't work here needs to be ON or 1, OFF or 0
-
+                (
+                    "channel1.__call__",
+                    self.write,
+                    "OUTP {value}",
+                ),  # True won't work here needs to be ON or 1, OFF or 0
+                (
+                    "channel2.__call__",
+                    self.write,
+                    "OUTP {value}",
+                ),  # True won't work here needs to be ON or 1, OFF or 0
                 # Sync Configuration
                 ("sync.polarity.normal", self.write, ""),
                 ("sync.mode.normal", self.write, ""),
@@ -832,7 +1088,6 @@ if __name__ == "__main__":
                 ("sync.mode.source", self.write, ""),
                 ("sync.__call__", self.write, "OUTP {value}"),
                 # ("sync.polarity.inverted", self.write, "OUTP:POL }")  # Not supported on Rigol
-
                 # Trigger Configuration
                 ("trigger.source.immediate", self.write, "TRIG:SOUR IMM"),
                 ("trigger.source.external", self.write, "TRIG:SOUR EXT"),
@@ -844,18 +1099,15 @@ if __name__ == "__main__":
                 ("trigger.out.__call__", self.write, "OUTP:TRIG {output}"),
                 ("trigger.out.rising", self.write, "OUTP:TRIG:SLOP POS"),
                 ("trigger.out.falling", self.write, "OUTP:TRIG:SLOP NEG"),
-
                 # modulate
                 ("channel1.modulate.am.__call__", self.write, "AM:STAT ON"),
                 ("channel1.modulate.fm.__call__", self.write, "FM:STAT ON"),
                 ("channel1.modulate.pm.__call__", self.write, "PM:STAT ON"),
                 ("channel1.modulate.fsk.__call__", self.write, "FSK:STAT ON"),
-
                 ("channel2.modulate.am.__call__", self.write, "AM:STAT ON"),
                 ("channel2.modulate.fm.__call__", self.write, "FM:STAT ON"),
                 ("channel2.modulate.pm.__call__", self.write, "PM:STAT ON"),
                 ("channel2.modulate.fsk.__call__", self.write, "FSK:STAT ON"),
-
                 # Needs to be separately implemented because Rigol requires individual set up
                 # Eg.
                 # >>>fg.modulate.am() # Write Nothing
@@ -866,18 +1118,22 @@ if __name__ == "__main__":
                 # ("channel1.modulate.fm.__call__", self.store, {"modulate_state": "FM"}),
                 # ("channel1.modulate.pm.__call__", self.store, {"modulate_state": "PM"}),
                 # ("channel1.modulate.__call__", self.write, "{self.modulate_state}:STAT {value}"),
-
                 # MODULATE SOURCES:
-                ("channel1.modulate.source.internal", self.store, {"ch1_modulate_source": "INT"}),
-                ("channel1.modulate.source.external", self.store, {"ch1_modulate_source": "EXT"}),
-
+                (
+                    "channel1.modulate.source.internal",
+                    self.store,
+                    {"ch1_modulate_source": "INT"},
+                ),
+                (
+                    "channel1.modulate.source.external",
+                    self.store,
+                    {"ch1_modulate_source": "EXT"},
+                ),
                 # MODULATE ACTIVATION:
                 ("channel1.modulate", self.store, {"ch1_modulate_source": "ON"}),
                 ("channel1.modulate", self.store, {"ch1_modulate_source": "OFF"}),
-
                 ("channel2.modulate", self.store, {"ch1_modulate_source": "ON"}),
                 ("channel2.modulate", self.store, {"ch1_modulate_source": "OFF"}),
-
                 # MODULATE OPTIONS:
                 ("channel1.modulate.am.depth", self.write, "AM:DEPT"),
                 # ("channel1.modulate.am.dssc", self.write, "AM   ")
@@ -886,7 +1142,6 @@ if __name__ == "__main__":
                 ("channel1.modulate.pm.phase_dev", self.write, "PM:DEV"),
                 ("channel1.modulate.fsk.hop_freq", self.write, "FSK:FREQ"),
                 ("channel1.modulate.fsk.rate", self.write, "FSK:INT:RATE"),
-
                 ("channel2.modulate.am.depth", self.write, "AM:DEPT"),
                 # ("channel2.modulate.am.dssc", self.write, "AM   ")
                 ("channel2.modulate.fm.freq_dev", self.write, "FM:DEV"),
@@ -894,30 +1149,78 @@ if __name__ == "__main__":
                 ("channel2.modulate.pm.phase_dev", self.write, "PM:DEV"),
                 ("channel2.modulate.fsk.hop_freq", self.write, "FSK:FREQ"),
                 ("channel2.modulate.fsk.rate", self.write, "FSK:INT:RATE"),
-
-                ("channel1.modulate.shape.sin", self.store, {"ch1_modulate_source": "SIN"}),
-                ("channel1.modulate.shape.square", self.store, {"ch1_modulate_source": "SQU"}),
-                ("channel1.modulate.shape.triangle", self.store, {"ch1_modulate_source": "RAMP"}),
-                ("channel1.modulate.shape.up_ramp", self.store, {"ch1_modulate_source": "NRAMP"}),
-                ("channel1.modulate.shape.down_ramp", self.store, {"ch1_modulate_source": "TRI"}),
-                ("channel1.modulate.shape.noise", self.store, {"ch1_modulate_source": "NOIS"}),
-
-                ("channel2.modulate.shape.sin", self.store, {"ch1_modulate_source": "SIN"}),
-                ("channel2.modulate.shape.square", self.store, {"ch1_modulate_source": "SQU"}),
-                ("channel2.modulate.shape.triangle", self.store, {"ch1_modulate_source": "RAMP"}),
-                ("channel2.modulate.shape.up_ramp", self.store, {"ch1_modulate_source": "NRAMP"}),
-                ("channel2.modulate.shape.down_ramp", self.store, {"ch1_modulate_source": "TRI"}),
-                ("channel2.modulate.shape.noise", self.store, {"ch1_modulate_source": "NOIS"}),
-
+                (
+                    "channel1.modulate.shape.sin",
+                    self.store,
+                    {"ch1_modulate_source": "SIN"},
+                ),
+                (
+                    "channel1.modulate.shape.square",
+                    self.store,
+                    {"ch1_modulate_source": "SQU"},
+                ),
+                (
+                    "channel1.modulate.shape.triangle",
+                    self.store,
+                    {"ch1_modulate_source": "RAMP"},
+                ),
+                (
+                    "channel1.modulate.shape.up_ramp",
+                    self.store,
+                    {"ch1_modulate_source": "NRAMP"},
+                ),
+                (
+                    "channel1.modulate.shape.down_ramp",
+                    self.store,
+                    {"ch1_modulate_source": "TRI"},
+                ),
+                (
+                    "channel1.modulate.shape.noise",
+                    self.store,
+                    {"ch1_modulate_source": "NOIS"},
+                ),
+                (
+                    "channel2.modulate.shape.sin",
+                    self.store,
+                    {"ch1_modulate_source": "SIN"},
+                ),
+                (
+                    "channel2.modulate.shape.square",
+                    self.store,
+                    {"ch1_modulate_source": "SQU"},
+                ),
+                (
+                    "channel2.modulate.shape.triangle",
+                    self.store,
+                    {"ch1_modulate_source": "RAMP"},
+                ),
+                (
+                    "channel2.modulate.shape.up_ramp",
+                    self.store,
+                    {"ch1_modulate_source": "NRAMP"},
+                ),
+                (
+                    "channel2.modulate.shape.down_ramp",
+                    self.store,
+                    {"ch1_modulate_source": "TRI"},
+                ),
+                (
+                    "channel2.modulate.shape.noise",
+                    self.store,
+                    {"ch1_modulate_source": "NOIS"},
+                ),
                 # BURST
                 ("channel1.burst.gated.__call__", self.write, "BURS:MODE GAT"),
                 ("channel1.burst.ncycle.__call__", self.write, "BURS:MODE TRIG"),
                 ("channel1.burst.ncycle.cycles", self.write, "BURS:NCYC {cycle}"),
-                ("channel1.burst.ncycle.burst_period", self.write, "BURS:INT:PER {seconds}"),
+                (
+                    "channel1.burst.ncycle.burst_period",
+                    self.write,
+                    "BURS:INT:PER {seconds}",
+                ),
                 ("channel1.burst.gated.positive", self.write, "BURS:GATE:POL NORM"),
                 ("channel1.burst.gated.negative", self.write, "BURS:GATE:POL INV"),
                 ("channel1.burst.phase", self.write, "BURS:PHAS {angle}"),
-
                 ("channel2.burst.gated.__call__", self.write, "BURS:MODE GAT"),
                 ("channel2.burst.ncycle.__call__", self.write, "BURS:NCYC"),
                 ("channel2.burst.ncycle.cycles", self.write, "BURS:NCYC{cycle}"),
@@ -925,7 +1228,6 @@ if __name__ == "__main__":
                 ("channel2.burst.gated.positive", self.write, "BURS:GATE:POL NORM"),
                 ("channel2.burst.gated.negative", self.write, "BURS:GATE:POL INV"),
                 ("channel2.burst.phase", self.write, "BURS:PHAS {angle}"),
-
             ]
             self.init_api()
 
@@ -936,7 +1238,9 @@ if __name__ == "__main__":
                 for parent in parents:
                     parent_obj = getattr(parent_obj, parent)
                 func_obc = getattr(parent_obj, func)
-                setattr(parent_obj, func, self.prepare_string(func_obc, handler, base_str))
+                setattr(
+                    parent_obj, func, self.prepare_string(func_obc, handler, base_str)
+                )
 
         def prepare_string(self, func, handler, base_str, *args, **kwargs):
             def temp_func(*nargs, **nkwargs):
@@ -956,7 +1260,6 @@ if __name__ == "__main__":
                 handler(new_str)
 
             return update_wrapper(temp_func, func)
-
 
     testcls = TestClass()
     # Validated

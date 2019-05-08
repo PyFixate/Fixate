@@ -1,27 +1,70 @@
 from collections import namedtuple
 from fixate.core.common import ExcThread
+
 # Basic Functions
-from PyDAQmx import byref, DAQmxResetDevice, TaskHandle, numpy, int32, uInt8, float64, uInt64, c_char_p, uInt32
+from PyDAQmx import (
+    byref,
+    DAQmxResetDevice,
+    TaskHandle,
+    numpy,
+    int32,
+    uInt8,
+    float64,
+    uInt64,
+    c_char_p,
+    uInt32,
+)
+
 # Tasks
-from PyDAQmx import DAQmxCreateTask, DAQmxStartTask, DAQmxWaitUntilTaskDone, DAQmxStopTask, DAQmxClearTask
+from PyDAQmx import (
+    DAQmxCreateTask,
+    DAQmxStartTask,
+    DAQmxWaitUntilTaskDone,
+    DAQmxStopTask,
+    DAQmxClearTask,
+)
+
 # Channels
-from PyDAQmx import DAQmxCreateDOChan, DAQmxCreateDIChan, DAQmxReadDigitalLines, DAQmxWriteDigitalLines, \
-    DAQmx_Val_GroupByScanNumber, DAQmx_Val_ChanPerLine, DAQmxReadCounterScalarF64, DAQmx_Val_Rising, DAQmx_Val_Seconds, \
-    DAQmxCfgSampClkTiming, DAQmx_Val_FiniteSamps
+from PyDAQmx import (
+    DAQmxCreateDOChan,
+    DAQmxCreateDIChan,
+    DAQmxReadDigitalLines,
+    DAQmxWriteDigitalLines,
+    DAQmx_Val_GroupByScanNumber,
+    DAQmx_Val_ChanPerLine,
+    DAQmxReadCounterScalarF64,
+    DAQmx_Val_Rising,
+    DAQmx_Val_Seconds,
+    DAQmxCfgSampClkTiming,
+    DAQmx_Val_FiniteSamps,
+)
+
 # Two Edge Separation
-from PyDAQmx import DAQmxCreateCITwoEdgeSepChan, DAQmxSetCITwoEdgeSepFirstTerm, DAQmxGetCITwoEdgeSepFirstTerm, \
-    DAQmxSetCITwoEdgeSepSecondTerm, DAQmxGetCITwoEdgeSepSecondTerm, DAQmx_Val_Falling
+from PyDAQmx import (
+    DAQmxCreateCITwoEdgeSepChan,
+    DAQmxSetCITwoEdgeSepFirstTerm,
+    DAQmxGetCITwoEdgeSepFirstTerm,
+    DAQmxSetCITwoEdgeSepSecondTerm,
+    DAQmxGetCITwoEdgeSepSecondTerm,
+    DAQmx_Val_Falling,
+)
+
 # Signal Routing
-from PyDAQmx import DAQmxConnectTerms, DAQmxDisconnectTerms, DAQmxTristateOutputTerm, DAQmx_Val_InvertPolarity, \
-    DAQmx_Val_DoNotInvertPolarity
+from PyDAQmx import (
+    DAQmxConnectTerms,
+    DAQmxDisconnectTerms,
+    DAQmxTristateOutputTerm,
+    DAQmx_Val_InvertPolarity,
+    DAQmx_Val_DoNotInvertPolarity,
+)
 
 from fixate.core.exceptions import InstrumentError, ParameterError
 from fixate.drivers.daq.helper import DAQ
 
-IORange = namedtuple('IORange', ['port', 'range_start', 'range_end'])
+IORange = namedtuple("IORange", ["port", "range_start", "range_end"])
 IORange.__new__.__defaults__ = (0, None, None)
 
-IOLine = namedtuple('IOLine', ['port', 'line'])
+IOLine = namedtuple("IOLine", ["port", "line"])
 IOLine.__new__.__defaults__ = (0, None)
 
 
@@ -29,6 +72,7 @@ class DaqTask:
     """
 
     """
+
     task_state = ""
     task = None
 
@@ -91,15 +135,17 @@ class DigitalOut(DaqTask):
         data_arr = numpy.zeros(self.io_length, uInt8)
         samples_per_chan = int32()
         num_bytes_per_sample = int32()
-        DAQmxReadDigitalLines(self.task,
-                              1,  # Samples per channel
-                              2.0,  # Timeout
-                              DAQmx_Val_GroupByScanNumber,  # Interleaved
-                              data_arr,
-                              len(data_arr),
-                              byref(samples_per_chan),
-                              byref(num_bytes_per_sample),
-                              None)
+        DAQmxReadDigitalLines(
+            self.task,
+            1,  # Samples per channel
+            2.0,  # Timeout
+            DAQmx_Val_GroupByScanNumber,  # Interleaved
+            data_arr,
+            len(data_arr),
+            byref(samples_per_chan),
+            byref(num_bytes_per_sample),
+            None,
+        )
         return data_arr
 
     def write(self, data):
@@ -112,22 +158,32 @@ class DigitalOut(DaqTask):
         self.init()
         try:
             if len(data) % self.io_length:
-                raise ValueError("data must be a length divisible by {}".format(self.io_length))
+                raise ValueError(
+                    "data must be a length divisible by {}".format(self.io_length)
+                )
             data_arr = numpy.zeros(len(data), uInt8)
             data_arr[:] = data
         except TypeError:
             if self.io_length != 1:
-                raise ValueError("data must be a list of length divisible by {}".format(self.io_length))
+                raise ValueError(
+                    "data must be a list of length divisible by {}".format(
+                        self.io_length
+                    )
+                )
             data_arr = numpy.zeros(1, uInt8)
             data_arr[:] = [data]
 
         written = int32()
-        DAQmxWriteDigitalLines(self.task,
-                               len(data_arr) // self.io_length,  # Samples per channel
-                               1,  # Autostart task
-                               2.0,  # Timeout
-                               DAQmx_Val_GroupByScanNumber,  # Interleaved
-                               data_arr, written, None)
+        DAQmxWriteDigitalLines(
+            self.task,
+            len(data_arr) // self.io_length,  # Samples per channel
+            1,  # Autostart task
+            2.0,  # Timeout
+            DAQmx_Val_GroupByScanNumber,  # Interleaved
+            data_arr,
+            written,
+            None,
+        )
 
 
 class DigitalIn(DaqTask):
@@ -153,15 +209,17 @@ class DigitalIn(DaqTask):
         data_arr = numpy.zeros(self.io_length, uInt8)
         samples_per_chan = int32()
         num_bytes_per_sample = int32()
-        DAQmxReadDigitalLines(self.task,
-                              1,  # Samples per channel
-                              2.0,  # Timeout
-                              DAQmx_Val_GroupByScanNumber,  # Interleaved
-                              data_arr,
-                              len(data_arr),
-                              byref(samples_per_chan),
-                              byref(num_bytes_per_sample),
-                              None)
+        DAQmxReadDigitalLines(
+            self.task,
+            1,  # Samples per channel
+            2.0,  # Timeout
+            DAQmx_Val_GroupByScanNumber,  # Interleaved
+            data_arr,
+            len(data_arr),
+            byref(samples_per_chan),
+            byref(num_bytes_per_sample),
+            None,
+        )
         return data_arr
 
 
@@ -192,24 +250,42 @@ class BufferedWrite(DaqTask):
         self.init()
         try:
             if len(data) % self.io_length:
-                raise ValueError("data must be a length divisible by {}".format(self.io_length))
+                raise ValueError(
+                    "data must be a length divisible by {}".format(self.io_length)
+                )
         except TypeError as e:
-            raise ValueError("data must be in an list divisible by {}".format(self.io_length)) from e
+            raise ValueError(
+                "data must be in an list divisible by {}".format(self.io_length)
+            ) from e
         if len(data) == self.io_length:
             # Sample clock only works for more than one sample so duplicate the sample
             data = list(data)
             data.extend(data)
 
-        DAQmxCfgSampClkTiming(self.task, None, float64(self.frequency), DAQmx_Val_Rising, DAQmx_Val_FiniteSamps,
-                              uInt64(int(len(data) // self.io_length)))
+        DAQmxCfgSampClkTiming(
+            self.task,
+            None,
+            float64(self.frequency),
+            DAQmx_Val_Rising,
+            DAQmx_Val_FiniteSamps,
+            uInt64(int(len(data) // self.io_length)),
+        )
 
         try:
             data_arr = numpy.zeros((len(data)), uInt8)
             data_arr[:] = data
 
             written = int32()
-            DAQmxWriteDigitalLines(self.task, int(len(data) // self.io_length), 1, -1,
-                                   DAQmx_Val_GroupByScanNumber, data_arr, written, None)
+            DAQmxWriteDigitalLines(
+                self.task,
+                int(len(data) // self.io_length),
+                1,
+                -1,
+                DAQmx_Val_GroupByScanNumber,
+                data_arr,
+                written,
+                None,
+            )
             self.task_state = "running"
             DAQmxWaitUntilTaskDone(self.task, -1)
             if written.value != len(data) // self.io_length:
@@ -225,11 +301,22 @@ class TwoEdgeSeparation(DaqTask):
     encoding of the terminal for the source and destination terminal. A validate terminals parameter has been added
     but it should only be used once and as a debugging tool as it will prevent any future tasks being created
     """
+
     _data = float64()
     _trigger_thread = None
 
-    def __init__(self, device_name, counter_chan, min_val, max_val, first_edge_type, second_edge_type,
-                 source_terminal, destination_terminal, validate_terminals=False):
+    def __init__(
+        self,
+        device_name,
+        counter_chan,
+        min_val,
+        max_val,
+        first_edge_type,
+        second_edge_type,
+        source_terminal,
+        destination_terminal,
+        validate_terminals=False,
+    ):
         self.device_name = device_name
         self.counter_chan = counter_chan
         self.min_val = min_val
@@ -244,41 +331,64 @@ class TwoEdgeSeparation(DaqTask):
         if self.task_state == "":
             self.task = TaskHandle()
             DAQmxCreateTask(b"", byref(self.task))
-            DAQmxCreateCITwoEdgeSepChan(self.task, "{}/{}".format(self.device_name, self.counter_chan).encode(), b"",
-                                        float64(self.min_val), float64(self.max_val), DAQmx_Val_Seconds,
-                                        self.first_edge_type,
-                                        self.second_edge_type, b"")
+            DAQmxCreateCITwoEdgeSepChan(
+                self.task,
+                "{}/{}".format(self.device_name, self.counter_chan).encode(),
+                b"",
+                float64(self.min_val),
+                float64(self.max_val),
+                DAQmx_Val_Seconds,
+                self.first_edge_type,
+                self.second_edge_type,
+                b"",
+            )
             if self.source_terminal:
                 tmp_data = c_char_p(self.source_terminal.encode())
-                DAQmxSetCITwoEdgeSepFirstTerm(self.task, "{}/{}".format(self.device_name, self.counter_chan).encode(),
-                                              tmp_data)
+                DAQmxSetCITwoEdgeSepFirstTerm(
+                    self.task,
+                    "{}/{}".format(self.device_name, self.counter_chan).encode(),
+                    tmp_data,
+                )
                 if self.validate_terminals:
                     tmp_data = c_char_p("".encode())
-                    DAQmxGetCITwoEdgeSepFirstTerm(self.task,
-                                                  "{}/{}".format(self.device_name, self.counter_chan).encode(),
-                                                  tmp_data,
-                                                  uInt32(16))
-                    if self.destination_terminal not in tmp_data.value.decode('utf-8'):
+                    DAQmxGetCITwoEdgeSepFirstTerm(
+                        self.task,
+                        "{}/{}".format(self.device_name, self.counter_chan).encode(),
+                        tmp_data,
+                        uInt32(16),
+                    )
+                    if self.destination_terminal not in tmp_data.value.decode("utf-8"):
                         raise InstrumentError(
-                            "Destination terminal is set to {}, should be /{}/{}".format(tmp_data.value.decode('utf-8'),
-                                                                                         self.device_name,
-                                                                                         self.destination_terminal))
+                            "Destination terminal is set to {}, should be /{}/{}".format(
+                                tmp_data.value.decode("utf-8"),
+                                self.device_name,
+                                self.destination_terminal,
+                            )
+                        )
 
             if self.destination_terminal:
                 tmp_data = c_char_p(self.destination_terminal.encode())
-                DAQmxSetCITwoEdgeSepSecondTerm(self.task, "{}/{}".format(self.device_name, self.counter_chan).encode(),
-                                               tmp_data)
+                DAQmxSetCITwoEdgeSepSecondTerm(
+                    self.task,
+                    "{}/{}".format(self.device_name, self.counter_chan).encode(),
+                    tmp_data,
+                )
                 if self.validate_terminals:
                     tmp_data = c_char_p("".encode())
-                    DAQmxGetCITwoEdgeSepSecondTerm(self.task,
-                                                   "{}/{}".format(self.device_name, self.counter_chan).encode(),
-                                                   tmp_data,
-                                                   uInt32(16))
-                    if self.destination_terminal not in tmp_data.value.decode('utf-8'):
+                    DAQmxGetCITwoEdgeSepSecondTerm(
+                        self.task,
+                        "{}/{}".format(self.device_name, self.counter_chan).encode(),
+                        tmp_data,
+                        uInt32(16),
+                    )
+                    if self.destination_terminal not in tmp_data.value.decode("utf-8"):
                         raise InstrumentError(
-                            "Destination terminal is set to {}, should be /{}/{}".format(tmp_data.value.decode('utf-8'),
-                                                                                         self.device_name,
-                                                                                         self.destination_terminal))
+                            "Destination terminal is set to {}, should be /{}/{}".format(
+                                tmp_data.value.decode("utf-8"),
+                                self.device_name,
+                                self.destination_terminal,
+                            )
+                        )
             self.task_state = "init"
 
     def read(self):
@@ -293,7 +403,9 @@ class TwoEdgeSeparation(DaqTask):
 
     def _read(self):
         self.init()
-        return DAQmxReadCounterScalarF64(self.task, float64(10), byref(self._data), None)
+        return DAQmxReadCounterScalarF64(
+            self.task, float64(10), byref(self._data), None
+        )
 
     def trigger(self):
         if self._trigger_thread:
@@ -348,7 +460,14 @@ class DaqMx(DAQ):
         for _, task in self.tasks.items():
             task.task_state = ""
 
-    def signal_route(self, source_terminal, destination_terminal, disconnect=False, tri_state=False, invert=False):
+    def signal_route(
+        self,
+        source_terminal,
+        destination_terminal,
+        disconnect=False,
+        tri_state=False,
+        invert=False,
+    ):
         """
         Immediately routes a signal between two terminals
         Set destination_terminal to '' if tri_state output is required on the source_terminal
@@ -357,8 +476,10 @@ class DaqMx(DAQ):
         Leave out the device name
         eg. /Dev 1/PFI0 would be PFI0
         """
-        source_terminal = '/{}/{}'.format(self.device_name, source_terminal).encode()
-        destination_terminal = '/{}/{}'.format(self.device_name, destination_terminal).encode()
+        source_terminal = "/{}/{}".format(self.device_name, source_terminal).encode()
+        destination_terminal = "/{}/{}".format(
+            self.device_name, destination_terminal
+        ).encode()
 
         if disconnect:
             DAQmxDisconnectTerms(source_terminal, destination_terminal)
@@ -371,8 +492,17 @@ class DaqMx(DAQ):
                 invert = DAQmx_Val_DoNotInvertPolarity
             DAQmxConnectTerms(source_terminal, destination_terminal, invert)
 
-    def create_two_edge_separation(self, ident, counter_chan, min_val, max_val, first_edge_type, second_edge_type,
-                                   source_terminal=None, destination_terminal=None):
+    def create_two_edge_separation(
+        self,
+        ident,
+        counter_chan,
+        min_val,
+        max_val,
+        first_edge_type,
+        second_edge_type,
+        source_terminal=None,
+        destination_terminal=None,
+    ):
         """
         Returns the two edge separation of two signals
         :param ident:
@@ -409,19 +539,27 @@ class DaqMx(DAQ):
         ctr0
         eg. source_terminal = "PFI14" will make the Start pin as PFI 14 in stead of 10
         """
-        if counter_chan not in ['ctr0', 'ctr1', 'ctr2', 'ctr3']:
+        if counter_chan not in ["ctr0", "ctr1", "ctr2", "ctr3"]:
             raise ValueError("Invalid counter channel selected")
-        if first_edge_type.lower() == 'falling':
+        if first_edge_type.lower() == "falling":
             first_edge_type = DAQmx_Val_Falling
         else:
             first_edge_type = DAQmx_Val_Rising
-        if second_edge_type.lower() == 'falling':
+        if second_edge_type.lower() == "falling":
             second_edge_type = DAQmx_Val_Falling
         else:
             second_edge_type = DAQmx_Val_Rising
 
-        self.tasks[ident] = TwoEdgeSeparation(self.device_name, counter_chan, min_val, max_val, first_edge_type,
-                                              second_edge_type, source_terminal, destination_terminal)
+        self.tasks[ident] = TwoEdgeSeparation(
+            self.device_name,
+            counter_chan,
+            min_val,
+            max_val,
+            first_edge_type,
+            second_edge_type,
+            source_terminal,
+            destination_terminal,
+        )
 
     def trigger_measurement(self, ident):
         try:
@@ -457,7 +595,9 @@ class DaqMx(DAQ):
         if ident in self.tasks:
             raise ParameterError("Ident {} already used".format(ident))
         do_channel, data_length = self._build_digital_task_string(*dio_ranges)
-        self.tasks[ident] = BufferedWrite(task_string=do_channel, io_length=data_length, frequency=frequency)
+        self.tasks[ident] = BufferedWrite(
+            task_string=do_channel, io_length=data_length, frequency=frequency
+        )
 
     def _build_digital_task_string(self, *dio_ranges):
         """
@@ -469,9 +609,9 @@ class DaqMx(DAQ):
         data_length = 0
         task_arr = []
         for rng in dio_ranges:
-            task_arr.append(self.device_name + '/port{}/line{}:{}'.format(*rng))
+            task_arr.append(self.device_name + "/port{}/line{}:{}".format(*rng))
             data_length += rng[2] - rng[1] + 1  # range end - range start + 1
-        return ', '.join(task_arr).encode(), data_length
+        return ", ".join(task_arr).encode(), data_length
 
     def create_digital_output(self, ident, *dio_ranges):
         """
@@ -524,7 +664,11 @@ class DaqMx(DAQ):
         try:
             return self.tasks[ident].read()
         except KeyError:
-            raise KeyError("{} is not a valid identifier\nAvailable tasks: {}".format(ident, sorted(self.tasks)))
+            raise KeyError(
+                "{} is not a valid identifier\nAvailable tasks: {}".format(
+                    ident, sorted(self.tasks)
+                )
+            )
 
     def start_task(self, ident):
         """

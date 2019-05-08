@@ -3,7 +3,7 @@ from fixate.core.common import TestClass, TestList
 from fixate.config import RESOURCES
 import fixate
 
-__version__ = '2'
+__version__ = "2"
 
 # Standard expected output
 """
@@ -203,28 +203,45 @@ class Foo(TestClass):
         pass
 
 
-tests = Lst([Test(1),
-             Lst([Test(2), Lst([Test(3), Test(4)])]),
-             Lst([Lst([Test(5), Test(6)]), Test(7)]),
-             TestSubclass(10)])
+tests = Lst(
+    [
+        Test(1),
+        Lst([Test(2), Lst([Test(3), Test(4)])]),
+        Lst([Lst([Test(5), Test(6)]), Test(7)]),
+        TestSubclass(10),
+    ]
+)
 
-tests_no_test_list = [Test(1),
-                      [Test(2), [Test(3), Test(4)],
-                       [[Test(5), Test(6)], Test(7)],
-                       TestSubclass(10)]]
+tests_no_test_list = [
+    Test(1),
+    [Test(2), [Test(3), Test(4)], [[Test(5), Test(6)], Test(7)], TestSubclass(10)],
+]
 
-tests_list_enter_fail = Lst([Test(1), Lst([Test(2), Lst([Test(3), Test(4)])]),
-                             FailEnter([Lst([Test(5), Test(6)]), Test(7)]),
-                             TestSubclass(10)])
+tests_list_enter_fail = Lst(
+    [
+        Test(1),
+        Lst([Test(2), Lst([Test(3), Test(4)])]),
+        FailEnter([Lst([Test(5), Test(6)]), Test(7)]),
+        TestSubclass(10),
+    ]
+)
 
-test_deep_test_fail = Lst([Test(1),
-                           Lst([Test(2), Lst([Test(3), Test(4)])]),
-                           Lst([Lst([Test(5), FailTest(6)]), Test(7)]),
-                           TestSubclass(10)])
-test_list_setup_fail = Lst([Test(1),
-                            Lst([Test(2), Lst([Test(3), Test(4)])]),
-                            FailSetup([Lst([Test(5), Test(6)]), Test(7)]),
-                            TestSubclass(10)])
+test_deep_test_fail = Lst(
+    [
+        Test(1),
+        Lst([Test(2), Lst([Test(3), Test(4)])]),
+        Lst([Lst([Test(5), FailTest(6)]), Test(7)]),
+        TestSubclass(10),
+    ]
+)
+test_list_setup_fail = Lst(
+    [
+        Test(1),
+        Lst([Test(2), Lst([Test(3), Test(4)])]),
+        FailSetup([Lst([Test(5), Test(6)]), Test(7)]),
+        TestSubclass(10),
+    ]
+)
 TEST_SEQUENCE = tests
 
 test_data = {
@@ -232,5 +249,5 @@ test_data = {
     "no_test_list": tests_no_test_list,
     "list_enter_fail": tests_list_enter_fail,
     "deep_test_fail": test_deep_test_fail,
-    "list_setup_fail": test_list_setup_fail
+    "list_setup_fail": test_list_setup_fail,
 }

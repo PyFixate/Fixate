@@ -15,61 +15,97 @@ from fixate.core.ui import user_input, user_serial, user_ok
 from fixate.reporting import register_csv, unregister_csv
 from fixate.ui_cmdline import register_cmd_line, unregister_cmd_line
 
-parser = ArgumentParser(description="""
+parser = ArgumentParser(
+    description="""
 Fixate Command Line Interface
 
-""", formatter_class=RawTextHelpFormatter)
+""",
+    formatter_class=RawTextHelpFormatter,
+)
 
 logger = logging.getLogger(__name__)
 
 # Optional Arguments
 mutex_group = parser.add_mutually_exclusive_group()
-mutex_group.add_argument('-p', '--path',
-                         help="""Path to the directory where the script file is located. 
-                         This is mutually exclusive with --zip""")
-mutex_group.add_argument('-z', '--zip',
-                         help="""Path to zip file of test scripts. Mutually exclusive with --path""", )
-parser.add_argument('-l', '--local_log', '--local-log',
-                    help="""Deprecated. Use the -c config to set up reporting to a different directory
+mutex_group.add_argument(
+    "-p",
+    "--path",
+    help="""Path to the directory where the script file is located. 
+                         This is mutually exclusive with --zip""",
+)
+mutex_group.add_argument(
+    "-z",
+    "--zip",
+    help="""Path to zip file of test scripts. Mutually exclusive with --path""",
+)
+parser.add_argument(
+    "-l",
+    "--local_log",
+    "--local-log",
+    help="""Deprecated. Use the -c config to set up reporting to a different directory
                     Overrides the logging path to the current working directory""",
-                    action="store_true")
-parser.add_argument('-q', '--qtgui',
-                    help="""Argument to select the qt gui mode. This is still in early development""",
-                    action="store_true")
-parser.add_argument('-d', '--dev',
-                    help="""Activate Dev Mode for more debug information""",
-                    action="store_true")
-parser.add_argument('-c', '--config',
-                    help="""Specify the path to a configuration file.
+    action="store_true",
+)
+parser.add_argument(
+    "-q",
+    "--qtgui",
+    help="""Argument to select the qt gui mode. This is still in early development""",
+    action="store_true",
+)
+parser.add_argument(
+    "-d",
+    "--dev",
+    help="""Activate Dev Mode for more debug information""",
+    action="store_true",
+)
+parser.add_argument(
+    "-c",
+    "--config",
+    help="""Specify the path to a configuration file.
                     Configuration files are in yaml format. 
                     Values in this file take precedence over those in a global config file. 
                     This argument can be used multiple times with later config files taking precedence over earlier ones
                     """,
-                    action='append',
-                    default=[]
-                    )
-parser.add_argument('-i', '--index',
-                    help="""Selector string that is parsed into test_data.get() hosted in the path or zip_selector file.
+    action="append",
+    default=[],
+)
+parser.add_argument(
+    "-i",
+    "--index",
+    help="""Selector string that is parsed into test_data.get() hosted in the path or zip_selector file.
                     This can be used to distinguish between different configurations of tests""",
-                    default="default")
-parser.add_argument('--zip_selector', '--zip-selector',
-                    help="""File name in zip that hosts the test_data object to return tests. 
+    default="default",
+)
+parser.add_argument(
+    "--zip_selector",
+    "--zip-selector",
+    help="""File name in zip that hosts the test_data object to return tests. 
                     Only used if zip file is parsed in path. Use to override from default of test_variants.py""",
-                    default="test_variants.py")
-parser.add_argument('--script-params',
-                    help="""Call this for sequence context information available to the test script and logging services
+    default="test_variants.py",
+)
+parser.add_argument(
+    "--script-params",
+    help="""Call this for sequence context information available to the test script and logging services
                     These values will be split on = and parsed as strings into a dictionary
                     Eg. --script-params version=1 --script-params foo=bar
                     output would be
                     >>>fixate.config.RESOURCES["SEQUENCER"].context_data
                     {"version": "1", "foo":"bar", "serial_number":<--serial_number value>}
                     """,
-                    action='append',
-                    default=[])
-parser.add_argument('--serial_number', '--serial-number',
-                    help=("Serial number of the DUT."))
-parser.add_argument("--log-file", action="store", help="Specify a file to write the log to")
-parser.add_argument('--non-interactive', action="store_true", help="The sequencer will not prompt for retries.")
+    action="append",
+    default=[],
+)
+parser.add_argument(
+    "--serial_number", "--serial-number", help=("Serial number of the DUT.")
+)
+parser.add_argument(
+    "--log-file", action="store", help="Specify a file to write the log to"
+)
+parser.add_argument(
+    "--non-interactive",
+    action="store_true",
+    help="The sequencer will not prompt for retries.",
+)
 
 
 def load_test_suite(script_path, zip_path, zip_selector):
@@ -85,13 +121,13 @@ def load_test_suite(script_path, zip_path, zip_selector):
         raise ValueError("Cannot load test suite without appropriate path selected")
     if script_path is not None:
         # Do a script file load
-        importer = SourceFileLoader('module.loaded_tests', script_path)
+        importer = SourceFileLoader("module.loaded_tests", script_path)
         loader = importer.load_module
         sys.path.insert(0, os.path.dirname(script_path))
     else:
         # Use Zip File
         importer = zipimporter(zip_path)
-        loader = partial(importer.load_module, zip_selector.split('.')[0])
+        loader = partial(importer.load_module, zip_selector.split(".")[0])
         sys.path.append(zip_path)
     logger.debug("Sys Path Appended")
     logger.debug("Source File Loaded")
@@ -110,7 +146,9 @@ class FixateController:
     def __init__(self, sequencer, test_script_path, args, loop):
         register_cmd_line()
         # self.register()
-        self.worker = FixateWorker(sequencer=sequencer, test_script_path=test_script_path, args=args, loop=loop)
+        self.worker = FixateWorker(
+            sequencer=sequencer, test_script_path=test_script_path, args=args, loop=loop
+        )
 
     def fixate_exec(self):
         exit_code = self.worker.ui_run()
@@ -138,15 +176,22 @@ class FixateSupervisor:
                     from PyQt5 import QtWidgets, QtCore
                     import fixate.ui_gui_qt as gui
 
-                    self.worker = FixateWorker(test_script_path=test_script_path, args=args, loop=loop,
-                                               sequencer=sequencer)
+                    self.worker = FixateWorker(
+                        test_script_path=test_script_path,
+                        args=args,
+                        loop=loop,
+                        sequencer=sequencer,
+                    )
 
-                    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
+                    QtWidgets.QApplication.setAttribute(
+                        QtCore.Qt.AA_EnableHighDpiScaling
+                    )
                     self.fixateApp = QtWidgets.QApplication(sys.argv)
                     self.fixateApp.setQuitOnLastWindowClosed(False)
                     self.fixateDisplay = gui.FixateGUI(self.worker, self.fixateApp)
                     self.fixateApp.aboutToQuit.connect(
-                        self.fixateDisplay.clean_up)  # Duplicate call except in the case where termination is caused by logoff/shutdown
+                        self.fixateDisplay.clean_up
+                    )  # Duplicate call except in the case where termination is caused by logoff/shutdown
                     self.fixateDisplay.show()
 
                 def fixate_exec(self):
@@ -157,11 +202,19 @@ class FixateSupervisor:
                     self.fixateApp.closeAllWindows()
                     return exit_code
 
-            self.controller = QTController(sequencer=self.sequencer, test_script_path=test_script_path, args=args,
-                                           loop=self.loop)
+            self.controller = QTController(
+                sequencer=self.sequencer,
+                test_script_path=test_script_path,
+                args=args,
+                loop=self.loop,
+            )
         else:  # Command line execution
-            self.controller = FixateController(sequencer=self.sequencer, test_script_path=test_script_path,
-                                               args=args, loop=self.loop)
+            self.controller = FixateController(
+                sequencer=self.sequencer,
+                test_script_path=test_script_path,
+                args=args,
+                loop=self.loop,
+            )
 
     def run_fixate(self):
         return self.controller.fixate_exec()
@@ -189,7 +242,9 @@ class FixateWorker:
     def stop(self):
         """This function is called in case of unusual termination, and runs in the main thread"""
         self.sequencer._handle_sequence_abort()
-        pub.sendMessage("Sequence_Abort", exception=SequenceAbort("Application Closing"))
+        pub.sendMessage(
+            "Sequence_Abort", exception=SequenceAbort("Application Closing")
+        )
         self.loop.stop()
 
         for _ in range(15):
@@ -243,32 +298,44 @@ class FixateWorker:
 
                 self.sequencer.context_data["index"] = self.args.index
             # Load test suite
-            test_suite = load_test_suite(self.args.path, self.args.zip, self.args.zip_selector)
+            test_suite = load_test_suite(
+                self.args.path, self.args.zip, self.args.zip_selector
+            )
             test_data = retrieve_test_data(test_suite, self.args.index)
             self.sequencer.load(test_data)
 
             if self.args.local_log:
                 try:
-                    fixate.config.plg_csv["tpl_csv_path"] = ["{tpl_time_stamp}-{index}.csv"]
+                    fixate.config.plg_csv["tpl_csv_path"] = [
+                        "{tpl_time_stamp}-{index}.csv"
+                    ]
                 except (AttributeError, KeyError):
                     pass
             register_csv()
-            self.sequencer.status = 'Running'
+            self.sequencer.status = "Running"
 
             def finished_test_run_response(future):
                 future.result()
-                self.loop.call_later(1, self.loop.stop)  # Max 1 second to clean up tasks before aborting
+                self.loop.call_later(
+                    1, self.loop.stop
+                )  # Max 1 second to clean up tasks before aborting
 
             def finished_test_run(future):
                 if self.sequencer.non_interactive:
-                    self.loop.call_later(1, self.loop.stop)  # Max 1 second to clean up tasks before aborting
+                    self.loop.call_later(
+                        1, self.loop.stop
+                    )  # Max 1 second to clean up tasks before aborting
                     return
 
                 if self.sequencer.status in ["Finished", "Aborted"]:
                     f = partial(user_ok, "Finished testing")
-                    self.loop.run_in_executor(None, f).add_done_callback(finished_test_run_response)
+                    self.loop.run_in_executor(None, f).add_done_callback(
+                        finished_test_run_response
+                    )
 
-            self.loop.run_in_executor(None, self.sequencer.run_sequence).add_done_callback(finished_test_run)
+            self.loop.run_in_executor(
+                None, self.sequencer.run_sequence
+            ).add_done_callback(finished_test_run)
 
             try:
                 self.loop.run_forever()
@@ -276,13 +343,16 @@ class FixateWorker:
                 self.loop.close()
         except BaseException:
             import traceback
+
             input(traceback.print_exc())
             raise
         finally:
             unregister_csv()
             if serial_number == "ABORT_FORCE" or test_selector == "ABORT_FORCE":
                 return 11
-            self.clean = True  # Let the supervisor know that the program is finishing normally
+            self.clean = (
+                True
+            )  # Let the supervisor know that the program is finishing normally
             if self.sequencer.end_status == "FAILED":
                 return 10
             elif self.sequencer.status == "Aborted":

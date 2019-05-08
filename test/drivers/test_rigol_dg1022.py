@@ -71,9 +71,13 @@ class ChannelConfig(unittest.TestCase):
 
         # # Lower Limits
         self.testcls.channel1.vrms(0.001414227)
-        self.assertAlmostEqual(0.001414227, float(self.testcls.instrument.query("VOLT?")))
+        self.assertAlmostEqual(
+            0.001414227, float(self.testcls.instrument.query("VOLT?"))
+        )
         self.testcls.channel1.vrms(0.0013)
-        self.assertAlmostEqual(0.001414227, float(self.testcls.instrument.query("VOLT?")))
+        self.assertAlmostEqual(
+            0.001414227, float(self.testcls.instrument.query("VOLT?"))
+        )
 
     def test_vpp(self):
         self.testcls.channel1.vpp(2.1)
@@ -191,7 +195,9 @@ class ChannelConfig(unittest.TestCase):
         self.assertAlmostEqual(200e-3, float(self.testcls.instrument.query("VOLT?")))
 
         self.testcls.channel1.offset(100e-3)
-        self.assertAlmostEqual(100e-3, float(self.testcls.instrument.query("VOLT:OFFS?")))
+        self.assertAlmostEqual(
+            100e-3, float(self.testcls.instrument.query("VOLT:OFFS?"))
+        )
 
         # Upper Limits
         self.testcls.channel1.offset(9.9)
@@ -199,7 +205,9 @@ class ChannelConfig(unittest.TestCase):
         self.testcls.channel1.offset(4)
         self.assertAlmostEqual(4, float(self.testcls.instrument.query("VOLT:OFFS?")))
         self.testcls.channel1.offset(9.91)
-        self.assertAlmostEqual(9.9, float(self.testcls.instrument.query("VOLT:OFFS?")))  # Clipped to 9.9
+        self.assertAlmostEqual(
+            9.9, float(self.testcls.instrument.query("VOLT:OFFS?"))
+        )  # Clipped to 9.9
         #
         # # Lower Limits
         self.testcls.channel1.offset(-9.9)
@@ -221,7 +229,9 @@ class ChannelConfig(unittest.TestCase):
         self.testcls.channel1.waveform.square()
         self.assertIn("SQU", self.testcls.instrument.query("FUNC?"))
         self.testcls.channel1.duty(40)
-        self.assertAlmostEqual(40, float(self.testcls.instrument.query("FUNC:SQU:DCYC?")))
+        self.assertAlmostEqual(
+            40, float(self.testcls.instrument.query("FUNC:SQU:DCYC?"))
+        )
 
         self.testcls.channel1.waveform.pulse()
         self.assertAlmostEqual(40, float(self.testcls.instrument.query("PULS:DCYC?")))
@@ -230,25 +240,39 @@ class ChannelConfig(unittest.TestCase):
         self.assertAlmostEqual(60, float(self.testcls.instrument.query("PULS:DCYC?")))
         self.assertIn("PULS", self.testcls.instrument.query("FUNC?"))
         self.testcls.channel1.waveform.square()
-        self.assertAlmostEqual(60, float(self.testcls.instrument.query("FUNC:SQU:DCYC?")))
+        self.assertAlmostEqual(
+            60, float(self.testcls.instrument.query("FUNC:SQU:DCYC?"))
+        )
 
         # Upper Limits
         self.testcls.channel1.waveform.square()
         self.testcls.channel1.duty(80)
-        self.assertAlmostEqual(80, float(self.testcls.instrument.query("FUNC:SQU:DCYC?")))
+        self.assertAlmostEqual(
+            80, float(self.testcls.instrument.query("FUNC:SQU:DCYC?"))
+        )
         self.testcls.channel1.duty(25)
-        self.assertAlmostEqual(25, float(self.testcls.instrument.query("FUNC:SQU:DCYC?")))
+        self.assertAlmostEqual(
+            25, float(self.testcls.instrument.query("FUNC:SQU:DCYC?"))
+        )
         self.testcls.channel1.duty(84)
-        self.assertAlmostEqual(80, float(self.testcls.instrument.query("FUNC:SQU:DCYC?")))
+        self.assertAlmostEqual(
+            80, float(self.testcls.instrument.query("FUNC:SQU:DCYC?"))
+        )
 
         # # Lower Limits
         self.testcls.channel1.waveform.square()
         self.testcls.channel1.duty(20)
-        self.assertAlmostEqual(20, float(self.testcls.instrument.query("FUNC:SQU:DCYC?")))
+        self.assertAlmostEqual(
+            20, float(self.testcls.instrument.query("FUNC:SQU:DCYC?"))
+        )
         self.testcls.channel1.duty(30)
-        self.assertAlmostEqual(30, float(self.testcls.instrument.query("FUNC:SQU:DCYC?")))
+        self.assertAlmostEqual(
+            30, float(self.testcls.instrument.query("FUNC:SQU:DCYC?"))
+        )
         self.testcls.channel1.duty(14)
-        self.assertAlmostEqual(20, float(self.testcls.instrument.query("FUNC:SQU:DCYC?")))
+        self.assertAlmostEqual(
+            20, float(self.testcls.instrument.query("FUNC:SQU:DCYC?"))
+        )
 
 
 @unittest.skip("Requires instrument connected to run")
@@ -279,7 +303,9 @@ class Burst(unittest.TestCase):
 
     def test_period(self):
         self.testcls.channel1.burst.ncycle.burst_period(100)
-        self.assertAlmostEqual(100, float(self.testcls.instrument.query("BURS:INT:PER?")))
+        self.assertAlmostEqual(
+            100, float(self.testcls.instrument.query("BURS:INT:PER?"))
+        )
 
     def test_gated_positive(self):
         self.testcls.channel1.burst.gated.positive()
@@ -320,7 +346,9 @@ class Modulate_Options(unittest.TestCase):
         self.testcls.channel1.modulate.fsk()
         self.assertIn("OFF", self.testcls.instrument.query("FSK:STAT?"))
         self.testcls.channel1.modulate.fsk.rate(100)
-        self.assertAlmostEqual(100, float(self.testcls.instrument.query("FSK:INT:RATE?")))
+        self.assertAlmostEqual(
+            100, float(self.testcls.instrument.query("FSK:INT:RATE?"))
+        )
 
 
 @unittest.skip("Requires instrument connected to run")
@@ -545,4 +573,6 @@ class Modulate_Frequency(unittest.TestCase):
         self.testcls.channel1.modulate.source.internal.shape.sin()
         self.assertIn("SIN", self.testcls.instrument.query("FM:INT:FUNC?"))
         self.testcls.channel1.modulate.source.internal.frequency(200)
-        self.assertAlmostEqual(200, float(self.testcls.instrument.query("FM:INT:FREQ?")))
+        self.assertAlmostEqual(
+            200, float(self.testcls.instrument.query("FM:INT:FREQ?"))
+        )

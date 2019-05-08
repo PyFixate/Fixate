@@ -8,7 +8,7 @@ from fixate.drivers import pps
 from fixate.core.checks import chk_passes
 from fixate.core.ui import user_info
 
-__version__ = '1'
+__version__ = "1"
 
 
 class ProgrammablePowerSupply(TestClass):
@@ -16,6 +16,7 @@ class ProgrammablePowerSupply(TestClass):
     This sets up the function generator for use in the
     This Test class cannot be used directly as it doesn't implement 'def test(self)'
     """
+
     pps = None
 
     def set_up(self):

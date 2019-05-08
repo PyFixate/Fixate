@@ -7,7 +7,7 @@ from fixate.core.common import TestList as FixateTL, TestClass as FixateTC
 
 
 def sleep_100m():
-    time.sleep(.1)
+    time.sleep(0.1)
     return True
 
 
@@ -44,6 +44,7 @@ class SubclassOfFixateTest(FixateTC):
     """
     Dummy Test Class
     """
+
     attempts = 1
 
     def __init__(self, num, mock_obj):
@@ -76,26 +77,28 @@ class TestSequencerTests(unittest.TestCase):
         self.mock_master = MagicMock()
         self.test_cls.clear_tests()
 
-        test_lst = \
-            Lst([
-                Lst([
-                    SubclassOfFixateTest(3, self.mock_master)],
-                    2, self.mock_master)],
-                1, self.mock_master)
+        test_lst = Lst(
+            [Lst([SubclassOfFixateTest(3, self.mock_master)], 2, self.mock_master)],
+            1,
+            self.mock_master,
+        )
         self.test_cls.load(test_lst)
         self.run_test_cls()
-        self.mock_master.assert_has_calls([call.list_enter(1),
-                                           call.list_enter(2),
-                                           call.list_setup(1),
-                                           call.list_setup(2),
-                                           call.test_setup(3),
-                                           call.test_test(3),
-                                           call.test_tear_down(3),
-                                           call.list_tear_down(2),
-                                           call.list_tear_down(1),
-                                           call.list_exit(2),
-                                           call.list_exit(1),
-                                           ])
+        self.mock_master.assert_has_calls(
+            [
+                call.list_enter(1),
+                call.list_enter(2),
+                call.list_setup(1),
+                call.list_setup(2),
+                call.test_setup(3),
+                call.test_test(3),
+                call.test_tear_down(3),
+                call.list_tear_down(2),
+                call.list_tear_down(1),
+                call.list_exit(2),
+                call.list_exit(1),
+            ]
+        )
 
     def test_async_single_test_deep_level(self):
         self._async = True
@@ -107,43 +110,56 @@ class TestSequencerTests(unittest.TestCase):
     def test_complex_test_list(self):
         self.mock_master = MagicMock()
         self.test_cls.clear_tests()
-        test_lst = Lst([SubclassOfFixateTest(2, self.mock_master),
-                        Lst([SubclassOfFixateTest(4, self.mock_master),
-                             SubclassOfFixateTest(5, self.mock_master)],
-                            3, self.mock_master),
-                        SubclassOfFixateTest(6, self.mock_master)],
-                       1, self.mock_master)
+        test_lst = Lst(
+            [
+                SubclassOfFixateTest(2, self.mock_master),
+                Lst(
+                    [
+                        SubclassOfFixateTest(4, self.mock_master),
+                        SubclassOfFixateTest(5, self.mock_master),
+                    ],
+                    3,
+                    self.mock_master,
+                ),
+                SubclassOfFixateTest(6, self.mock_master),
+            ],
+            1,
+            self.mock_master,
+        )
         self.test_cls.load(test_lst)
         self.run_test_cls()
-        self.mock_master.assert_has_calls([call.list_enter(1),
-                                           call.list_setup(1),
-                                           call.test_setup(2),
-                                           call.test_test(2),
-                                           call.test_tear_down(2),
-                                           call.list_tear_down(1),
-                                           call.list_enter(3),
-                                           call.list_setup(1),
-                                           call.list_setup(3),
-                                           call.test_setup(4),
-                                           call.test_test(4),
-                                           call.test_tear_down(4),
-                                           call.list_tear_down(3),
-                                           call.list_tear_down(1),
-                                           call.list_setup(1),
-                                           call.list_setup(3),
-                                           call.test_setup(5),
-                                           call.test_test(5),
-                                           call.test_tear_down(5),
-                                           call.list_tear_down(3),
-                                           call.list_tear_down(1),
-                                           call.list_exit(3),
-                                           call.list_setup(1),
-                                           call.test_setup(6),
-                                           call.test_test(6),
-                                           call.test_tear_down(6),
-                                           call.list_tear_down(1),
-                                           call.list_exit(1),
-                                           ])
+        self.mock_master.assert_has_calls(
+            [
+                call.list_enter(1),
+                call.list_setup(1),
+                call.test_setup(2),
+                call.test_test(2),
+                call.test_tear_down(2),
+                call.list_tear_down(1),
+                call.list_enter(3),
+                call.list_setup(1),
+                call.list_setup(3),
+                call.test_setup(4),
+                call.test_test(4),
+                call.test_tear_down(4),
+                call.list_tear_down(3),
+                call.list_tear_down(1),
+                call.list_setup(1),
+                call.list_setup(3),
+                call.test_setup(5),
+                call.test_test(5),
+                call.test_tear_down(5),
+                call.list_tear_down(3),
+                call.list_tear_down(1),
+                call.list_exit(3),
+                call.list_setup(1),
+                call.test_setup(6),
+                call.test_test(6),
+                call.test_tear_down(6),
+                call.list_tear_down(1),
+                call.list_exit(1),
+            ]
+        )
 
     def test_async_complex_test_list(self):
         self._async = True
@@ -156,27 +172,39 @@ class TestSequencerTests(unittest.TestCase):
         self.mock_master = MagicMock()
         self.test_cls.clear_tests()
 
-        test_lst = \
-            Lst(
-                [LstSetupFail(
-                    [Lst(
-                        [SubclassOfFixateTest(4, self.mock_master)],
-                        3, self.mock_master)],
-                    2, self.mock_master)],
-                1, self.mock_master)
+        test_lst = Lst(
+            [
+                LstSetupFail(
+                    [
+                        Lst(
+                            [SubclassOfFixateTest(4, self.mock_master)],
+                            3,
+                            self.mock_master,
+                        )
+                    ],
+                    2,
+                    self.mock_master,
+                )
+            ],
+            1,
+            self.mock_master,
+        )
         self.test_cls.load(test_lst)
         self.run_test_cls()
-        self.mock_master.assert_has_calls([call.list_enter(1),
-                                           call.list_enter(2),
-                                           call.list_enter(3),
-                                           call.list_setup(1),
-                                           call.list_setup(2),
-                                           call.list_tear_down(2),
-                                           call.list_tear_down(1),
-                                           call.list_exit(3),
-                                           call.list_exit(2),
-                                           call.list_exit(1),
-                                           ])
+        self.mock_master.assert_has_calls(
+            [
+                call.list_enter(1),
+                call.list_enter(2),
+                call.list_enter(3),
+                call.list_setup(1),
+                call.list_setup(2),
+                call.list_tear_down(2),
+                call.list_tear_down(1),
+                call.list_exit(3),
+                call.list_exit(2),
+                call.list_exit(1),
+            ]
+        )
 
     def test_list_retry_enter_exit(self):
         """
@@ -186,27 +214,39 @@ class TestSequencerTests(unittest.TestCase):
         self.mock_master = MagicMock()
         self.test_cls.clear_tests()
 
-        test_lst = \
-            Lst(
-                [LstSetupFail(
-                    [Lst(
-                        [SubclassOfFixateTest(4, self.mock_master)],
-                        3, self.mock_master)],
-                    2, self.mock_master)],
-                1, self.mock_master)
+        test_lst = Lst(
+            [
+                LstSetupFail(
+                    [
+                        Lst(
+                            [SubclassOfFixateTest(4, self.mock_master)],
+                            3,
+                            self.mock_master,
+                        )
+                    ],
+                    2,
+                    self.mock_master,
+                )
+            ],
+            1,
+            self.mock_master,
+        )
         self.test_cls.load(test_lst)
         self.run_test_cls()
-        self.mock_master.assert_has_calls([call.list_enter(1),
-                                           call.list_enter(2),
-                                           call.list_enter(3),
-                                           call.list_setup(1),
-                                           call.list_setup(2),
-                                           call.list_tear_down(2),
-                                           call.list_tear_down(1),
-                                           call.list_exit(3),
-                                           call.list_exit(2),
-                                           call.list_exit(1),
-                                           ])
+        self.mock_master.assert_has_calls(
+            [
+                call.list_enter(1),
+                call.list_enter(2),
+                call.list_enter(3),
+                call.list_setup(1),
+                call.list_setup(2),
+                call.list_tear_down(2),
+                call.list_tear_down(1),
+                call.list_exit(3),
+                call.list_exit(2),
+                call.list_exit(1),
+            ]
+        )
 
     def test_async_list_setup_fail(self):
         self._async = True

@@ -20,7 +20,9 @@ def open(ftdi_description=""):
     for dev in devices:
         if ftdi_description.encode() == dev.Description or ftdi_description == "":
             return FTDI2xx(dev.Description)
-    raise InstrumentNotConnected("No valid ftdi found by description '{}'".format(ftdi_description))
+    raise InstrumentNotConnected(
+        "No valid ftdi found by description '{}'".format(ftdi_description)
+    )
 
 
 # Definitions
@@ -97,13 +99,15 @@ class BIT_MODE(object):
 
 
 class FT_DEVICE_LIST_INFO_NODE(ctypes.Structure):
-    _fields_ = [("Flags", DWORD),
-                ("Type", DWORD),
-                ("ID", DWORD),
-                ("LocId", DWORD),
-                ("SerialNumber", ctypes.c_char * 16),
-                ("Description", ctypes.c_char * 64),
-                ("ftHandle", FT_HANDLE)]
+    _fields_ = [
+        ("Flags", DWORD),
+        ("Type", DWORD),
+        ("ID", DWORD),
+        ("LocId", DWORD),
+        ("SerialNumber", ctypes.c_char * 16),
+        ("Description", ctypes.c_char * 64),
+        ("ftHandle", FT_HANDLE),
+    ]
 
 
 class WORD_LENGTH(object):
@@ -124,17 +128,20 @@ class PARITY(object):
     FT_PARITY_SPACE = UCHAR(4)
 
 
-if os.name == 'nt':
+if os.name == "nt":
     try:
         ftdI2xx = ctypes.WinDLL("FTD2XX.dll")
     except Exception as e:
-        raise ImportError("Unable to find FTD2XX.dll.\nPlugging in FDTI device will install DLL.") from e
+        raise ImportError(
+            "Unable to find FTD2XX.dll.\nPlugging in FDTI device will install DLL."
+        ) from e
 else:
     try:
-        ftdI2xx = ctypes.cdll.LoadLibrary('/usr/local/lib/libftd2xx.so')
+        ftdI2xx = ctypes.cdll.LoadLibrary("/usr/local/lib/libftd2xx.so")
     except Exception as e:
         raise ImportError(
-            "Unable to find libftd2xx.so.\nInstall as per https://www.ftdichip.com/Drivers/D2XX/Linux/ReadMe-linux.txt") from e
+            "Unable to find libftd2xx.so.\nInstall as per https://www.ftdichip.com/Drivers/D2XX/Linux/ReadMe-linux.txt"
+        ) from e
 
 _ipdwNumDevs = DWORD(0)
 _p_ipdwNumDevs = LPDWORD(_ipdwNumDevs)
@@ -155,7 +162,11 @@ def _get_device_info_detail(pDest):
     locid = DWORD()
     sn = ctypes.create_string_buffer(16)
     desc = ctypes.create_string_buffer(64)
-    check_return(ftdI2xx.FT_GetDeviceInfoDetail(dev, flags, typeid, id, locid, sn, desc, ctypes.byref(handle)))
+    check_return(
+        ftdI2xx.FT_GetDeviceInfoDetail(
+            dev, flags, typeid, id, locid, sn, desc, ctypes.byref(handle)
+        )
+    )
 
 
 # FT_GetDeviceInfoList
@@ -203,8 +214,13 @@ class FTDI2xx(object):
         self.bb_inv_mask = 0
 
     def _connect(self):
-        check_return(ftdI2xx.FT_OpenEx(ctypes.c_char_p(self.ftdi_description), FLAGS.FT_OPEN_BY_DESCRIPTION,
-                                       ctypes.byref(self.handle)))
+        check_return(
+            ftdI2xx.FT_OpenEx(
+                ctypes.c_char_p(self.ftdi_description),
+                FLAGS.FT_OPEN_BY_DESCRIPTION,
+                ctypes.byref(self.handle),
+            )
+        )
 
     def close(self):
         check_return(ftdI2xx.FT_Close(self.handle))
@@ -221,9 +237,9 @@ class FTDI2xx(object):
 
     @word_length.setter
     def word_length(self, val):
-        if str(val) == '8':
+        if str(val) == "8":
             self._word_length = WORD_LENGTH.FT_BITS_8
-        elif str(val) == '7':
+        elif str(val) == "7":
             self._word_length = WORD_LENGTH.FT_BITS_7
         else:
             raise ValueError("Word Length must be either 7 or 8")
@@ -235,9 +251,9 @@ class FTDI2xx(object):
 
     @stop_bits.setter
     def stop_bits(self, val):
-        if str(val) == '1':
+        if str(val) == "1":
             self._stop_bits = STOP_BITS.FT_STOP_BITS_1
-        elif str(val) == '2':
+        elif str(val) == "2":
             self._stop_bits = STOP_BITS.FT_STOP_BITS_2
         else:
             raise ValueError("Stop bits must be either 1 or 2")
@@ -250,10 +266,19 @@ class FTDI2xx(object):
     @parity.setter
     def parity(self, val):
         try:
-            parity = [itm for itm in PARITY.__dict__ if itm.startswith('FT_PARITY') and val.upper() in itm][0]
+            parity = [
+                itm
+                for itm in PARITY.__dict__
+                if itm.startswith("FT_PARITY") and val.upper() in itm
+            ][0]
         except IndexError:
-            raise ValueError("Invalid parity: Please select from {}".
-                             format(','.join([itm for itm in PARITY.__dict__ if itm.startswith('FT_PARITY')])))
+            raise ValueError(
+                "Invalid parity: Please select from {}".format(
+                    ",".join(
+                        [itm for itm in PARITY.__dict__ if itm.startswith("FT_PARITY")]
+                    )
+                )
+            )
         self._parity = getattr(PARITY, parity)
         self._data_characteristics_set = False
 
@@ -286,12 +311,20 @@ class FTDI2xx(object):
             return data_bus.value & self.pin_value_mask == mask & self.pin_value_mask
 
     def get_cbus_pins(self):
-        check_return(ftdI2xx.FT_SetBitMode(self.handle, UCHAR(0), BIT_MODE.FT_BITMODE_CBUS_BITBANG))
+        check_return(
+            ftdI2xx.FT_SetBitMode(
+                self.handle, UCHAR(0), BIT_MODE.FT_BITMODE_CBUS_BITBANG
+            )
+        )
         data_bus = UCHAR()
         try:
             check_return(ftdI2xx.FT_GetBitMode(self.handle, ctypes.byref(data_bus)))
         finally:
-            check_return(ftdI2xx.FT_SetBitMode(self.handle, UCHAR(self.pin_value_mask), self.bit_mode))
+            check_return(
+                ftdI2xx.FT_SetBitMode(
+                    self.handle, UCHAR(self.pin_value_mask), self.bit_mode
+                )
+            )
         return data_bus.value
         # self.write_bit_mode(self.pin_value_mask)
 
@@ -303,7 +336,11 @@ class FTDI2xx(object):
             size = len(data)
         buffer = ctypes.create_string_buffer(bytes(data), size)
         bytes_written = DWORD()
-        check_return(ftdI2xx.FT_Write(self.handle, buffer, ctypes.sizeof(buffer), ctypes.byref(bytes_written)))
+        check_return(
+            ftdI2xx.FT_Write(
+                self.handle, buffer, ctypes.sizeof(buffer), ctypes.byref(bytes_written)
+            )
+        )
 
     def read(self):
         buffer = self._read()
@@ -321,16 +358,34 @@ class FTDI2xx(object):
         amount_in_tx_queue = DWORD()
         status = DWORD()
         check_return(
-            ftdI2xx.FT_GetStatus(self.handle, ctypes.byref(amount_in_rx_queue), ctypes.byref(amount_in_tx_queue),
-                                 ctypes.byref(status)))
+            ftdI2xx.FT_GetStatus(
+                self.handle,
+                ctypes.byref(amount_in_rx_queue),
+                ctypes.byref(amount_in_tx_queue),
+                ctypes.byref(status),
+            )
+        )
         buffer = ctypes.create_string_buffer(amount_in_rx_queue.value)
         bytes_read = DWORD()
-        check_return(ftdI2xx.FT_Read(self.handle, ctypes.byref(buffer), amount_in_rx_queue, ctypes.byref(bytes_read)))
+        check_return(
+            ftdI2xx.FT_Read(
+                self.handle,
+                ctypes.byref(buffer),
+                amount_in_rx_queue,
+                ctypes.byref(bytes_read),
+            )
+        )
         return buffer
 
     def _set_data_characteristics(self):
-        if not [x for x in [self.word_length, self.stop_bits, self.parity] if x is None]:
-            check_return(ftdI2xx.FT_SetDataCharacteristics(self.handle, self.word_length, self.stop_bits, self.parity))
+        if not [
+            x for x in [self.word_length, self.stop_bits, self.parity] if x is None
+        ]:
+            check_return(
+                ftdI2xx.FT_SetDataCharacteristics(
+                    self.handle, self.word_length, self.stop_bits, self.parity
+                )
+            )
             self._data_characteristics_set = True
             return
         raise ValueError("Please ensure that word length, stop bits and parity are set")
@@ -338,15 +393,26 @@ class FTDI2xx(object):
     def serial_shift_bit_bang(self, data, bytes_required=None):
         bytes_required = bytes_required or self.bb_bytes
         if self.bit_mode == BIT_MODE.FT_BITMODE_CBUS_BITBANG:
-            bit_bang = self._serial_shift_bit_bang(data, bytes_required,
-                                                   bb_mask=(self.bb_clk + self.bb_data + self.bb_latch) << 4)
+            bit_bang = self._serial_shift_bit_bang(
+                data,
+                bytes_required,
+                bb_mask=(self.bb_clk + self.bb_data + self.bb_latch) << 4,
+            )
             for byte in bit_bang:
                 self.write_bit_mode(byte)
         else:
             bit_bang = self._serial_shift_bit_bang(data, bytes_required, bb_mask=0)
             self.write(bit_bang)
 
-    def configure_bit_bang(self, bit_mode, bytes_required, latch_mask=1, clk_mask=2, data_mask=4, invert_mask=0b000):
+    def configure_bit_bang(
+        self,
+        bit_mode,
+        bytes_required,
+        latch_mask=1,
+        clk_mask=2,
+        data_mask=4,
+        invert_mask=0b000,
+    ):
         """
         :param bit_mode:
         :param bytes_required:
@@ -380,7 +446,9 @@ class FTDI2xx(object):
             if b:
                 data_out.append(bb_mask + self.bb_data ^ self.bb_inv_mask)
                 # Clock Up
-                data_out.append(bb_mask + (self.bb_data + self.bb_clk) ^ self.bb_inv_mask)
+                data_out.append(
+                    bb_mask + (self.bb_data + self.bb_clk) ^ self.bb_inv_mask
+                )
             else:
                 data_out.append(bb_mask + self.bb_inv_mask)
                 # Clock Up

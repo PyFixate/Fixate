@@ -30,41 +30,64 @@ def open():
 class Groups:
     def group1(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def group2(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def group3(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def group4(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def group5(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class Measure:
     def voltage(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def current(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def power(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class Timer:
-
     def set_waveform(self, waveform: list):
         """
         :param pattern: A list of tuples of pattern
@@ -79,7 +102,10 @@ class Timer:
 
     def _call(self, value: bool):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def __call__(self, value: bool):
         self._call(value)
@@ -92,19 +118,31 @@ class Channel:
 
     def voltage(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def current(self, value: number):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def wave(self, value: bool):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def _call(self, value: bool):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def __call__(self, value: bool):
         self._call(value)
@@ -113,19 +151,31 @@ class Channel:
 class Address:
     def ip(self, value: str):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def mask(self, value: str):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def gate(self, value: str):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def dhcp(self, value: bool):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
 
 class PPS(metaclass=ABCMeta):
@@ -145,8 +195,14 @@ class PPS(metaclass=ABCMeta):
 
     def series(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
 
     def idn(self):
         raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(inspect.currentframe().f_code.co_name))
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )

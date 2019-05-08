@@ -42,24 +42,24 @@ CYAN = "\u001b[36m"
 GREEN = "\u001b[32m"
 
 
-choices=["existing", "updated", "visa"]
+choices = ["existing", "updated", "visa"]
 # create the top-level parser for the base command
-list_parser = argparse.ArgumentParser(prog='list')
-list_parser.add_argument('type', choices=choices)
+list_parser = argparse.ArgumentParser(prog="list")
+list_parser.add_argument("type", choices=choices)
 
-test_parser = argparse.ArgumentParser(prog='test')
-test_parser.add_argument('type', choices=choices)
+test_parser = argparse.ArgumentParser(prog="test")
+test_parser.add_argument("type", choices=choices)
 
-add_parser = argparse.ArgumentParser(prog='add')
+add_parser = argparse.ArgumentParser(prog="add")
 add_subparsers = add_parser.add_subparsers(title="add command")
 
-add_visa_parser = add_subparsers.add_parser('visa')
-add_serial_parser = add_subparsers.add_parser('serial')
+add_visa_parser = add_subparsers.add_parser("visa")
+add_serial_parser = add_subparsers.add_parser("serial")
 
 add_visa_subparsers = add_visa_parser.add_subparsers()
-add_visa_serial_parser = add_visa_subparsers.add_parser('serial')
-add_visa_tcp_parser = add_visa_subparsers.add_parser('tcp')
-add_visa_usb_parser = add_visa_subparsers.add_parser('usb')
+add_visa_serial_parser = add_visa_subparsers.add_parser("serial")
+add_visa_tcp_parser = add_visa_subparsers.add_parser("tcp")
+add_visa_usb_parser = add_visa_subparsers.add_parser("usb")
 
 add_visa_serial_parser.add_argument("port")
 add_visa_serial_parser.add_argument("--baudrate")
@@ -106,7 +106,9 @@ class FxConfigCmd(cmd2.Cmd):
             self.perror("instrument not found")
             self.perror(e)
         else:
-            self.updated_config_dict["INSTRUMENTS"]["visa"].append([idn.strip(), resource_name])
+            self.updated_config_dict["INSTRUMENTS"]["visa"].append(
+                [idn.strip(), resource_name]
+            )
 
     def _do_add_visa_serial(self, args):
         resource_name = "ASRL{}::INSTR".format(args.port)
@@ -118,20 +120,24 @@ class FxConfigCmd(cmd2.Cmd):
             self.perror("instrument not found")
             self.perror(e)
         else:
-            self.updated_config_dict["INSTRUMENTS"]["visa"].append([idn.strip(), resource_name])
+            self.updated_config_dict["INSTRUMENTS"]["visa"].append(
+                [idn.strip(), resource_name]
+            )
 
     def _do_add_usb(self, args):
         rm = visa.ResourceManager()
         resource_list = [x for x in rm.list_resources() if x.startswith("USB")]
         if len(resource_list) > 0:
             for i, resource_name in enumerate(resource_list):
-                self.poutput("{}: {}".format(i+1, resource_name))
+                self.poutput("{}: {}".format(i + 1, resource_name))
             self.poutput("Select an interface to add")
             selection = input()
             selection = int(selection) - 1
             if 0 <= selection < len(resource_list):
                 resource_name = resource_list[selection]
-                self.updated_config_dict["INSTRUMENTS"]["visa"].append([visa_id_query(resource_name).strip(), resource_name])
+                self.updated_config_dict["INSTRUMENTS"]["visa"].append(
+                    [visa_id_query(resource_name).strip(), resource_name]
+                )
                 self.poutput("'{}' added to config.".format(resource_name))
             else:
                 self.poutput("Selection not valid")
@@ -140,7 +146,10 @@ class FxConfigCmd(cmd2.Cmd):
 
     def _do_add_serial(self, args):
         idn = serial_id_query(args.port, args.baudrate)
-        self.updated_config_dict["INSTRUMENTS"]["serial"][args.port] = [idn, args.baudrate]
+        self.updated_config_dict["INSTRUMENTS"]["serial"][args.port] = [
+            idn,
+            args.baudrate,
+        ]
 
     add_visa_tcp_parser.set_defaults(func=_do_add_visa_tcp)
     add_visa_serial_parser.set_defaults(func=_do_add_visa_serial)
@@ -177,7 +186,9 @@ class FxConfigCmd(cmd2.Cmd):
                 try:
                     new_idn = visa_id_query(visa_resource_name)
                 except (VisaIOError, FxConfigError):
-                    self._test_print_error(visa_resource_name, "Error opening or responding to IDN")
+                    self._test_print_error(
+                        visa_resource_name, "Error opening or responding to IDN"
+                    )
                 else:
                     self._test_print_ok(visa_resource_name, new_idn.strip())
 
@@ -200,8 +211,10 @@ class FxConfigCmd(cmd2.Cmd):
             backup_path = backup_file(config_file_path)
 
             try:
-                with open(config_file_path, 'w') as config_file:
-                    json.dump(self.updated_config_dict, config_file, sort_keys=True, indent=4)
+                with open(config_file_path, "w") as config_file:
+                    json.dump(
+                        self.updated_config_dict, config_file, sort_keys=True, indent=4
+                    )
             except Exception as e:
                 self.perror(e)
                 if backup_file:
@@ -222,7 +235,7 @@ class FxConfigCmd(cmd2.Cmd):
 
     def _load_config_into_dict(self, config_file_path):
 
-        with open(config_file_path, 'r') as config_file:
+        with open(config_file_path, "r") as config_file:
             self.existing_config_dict = json.load(config_file)
 
         # Ensure our config has the bare minimum { "INSTRUMENTS": {"visa":[], "serial":{}}}
@@ -247,23 +260,29 @@ class FxConfigCmd(cmd2.Cmd):
         if config_file_path.exists():
             raise Exception("Path '{}' already exists".format(config_file_path))
         else:
-            with open(config_file_path, 'w') as config_file:
-                config_file.write("{}")             # bare minimum valid json. _load_config_into_dict will do the rest.
+            with open(config_file_path, "w") as config_file:
+                config_file.write(
+                    "{}"
+                )  # bare minimum valid json. _load_config_into_dict will do the rest.
         self._load_config_into_dict(config_file_path)
 
     def do_delete(self, line):
         config_dict = self.updated_config_dict
-        delete_list = [None]    # ("visa", index) or ("serial", key)
+        delete_list = [None]  # ("visa", index) or ("serial", key)
         delete_index = 1
         for i, visa_instrument in enumerate(config_dict["INSTRUMENTS"]["visa"]):
-            self.poutput("{}: VISA || {} || {}".format(delete_index,
-                                                       visa_instrument[1].strip(),
-                                                       visa_instrument[0].strip()))
+            self.poutput(
+                "{}: VISA || {} || {}".format(
+                    delete_index, visa_instrument[1].strip(), visa_instrument[0].strip()
+                )
+            )
             delete_list.append(("visa", i))
             delete_index += 1
 
         for com_port, parameters in config_dict["INSTRUMENTS"]["serial"].items():
-            self.poutput("{}: SERIAL || {} || {}".format(delete_index, com_port, str(parameters)))
+            self.poutput(
+                "{}: SERIAL || {} || {}".format(delete_index, com_port, str(parameters))
+            )
             delete_list.append(("serial", com_port))
             delete_index += 1
 
@@ -275,7 +294,12 @@ class FxConfigCmd(cmd2.Cmd):
 
     def _print_config_dict(self, config_dict):
         for visa_instrument in config_dict["INSTRUMENTS"]["visa"]:
-            self.poutput("VISA || " + visa_instrument[1].strip() + " || " + visa_instrument[0].strip())
+            self.poutput(
+                "VISA || "
+                + visa_instrument[1].strip()
+                + " || "
+                + visa_instrument[0].strip()
+            )
 
         for com_port, parameters in config_dict["INSTRUMENTS"]["serial"].items():
             self.poutput("SERIAL || " + com_port + " || " + str(parameters))
@@ -297,21 +321,27 @@ class FxConfigCmd(cmd2.Cmd):
             try:
                 new_idn = visa_id_query(visa_resource_name)
             except (VisaIOError, FxConfigError):
-                self._test_print_error(visa_resource_name, "Error opening or responding to IDN")
+                self._test_print_error(
+                    visa_resource_name, "Error opening or responding to IDN"
+                )
             except Exception as e:
                 self.perror(e)
             else:
                 if new_idn.strip() == idn.strip():
                     self._test_print_ok(visa_resource_name, idn.strip())
                 else:
-                    self._test_print_error(visa_resource_name, "IDN Response does not match")
+                    self._test_print_error(
+                        visa_resource_name, "IDN Response does not match"
+                    )
 
         for port, params in serial_resources.items():
             idn, baudrate = params
             try:
                 new_id = serial_id_query(port, baudrate)
             except Exception as e:
-                self._test_print_error(e, "Error opening port '{}' or responding to ID query".format(port))
+                self._test_print_error(
+                    e, "Error opening port '{}' or responding to ID query".format(port)
+                )
             else:
                 if new_id.strip() == idn.strip():
                     self._test_print_ok(port, str(params))
@@ -341,8 +371,8 @@ def visa_id_query(visa_resource_name):
 
     # At least one instrument (Siglent SPD3303X power supply) only responds
     # when the line termination is set to \n
-    instr.read_termination = '\n'
-    instr.write_termination = '\n'
+    instr.read_termination = "\n"
+    instr.write_termination = "\n"
 
     resp = instr.query("*IDN?")
 
@@ -351,7 +381,8 @@ def visa_id_query(visa_resource_name):
         return resp.strip()
 
     raise FxConfigError(
-        "Resource '{}' didn't respond to an IDN command".format(visa_resource_name))
+        "Resource '{}' didn't respond to an IDN command".format(visa_resource_name)
+    )
 
 
 def serial_id_query(port, baudrate):
@@ -361,7 +392,9 @@ def serial_id_query(port, baudrate):
     :return:	
     """
     pps = BK178X(port)
-    pps.baud_rate = baudrate  # baud_rate property implementation has the side effect of opening the port.
+    pps.baud_rate = (
+        baudrate
+    )  # baud_rate property implementation has the side effect of opening the port.
     return pps.identify(as_string=True)
 
 

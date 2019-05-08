@@ -15,12 +15,13 @@ class MockUserDriver(MagicMock):
         else:
             q.put(("Result", self.return_value))
 
+
 @unittest.skip("process hangs. Probably waiting for a message to get sent?")
 class TestUserRequest(unittest.TestCase):
     def setUp(self):
         self.test_method = _user_req_input
         self.mock = MockUserDriver()
-        pub.subscribe(self.mock.execute_target, 'UI_req')
+        pub.subscribe(self.mock.execute_target, "UI_req")
 
     def test_read_from_queue(self):
         self.mock.return_value = "World"
@@ -28,5 +29,6 @@ class TestUserRequest(unittest.TestCase):
 
     def test_target_check(self):
         self.mock.test.return_value = "World"
-        self.assertEqual(self.test_method("HI", target=self.mock.test), ("Result", "World"))
-
+        self.assertEqual(
+            self.test_method("HI", target=self.mock.test), ("Result", "World")
+        )

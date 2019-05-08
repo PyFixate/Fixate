@@ -25,8 +25,30 @@ def _async_raise(tid, exctype):
         raise SystemError("PyThreadState_SetAsyncExc failed")
 
 
-UNITS = {"Hz", "Vpp", "Vmax", "VMin", "V", "%", "Hertz", "Volts", "Percent", "PC", "deg", "Deg", 'C', 'H'}
-UNIT_SCALE = {"m": 10 ** -3, "u": 10 ** -6, "n": 10 ** -9, "k": 10 ** 3, "M": 10 ** 6, "G": 10 ** 9}
+UNITS = {
+    "Hz",
+    "Vpp",
+    "Vmax",
+    "VMin",
+    "V",
+    "%",
+    "Hertz",
+    "Volts",
+    "Percent",
+    "PC",
+    "deg",
+    "Deg",
+    "C",
+    "H",
+}
+UNIT_SCALE = {
+    "m": 10 ** -3,
+    "u": 10 ** -6,
+    "n": 10 ** -9,
+    "k": 10 ** 3,
+    "M": 10 ** 6,
+    "G": 10 ** 9,
+}
 
 
 def required_params(keys):
@@ -36,7 +58,7 @@ def required_params(keys):
     :return:
     """
     for key in keys:
-        if re.search(r'\[', key):
+        if re.search(r"\[", key):
             return False
     if len(keys):
         return True
@@ -58,7 +80,7 @@ def match_params(args, kwargs, keys, repl_kwargs):
 
 def match_arg(search, keys):
     for key in keys:
-        regex = r'[[:]+' + search.lower()
+        regex = r"[[:]+" + search.lower()
         if re.search(regex, key.lower()):
             return key
     return None
@@ -66,7 +88,7 @@ def match_arg(search, keys):
 
 def match_kwarg(search, keys):
     for key in keys:
-        regex = r'[[{]+' + search.lower()
+        regex = r"[[{]+" + search.lower()
         if re.search(regex, key.lower()):
             return key
     return None
@@ -75,7 +97,7 @@ def match_kwarg(search, keys):
 def sanitise_kwargs(kwargs, repl_kwargs):
     for kw in repl_kwargs:
         # Removes all non character symbols
-        new_kw = re.sub('[^\w]', '', repl_kwargs[kw])
+        new_kw = re.sub("[^\w]", "", repl_kwargs[kw])
         kwargs[new_kw] = kwargs.pop(kw)
     return kwargs
 
@@ -99,23 +121,27 @@ def mode_builder(search_dict, repl_kwargs, *args, **kwargs):
     if len(matches) > 1:
         req_matches = []
         for match in matches:
-            if '[' not in match:
+            if "[" not in match:
                 req_matches.append(match)
         if len(req_matches) > 1:
-            raise ParameterError("Conflicting parameters: \n{}".format('\n'.join(matches)))
+            raise ParameterError(
+                "Conflicting parameters: \n{}".format("\n".join(matches))
+            )
         matches = req_matches
 
     if len(matches) == 0:
         # No further recursion
         if required_params(search_dict):
-            raise ParameterError("Missing a required key \n{}".format('\n'.join(search_dict)))
-        return ''
+            raise ParameterError(
+                "Missing a required key \n{}".format("\n".join(search_dict))
+            )
+        return ""
     ret_string = matches[0]
     # Match the next parameter
     ret_string += mode_builder(search_dict[matches[0]], repl_kwargs, *args, **kwargs)
 
     # Remove the optional '[]' markers
-    ret_string = re.sub('[[\]]', '', ret_string)
+    ret_string = re.sub("[[\]]", "", ret_string)
     kwargs = sanitise_kwargs(kwargs, repl_kwargs)
     ret_string = ret_string.format(**kwargs)
     return ret_string
@@ -164,23 +190,27 @@ def unit_scale(str_value, accepted_units=UNITS):
 
     if type(str_value) != str:
         raise InvalidScalarQuantityError(
-            "Parsed value {} type {} is not a string or number type".format(str_value, type(str_value)))
+            "Parsed value {} type {} is not a string or number type".format(
+                str_value, type(str_value)
+            )
+        )
     # Match Decimal and Integer Values
-    p = re.compile('\d+(\.\d+)?')
+    p = re.compile("\d+(\.\d+)?")
     num_match = p.search(str_value)
     if num_match:
         num = float(num_match.group())
 
-        comp = '^ ?({unit_scale})(?=($|{units}))'.format(units='|'.join(accepted_units),
-                                                         unit_scale='|'.join(UNIT_SCALE.keys()))
+        comp = "^ ?({unit_scale})(?=($|{units}))".format(
+            units="|".join(accepted_units), unit_scale="|".join(UNIT_SCALE.keys())
+        )
         p = re.compile(comp)
         try:
-            m = p.search(str_value[num_match.end():])
+            m = p.search(str_value[num_match.end() :])
         except IndexError:
             return num
 
         if m:
-            scale = re.sub(' ?', '', m.group())
+            scale = re.sub(" ?", "", m.group())
             if scale:
                 ret_val = UNIT_SCALE.get(scale, None)
             else:
@@ -189,23 +219,32 @@ def unit_scale(str_value, accepted_units=UNITS):
             if ret_val:
                 return num * ret_val
             else:
-                raise InvalidScalarQuantityError("Unknown Scalar Quantity: {}".format(m.group()))
+                raise InvalidScalarQuantityError(
+                    "Unknown Scalar Quantity: {}".format(m.group())
+                )
 
         else:
-            units = re.sub(' ?', '', str_value[num_match.end():])
+            units = re.sub(" ?", "", str_value[num_match.end() :])
             if units in accepted_units or len(units) == 0:
                 return num
             raise InvalidScalarQuantityError(
-                "Could Not Find Scaling Value for \nnumber {} in \n{}".format(num, str_value))
+                "Could Not Find Scaling Value for \nnumber {} in \n{}".format(
+                    num, str_value
+                )
+            )
     else:
-        raise InvalidScalarQuantityError("No Valid Numbers Found in {}".format(str_value))
+        raise InvalidScalarQuantityError(
+            "No Valid Numbers Found in {}".format(str_value)
+        )
 
 
 def bits(n, num_bytes=1, num_bits=None, order="MSB"):
     if num_bits is None:
         num_bits = num_bytes * 8
     if n >= 1 << num_bits:
-        raise ParameterError("Number {} doesn't fit in {} number of bytes".format(n, num_bytes))
+        raise ParameterError(
+            "Number {} doesn't fit in {} number of bytes".format(n, num_bytes)
+        )
     if order.upper() in "MSB":
         b = 1 << num_bits
         while b > 1:
@@ -224,10 +263,25 @@ def bits(n, num_bytes=1, num_bits=None, order="MSB"):
 class ExcThread(threading.Thread):
     exec_info = None
 
-    def __init__(self, group=None, target=None, name=None,
-                 args=(), kwargs=None, *, daemon=True, test_index=None):
-        super().__init__(group=group, target=target, name=name,
-                         args=args, kwargs=kwargs, daemon=daemon)
+    def __init__(
+        self,
+        group=None,
+        target=None,
+        name=None,
+        args=(),
+        kwargs=None,
+        *,
+        daemon=True,
+        test_index=None
+    ):
+        super().__init__(
+            group=group,
+            target=target,
+            name=name,
+            args=args,
+            kwargs=kwargs,
+            daemon=daemon,
+        )
         self.test_index = test_index
 
     def run(self):
@@ -257,9 +311,14 @@ class ExcThread(threading.Thread):
 def deprecated(func):
     @wraps(func)
     def inner(*args, **kwargs):
-        warnings.warn("Function {} is deprecated. Please consider updating api calls".format(func.__name__),
-                      DeprecationWarning)
+        warnings.warn(
+            "Function {} is deprecated. Please consider updating api calls".format(
+                func.__name__
+            ),
+            DeprecationWarning,
+        )
         return func(*args, **kwargs)
+
     return inner
 
 
@@ -278,14 +337,16 @@ class TestList:
         self.tests.extend(seq)
 
         try:
-            doc_string = [line.strip() for line in self.__doc__.splitlines() if line.strip()]
+            doc_string = [
+                line.strip() for line in self.__doc__.splitlines() if line.strip()
+            ]
         except:
             self.test_desc = self.__class__.__name__
             self.test_desc_long = ""
         else:
             if doc_string:
                 self.test_desc = doc_string[0]
-                self.test_desc_long = '\\n'.join(doc_string[1:])
+                self.test_desc_long = "\\n".join(doc_string[1:])
 
     def __getitem__(self, item):
         return self.tests.__getitem__(item)
@@ -342,9 +403,12 @@ class TestClass:
     The first line of the docstring of the class that inherits this class will be recognised by logging and UI
     as the name of the test with the remaining lines stored as self.test_desc_long which will show in the test logs
     """
+
     RT_ABORT = 1  # Abort the whole test sequence
     RT_RETRY = 2  # Automatically retry up to "attempts"
-    RT_PROMPT = 3  # Prompt the user; Options are Abort the sequence, retry, or fail and continue
+    RT_PROMPT = (
+        3
+    )  # Prompt the user; Options are Abort the sequence, retry, or fail and continue
     RT_FAIL = 4  # Automatically fail and move on
 
     test_desc = None
@@ -361,14 +425,16 @@ class TestClass:
         self.skip = skip
         if not self.test_desc:
             try:
-                doc_string = [line.strip() for line in self.__doc__.splitlines() if line.strip()]
+                doc_string = [
+                    line.strip() for line in self.__doc__.splitlines() if line.strip()
+                ]
             except:
                 self.test_desc = self.__class__.__name__
                 self.test_desc_long = ""
             else:
                 if doc_string:
                     self.test_desc = doc_string[0]
-                    self.test_desc_long = '\\n'.join(doc_string[1:])
+                    self.test_desc_long = "\\n".join(doc_string[1:])
 
     def set_up(self):
         """
