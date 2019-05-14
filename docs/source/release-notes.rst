@@ -2,6 +2,25 @@
 Release Notes
 ==================================
 *************
+Version 0.5.1
+*************
+Release Date 14/05/2019
+
+Breaking Changes
+################
+- None
+
+New Features
+############
+
+- None
+
+Improvements
+############
+
+- Source code has been reformated using `Black <https://github.com/python/black>`_.
+
+*************
 Version 0.5.0
 *************
 
