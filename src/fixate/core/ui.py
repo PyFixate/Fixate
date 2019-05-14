@@ -31,10 +31,10 @@ def _user_req(msg):
      Returns the user response
     """
     q = Queue()
-    pub.sendMessage('UI_block_start')
-    pub.sendMessage('UI_req', msg=msg, q=q)
+    pub.sendMessage("UI_block_start")
+    pub.sendMessage("UI_req", msg=msg, q=q)
     resp = q.get()
-    pub.sendMessage('UI_block_end')
+    pub.sendMessage("UI_block_end")
     return resp
 
 
@@ -44,7 +44,7 @@ def _user_image(path):
     :param path:
      A relative path to the image
     """
-    pub.sendMessage('UI_image', path=path)
+    pub.sendMessage("UI_image", path=path)
 
 
 def _user_image_clear():
@@ -53,7 +53,7 @@ def _user_image_clear():
     :param path:
      A relative path to the image
     """
-    pub.sendMessage('UI_image_clear')
+    pub.sendMessage("UI_image_clear")
 
 
 def _user_req_input(msg, target=None, attempts=5, **kwargs):
@@ -71,10 +71,12 @@ def _user_req_input(msg, target=None, attempts=5, **kwargs):
      Returns the user response
     """
     q = Queue()
-    pub.sendMessage('UI_block_start')
-    pub.sendMessage('UI_req_input', msg=msg, q=q, target=target, attempts=attempts, kwargs=kwargs)
+    pub.sendMessage("UI_block_start")
+    pub.sendMessage(
+        "UI_req_input", msg=msg, q=q, target=target, attempts=attempts, kwargs=kwargs
+    )
     resp = q.get()
-    pub.sendMessage('UI_block_end')
+    pub.sendMessage("UI_block_end")
     return resp
 
 
@@ -93,21 +95,30 @@ def _user_req_choices(msg, choices, target=None, attempts=5):
      Returns the user response
     """
     if len(choices) < 2:
-        raise ValueError("Requires at least two choices to work, {} provided".format(choices))
+        raise ValueError(
+            "Requires at least two choices to work, {} provided".format(choices)
+        )
     q = Queue()
-    pub.sendMessage('UI_block_start')
-    pub.sendMessage('UI_req_choices', msg=msg, q=q, choices=choices, target=target, attempts=attempts)
+    pub.sendMessage("UI_block_start")
+    pub.sendMessage(
+        "UI_req_choices",
+        msg=msg,
+        q=q,
+        choices=choices,
+        target=target,
+        attempts=attempts,
+    )
     resp = q.get()
-    pub.sendMessage('UI_block_end')
+    pub.sendMessage("UI_block_end")
     return resp
 
 
 def user_info(msg):
-    pub.sendMessage('UI_display', msg=msg)
+    pub.sendMessage("UI_display", msg=msg)
 
 
 def user_info_important(msg):
-    pub.sendMessage('UI_display_important', msg=msg)
+    pub.sendMessage("UI_display_important", msg=msg)
 
 
 def user_input(msg):
@@ -128,7 +139,7 @@ def _float_validate(entry):
     try:
         return float(entry)
     except ValueError:
-        user_info('Please enter a number')
+        user_info("Please enter a number")
         return False
 
 
@@ -185,7 +196,7 @@ def user_action_pass_fail(msg, target):
 
     :return:
     """
-    user_action(msg, target, 'UI_action.pass_fail')
+    user_action(msg, target, "UI_action.pass_fail")
 
 
 def user_action_fail(msg, target):
@@ -199,7 +210,7 @@ def user_action_fail(msg, target):
 
     :return:
     """
-    user_action(msg, target, 'UI_action.fail')
+    user_action(msg, target, "UI_action.fail")
 
 
 def user_ok(msg):
@@ -231,11 +242,15 @@ def user_retry_auto():
 
 
 def user_pass_fail(msg, attempts=1):
-    return _user_req_choices(msg, attempts=attempts, target=_user_choices, choices=USER_PASS_FAIL)
+    return _user_req_choices(
+        msg, attempts=attempts, target=_user_choices, choices=USER_PASS_FAIL
+    )
 
 
 def user_yes_no(msg, attempts=1):
-    return _user_req_choices(msg, attempts=attempts, target=_user_choices, choices=USER_YES_NO)
+    return _user_req_choices(
+        msg, attempts=attempts, target=_user_choices, choices=USER_YES_NO
+    )
 
 
 def _user_choices(response, choices):
@@ -254,10 +269,14 @@ def user_choices(msg, choices, attempts=5):
     :return:
         user response
     """
-    return _user_req_choices(msg, attempts=attempts, target=_user_choices, choices=choices)
+    return _user_req_choices(
+        msg, attempts=attempts, target=_user_choices, choices=choices
+    )
 
 
-def _ten_digit_serial(response):  # input_type argument added due to input_type="INPUT" on user_serial
+def _ten_digit_serial(
+    response
+):  # input_type argument added due to input_type="INPUT" on user_serial
     return (len(response) == 10) and int(response)
 
 
@@ -302,7 +321,10 @@ def user_post_sequence_info(msg):
     RESOURCES["SEQUENCER"].context_data["_post_sequence_info"][msg] = "ALL"
 
 
-RETRY_METHODS = {"RETRY ABORT SKIP": user_retry_abort_fail, "RETRY ABORT": user_retry_abort}
+RETRY_METHODS = {
+    "RETRY ABORT SKIP": user_retry_abort_fail,
+    "RETRY ABORT": user_retry_abort,
+}
 
 
 def user_retry(msg, retry_method):

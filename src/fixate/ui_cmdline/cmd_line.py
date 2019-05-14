@@ -19,6 +19,7 @@ wrapper.drop_whitespace = True
 
 kb = KBHit()
 
+
 def kb_hit_monitor(cmd_q):
     while True:
         resp = cmd_q.get()
@@ -46,8 +47,9 @@ class KeyboardHook:
         self.key_monitor = None
 
     def install(self):
-        self.key_monitor = ExcThread(target=kb_hit_monitor,
-                                     args=(self.user_fail_queue,))
+        self.key_monitor = ExcThread(
+            target=kb_hit_monitor, args=(self.user_fail_queue,)
+        )
         self.key_monitor.start()
 
     def uninstall(self):
@@ -62,20 +64,20 @@ key_hook = KeyboardHook()
 
 
 def register_cmd_line():
-    pub.subscribe(_print_test_start, 'Test_Start')
-    pub.subscribe(_print_test_start, 'TestList_Start')
-    pub.subscribe(_print_test_complete, 'Test_Complete')
-    pub.subscribe(_print_comparisons, 'Check')
+    pub.subscribe(_print_test_start, "Test_Start")
+    pub.subscribe(_print_test_start, "TestList_Start")
+    pub.subscribe(_print_test_complete, "Test_Complete")
+    pub.subscribe(_print_comparisons, "Check")
     pub.subscribe(_print_errors, "Test_Exception")
     pub.subscribe(_print_sequence_end, "Sequence_Complete")
-    pub.subscribe(_user_ok, 'UI_req')
+    pub.subscribe(_user_ok, "UI_req")
     pub.subscribe(_user_choices, "UI_req_choices")
-    pub.subscribe(_user_input, 'UI_req_input')
-    pub.subscribe(_user_display, 'UI_display')
+    pub.subscribe(_user_input, "UI_req_input")
+    pub.subscribe(_user_display, "UI_display")
     pub.subscribe(_user_display_important, "UI_display_important")
-    pub.subscribe(_print_test_skip, 'Test_Skip')
-    pub.subscribe(_print_test_retry, 'Test_Retry')
-    pub.subscribe(_user_action, 'UI_action')
+    pub.subscribe(_print_test_skip, "Test_Skip")
+    pub.subscribe(_print_test_retry, "Test_Retry")
+    pub.subscribe(_user_action, "UI_action")
     key_hook.install()
 
     return
@@ -94,7 +96,7 @@ def reformat_text(text_str, first_line_fill="", subsequent_line_fill=""):
         if ind != 0:
             wrapper.initial_indent = subsequent_line_fill
         lines.append(wrapper.fill(line))
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
 def _user_action(msg, q, abort):
@@ -113,11 +115,11 @@ def _user_action(msg, q, abort):
     :return:
     None
     """
-    print('\a')
+    print("\a")
     print(reformat_text(msg))
     print("Press escape to fail the test or space to pass")
     global key_hook
-    key_hook.user_fail_queue.put((q, abort, {b'\x1b': False, b' ': True}))
+    key_hook.user_fail_queue.put((q, abort, {b"\x1b": False, b" ": True}))
 
 
 def _user_ok(msg, q):
@@ -132,7 +134,7 @@ def _user_ok(msg, q):
     :return:
     """
     msg = reformat_text(msg + "\n\nPress Enter to continue...")
-    print('\a')
+    print("\a")
     input(msg)
     q.put("Result", None)
 
@@ -156,16 +158,19 @@ def _user_choices(msg, q, choices, target, attempts=5):
     :param kwargs:
     :return:
     """
-    choicesstr = "\n" + ', '.join(choices[:-1]) + ' or ' + choices[-1] + ' '
+    choicesstr = "\n" + ", ".join(choices[:-1]) + " or " + choices[-1] + " "
     for _ in range(attempts):
         # This will change based on the interface
-        print('\a')
+        print("\a")
         ret_val = input(reformat_text(msg + choicesstr))
         ret_val = target(ret_val, choices)
         if ret_val:
-            q.put(('Result', ret_val))
+            q.put(("Result", ret_val))
             return
-    q.put('Exception', UserInputError("Maximum number of attempts {} reached".format(attempts)))
+    q.put(
+        "Exception",
+        UserInputError("Maximum number of attempts {} reached".format(attempts)),
+    )
 
 
 def _user_input(msg, q, target=None, attempts=5, kwargs=None):
@@ -196,16 +201,19 @@ def _user_input(msg, q, target=None, attempts=5, kwargs=None):
     wrapper.subsequent_indent = ""
     for _ in range(attempts):
         # This will change based on the interface
-        print('\a')
+        print("\a")
         ret_val = input(msg)
         if target is None:
             q.put(ret_val)
             return
         ret_val = target(ret_val, **kwargs)
         if ret_val:
-            q.put(('Result', ret_val))
+            q.put(("Result", ret_val))
             return
-    q.put('Exception', UserInputError("Maximum number of attempts {} reached".format(attempts)))
+    q.put(
+        "Exception",
+        UserInputError("Maximum number of attempts {} reached".format(attempts)),
+    )
 
 
 def _user_display(msg):
@@ -235,7 +243,9 @@ def _print_sequence_end(status, passed, failed, error, skipped, sequence_status)
     print("#" * wrapper.width)
     print(reformat_text("Sequence {}".format(sequence_status)))
     # print("Sequence {}".format(sequence_status))
-    post_sequence_info = RESOURCES["SEQUENCER"].context_data.get("_post_sequence_info", {})
+    post_sequence_info = RESOURCES["SEQUENCER"].context_data.get(
+        "_post_sequence_info", {}
+    )
     if post_sequence_info:
         print("-" * wrapper.width)
         print("IMPORTANT INFORMATION")
@@ -251,7 +261,7 @@ def _print_sequence_end(status, passed, failed, error, skipped, sequence_status)
     print(reformat_text("Status: {}".format(status)))
     # print("Status: {}".format(status))
     print("#" * wrapper.width)
-    print('\a')
+    print("\a")
 
 
 def _print_test_start(data, test_index):
@@ -264,7 +274,13 @@ def _print_test_start(data, test_index):
 def _print_test_complete(data, test_index, status):
     sequencer = RESOURCES["SEQUENCER"]
     print("-" * wrapper.width)
-    print(reformat_text("Checks passed: {}, Checks failed: {}".format(sequencer.chk_pass, sequencer.chk_fail)))
+    print(
+        reformat_text(
+            "Checks passed: {}, Checks failed: {}".format(
+                sequencer.chk_pass, sequencer.chk_fail
+            )
+        )
+    )
     # print("Checks passed: {}, Checks failed: {}".format(sequencer.chk_pass, sequencer.chk_fail))
     print(reformat_text("Test {}: {}".format(test_index, status.upper())))
     # print("Test {}: {}".format(test_index, status.upper()))
@@ -282,7 +298,13 @@ def _print_test_retry(data, test_index):
 def _print_errors(exception, test_index):
     print("")
     print("!" * wrapper.width)
-    print(reformat_text("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), exception)))
+    print(
+        reformat_text(
+            "Test {}: Exception Occurred, {} {}".format(
+                test_index, type(exception), exception
+            )
+        )
+    )
     # print("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), exception))
     print("!" * wrapper.width)
     # TODO print traceback into a debug log file
@@ -313,36 +335,68 @@ def _print_comparisons(passes, chk, chk_cnt, context):
         status = "FAIL"
     format_dict = round_to_3_sig_figures(chk)
     if chk._min is not None and chk._max is not None:
-        print(reformat_text("\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {_min} - {_max} : "
-                            "{description}".format(
-            status=status,
-            comparison=chk.target.__name__[1:].replace('_', ' '),
-            chk_cnt=chk_cnt,
-            description=chk.description, **format_dict)))
+        print(
+            reformat_text(
+                "\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {_min} - {_max} : "
+                "{description}".format(
+                    status=status,
+                    comparison=chk.target.__name__[1:].replace("_", " "),
+                    chk_cnt=chk_cnt,
+                    description=chk.description,
+                    **format_dict
+                )
+            )
+        )
     elif chk.nominal is not None and chk.tol is not None:
-        print(reformat_text("\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {nominal} +- {tol}% : "
-                            "{description}".format(
-            status=status,
-            comparison=chk.target.__name__[1:].replace('_', ' '),
-            chk_cnt=chk_cnt,
-            description=chk.description, **format_dict)))
+        print(
+            reformat_text(
+                "\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {nominal} +- {tol}% : "
+                "{description}".format(
+                    status=status,
+                    comparison=chk.target.__name__[1:].replace("_", " "),
+                    chk_cnt=chk_cnt,
+                    description=chk.description,
+                    **format_dict
+                )
+            )
+        )
     elif chk._min is not None or chk._max is not None or chk.nominal is not None:
         # Grabs the first value that isn't none. Nominal takes priority
-        comp_val = next(format_dict[item] for item in ["nominal", "_min", "_max"] if format_dict[item] is not None)
-        print(reformat_text("\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {comp_val} : "
-                            "{description}".format(
-            status=status,
-            comparison=chk.target.__name__[1:].replace('_', ' '),
-            comp_val=comp_val,
-            chk_cnt=chk_cnt,
-            description=chk.description, **format_dict)))
+        comp_val = next(
+            format_dict[item]
+            for item in ["nominal", "_min", "_max"]
+            if format_dict[item] is not None
+        )
+        print(
+            reformat_text(
+                "\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {comp_val} : "
+                "{description}".format(
+                    status=status,
+                    comparison=chk.target.__name__[1:].replace("_", " "),
+                    comp_val=comp_val,
+                    chk_cnt=chk_cnt,
+                    description=chk.description,
+                    **format_dict
+                )
+            )
+        )
     else:
         if chk.test_val is not None:
-            print(reformat_text(
-                "\nCheck {chk_cnt}: {status}: {test_val} : {description}".format(chk_cnt=chk_cnt,
-                                                                                 description=chk.description,
-                                                                                 status=status, **format_dict)))
+            print(
+                reformat_text(
+                    "\nCheck {chk_cnt}: {status}: {test_val} : {description}".format(
+                        chk_cnt=chk_cnt,
+                        description=chk.description,
+                        status=status,
+                        **format_dict
+                    )
+                )
+            )
         else:
-            print(reformat_text(
-                "\nCheck {chk_cnt} : {status}: {description}".format(description=chk.description, chk_cnt=chk_cnt,
-                                                                     status=status)))
+            print(
+                reformat_text(
+                    "\nCheck {chk_cnt} : {status}: {description}".format(
+                        description=chk.description, chk_cnt=chk_cnt, status=status
+                    )
+                )
+            )

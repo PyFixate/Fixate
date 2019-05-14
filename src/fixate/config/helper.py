@@ -6,7 +6,7 @@ import os
 from string import Formatter
 
 
-def load_dict_config(in_dict: dict, config_name: str = '') -> None:
+def load_dict_config(in_dict: dict, config_name: str = "") -> None:
     """
     :param in_dict:
      dictionary type storing configuration parameters
@@ -83,7 +83,7 @@ def load_yaml_config(yaml_in: str) -> None:
 
 
 def get_plugins() -> dict:
-    return {k: v for k, v in fixate.config.__dict__.items() if k.startswith('plg_')}
+    return {k: v for k, v in fixate.config.__dict__.items() if k.startswith("plg_")}
 
 
 def get_plugin_data(plugin: str) -> dict:
@@ -98,6 +98,7 @@ class _UnseenFormatter(Formatter):
     """
     Renders string formats with invalid keys rendered as the key name
     """
+
     def get_value(self, key, args, kwargs):
         if isinstance(key, str):
             try:

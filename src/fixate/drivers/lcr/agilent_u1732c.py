@@ -77,8 +77,6 @@ FETC? ALL
 """
 
 
-
-
 class AgilentU1732C(LCR):
     REGEX_ID = "Agilent Technologies,U1732C"
     INSTR_TYPE = "VISA"
@@ -100,14 +98,14 @@ class AgilentU1732C(LCR):
 
     @frequency.setter
     def frequency(self, val):
-        if val not in [100, 120, 1e3, 10e3, '100', '120', '1k', '10k']:
+        if val not in [100, 120, 1e3, 10e3, "100", "120", "1k", "10k"]:
             raise ParameterError("Frequency must be either '100', '120', '1k' or '10k'")
         self._frequency = val
         try:
             val = unit_convert(val, 1, 200)
         except TypeError:
             pass
-        self._write('FREQ {}'.format(val))
+        self._write("FREQ {}".format(val))
 
     @property
     def range(self):
@@ -118,14 +116,16 @@ class AgilentU1732C(LCR):
         rng = unit_scale(str(val))
         if not rng == round(rng, -int(floor(log10(rng)))):
             raise ParameterError()
-        if str(rng)[0] is not '2':
+        if str(rng)[0] is not "2":
             raise ParameterError()
         if not 2000e-9 <= rng <= 200e6:
             raise ParameterError()
         self._range = val
-        self._write('RANG {}'.format(unit_convert(rng, 2, 2000)))
+        self._write("RANG {}".format(unit_convert(rng, 2, 2000)))
 
-    def measure(self, func=None, disp2=None, multiple_results=False, trigger=True, **mode_params):
+    def measure(
+        self, func=None, disp2=None, multiple_results=False, trigger=True, **mode_params
+    ):
         """
         func
         - L Inductance
@@ -169,13 +169,13 @@ class AgilentU1732C(LCR):
         AttributeError
         """
         if disp2 is not None:
-            if disp2.upper() not in ['TH', 'Q', 'D']:
+            if disp2.upper() not in ["TH", "Q", "D"]:
                 raise ParameterError("Display 2 must be either 'TH', 'Q' or 'D'")
-            self._write('DISP2 {}'.format(disp2))
+            self._write("DISP2 {}".format(disp2))
         if func is not None:
-            if func.upper() not in ['L', 'C', 'R', 'Z', 'ESR']:
+            if func.upper() not in ["L", "C", "R", "Z", "ESR"]:
                 raise ParameterError("Func must be either 'L', 'C', 'R', 'Z' or 'ESR'")
-            self._write('FUNC {}'.format(func))
+            self._write("FUNC {}".format(func))
 
         return self._read_measurement(multiple_results)
 
@@ -222,8 +222,15 @@ class AgilentU1732C(LCR):
                 while True:
                     time.sleep(self.read_delay)
                     try:
-                        measurements = self._read().strip('\n').split(',')
-                        return TestResult(**dict(zip(measurements[0::2], [float(x) for x in measurements[1::2]])))
+                        measurements = self._read().strip("\n").split(",")
+                        return TestResult(
+                            **dict(
+                                zip(
+                                    measurements[0::2],
+                                    [float(x) for x in measurements[1::2]],
+                                )
+                            )
+                        )
                     except ValueError:
                         pass
                     except IndexError:
@@ -246,5 +253,5 @@ class AgilentU1732C(LCR):
             raise InstrumentError(err_resp)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass

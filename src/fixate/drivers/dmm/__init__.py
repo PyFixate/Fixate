@@ -8,4 +8,3 @@ dmm.measure(*mode, **mode_params)
 dmm.reset()
 """
 from fixate.drivers.dmm.helper import open, DMM
-

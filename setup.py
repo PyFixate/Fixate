@@ -32,10 +32,10 @@ Can't find '%s' file. This doesn't seem to be a valid release.
 def get_version():
     with open(VERSION_FILE, 'r') as f:
         data = f.read()
-        m = re.search(r"__version__ ?= ?'[\d\.]+'", data)
+        m = re.search(r"__version__ ?= ?\"[\d.]+\"", data)
     res = m.group(0)
     if res:
-        ret = re.search(r"(?<=')[\d\.]+", res).group(0)
+        ret = re.search(r"(?<=\")[\d\.]+", res).group(0)
         if ret:
             return ret
     raise ValueError("No version for fixate found")

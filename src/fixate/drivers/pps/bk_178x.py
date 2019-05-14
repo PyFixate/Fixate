@@ -46,26 +46,28 @@ Command Byte
 
 Command Data is little endian
 """
-COMMANDS = ((0x20, "Setting the remote control mode"),
-            (0x21, "Setting the output ON/OFF state"),
-            (0x22, "Setting the maximum output voltage"),
-            (0x23, "Setting the output voltage"),
-            (0x24, "Setting the output current"),
-            (0x25, "Setting the communication address"),
-            (0x26, "Reading the present operation status of the power supply"),
-            (0x27, "Enter the calibration mode"),
-            (0x28, "Reading the calibration mode state"),
-            (0x29, "Calibrate voltage value"),
-            (0x2A, "Sending the actual output voltage to calibration program"),
-            (0x2B, "Calibrate current value"),
-            (0x2C, "Sending the actual output current to the calibration program"),
-            (0x2D, "Save the calibration data to EEPROM"),
-            (0x2E, "Setting calibration information"),
-            (0x2F, "Reading calibration information"),
-            (0x31, "Reading product's model, series number and version information"),
-            (0x32, "Restoring the factory default calibration data"),
-            (0x37, "Enable the local key"),
-            (0x12, "The returned status)"))
+COMMANDS = (
+    (0x20, "Setting the remote control mode"),
+    (0x21, "Setting the output ON/OFF state"),
+    (0x22, "Setting the maximum output voltage"),
+    (0x23, "Setting the output voltage"),
+    (0x24, "Setting the output current"),
+    (0x25, "Setting the communication address"),
+    (0x26, "Reading the present operation status of the power supply"),
+    (0x27, "Enter the calibration mode"),
+    (0x28, "Reading the calibration mode state"),
+    (0x29, "Calibrate voltage value"),
+    (0x2A, "Sending the actual output voltage to calibration program"),
+    (0x2B, "Calibrate current value"),
+    (0x2C, "Sending the actual output current to the calibration program"),
+    (0x2D, "Save the calibration data to EEPROM"),
+    (0x2E, "Setting calibration information"),
+    (0x2F, "Reading calibration information"),
+    (0x31, "Reading product's model, series number and version information"),
+    (0x32, "Restoring the factory default calibration data"),
+    (0x37, "Enable the local key"),
+    (0x12, "The returned status)"),
+)
 
 
 class PPSInterface(PPS):
@@ -86,8 +88,14 @@ class PPSInterface(PPS):
         self.com_port = com_port
 
     def _connect(self):
-        self.instrument = serial.Serial(port=self.com_port, baudrate=self.baud_rate, parity=self.PARITY,
-                                        stopbits=self.STOP_BIT, bytesize=self.DATA_BYTE, timeout=0.5)
+        self.instrument = serial.Serial(
+            port=self.com_port,
+            baudrate=self.baud_rate,
+            parity=self.PARITY,
+            stopbits=self.STOP_BIT,
+            bytesize=self.DATA_BYTE,
+            timeout=0.5,
+        )
         self.connected = True
 
     @property
@@ -105,20 +113,23 @@ class PPSInterface(PPS):
             self._baud_rate = val
             self._connect()
         else:
-            raise ValueError("Baud rate {} one of the specified baud rates {}"
-                             .format(val, ','.join("{}".format(rate) for rate in self._baud_rates)))
+            raise ValueError(
+                "Baud rate {} one of the specified baud rates {}".format(
+                    val, ",".join("{}".format(rate) for rate in self._baud_rates)
+                )
+            )
 
     @staticmethod
     def _little_endian_encode(val):
         # Maximum data used in protocol is 4 bytes
-        return struct.pack('<I', val)
+        return struct.pack("<I", val)
 
     @staticmethod
     def _little_endian_decode(val):
         # Maximum data used in protocol is 4 bytes
         data = bytearray(4)
-        data[0:len(val)] = val[:]
-        return struct.unpack_from('<I', data)[0]
+        data[0 : len(val)] = val[:]
+        return struct.unpack_from("<I", data)[0]
 
     def _packet_encode(self, command, *data_tuples):
         """
@@ -135,7 +146,9 @@ class PPSInterface(PPS):
         packet[2] = command
         packet_index = 3
         for data, num_bytes in data_tuples:
-            packet[packet_index:packet_index + num_bytes] = self._little_endian_encode(data)[0:num_bytes]
+            packet[
+                packet_index : packet_index + num_bytes
+            ] = self._little_endian_encode(data)[0:num_bytes]
             packet_index += num_bytes
             if packet_index >= self.PACKET_LENGTH:
                 raise ValueError("Too many bytes to pack into packet")
@@ -160,7 +173,9 @@ class PPSInterface(PPS):
         data["command"] = packet[2]
         packet_index = 3
         for name, num_bytes in data_tuples:
-            data[name] = self._little_endian_decode(packet[packet_index:packet_index + num_bytes])
+            data[name] = self._little_endian_decode(
+                packet[packet_index : packet_index + num_bytes]
+            )
             packet_index += num_bytes
             if packet_index >= self.PACKET_LENGTH:
                 raise ValueError("Too many data values to unpack from packet")
@@ -170,7 +185,9 @@ class PPSInterface(PPS):
 
     def _checksum(self, data):
         if len(data) != self.PACKET_LENGTH:
-            raise ValueError("Checksum cannot be calculated on data length {}".format(len(data)))
+            raise ValueError(
+                "Checksum cannot be calculated on data length {}".format(len(data))
+            )
         return sum(data[:-1]) % 256
 
     def communicate(self, command, *data_tuples):
@@ -279,7 +296,7 @@ class BK178X(PPSInterface):
     @property
     def calibration_info(self):
         packet = self.communicate(0x2F)
-        return ''.join(chr(i) for i in packet[3:23] if i != 0x00)
+        return "".join(chr(i) for i in packet[3:23] if i != 0x00)
 
     @calibration_info.setter
     def calibration_info(self, val):
@@ -298,8 +315,15 @@ class BK178X(PPSInterface):
 
     def read(self):
         packet = self.communicate(0x26)
-        data = self._packet_decode(packet, ("current", 2), ("voltage", 4), ("status", 1),
-                                   ("current_limit", 2), ("voltage_max", 4), ("voltage_setting", 4))
+        data = self._packet_decode(
+            packet,
+            ("current", 2),
+            ("voltage", 4),
+            ("status", 1),
+            ("current_limit", 2),
+            ("voltage_max", 4),
+            ("voltage_setting", 4),
+        )
         data["output"] = data["status"] & 1
         data["over_heat"] = data["status"] & (1 << 1)
         data["current"] /= 1000
@@ -322,17 +346,17 @@ class BK178X(PPSInterface):
     def identify(self, as_string=False):
         packet = self.communicate(0x31)
         data = self._packet_decode(packet, ("model", 4), ("software_version", 2))
-        data["model"] = ''.join(chr(i) for i in packet[3:8] if i != 0x00)
-        data["serial_number"] = ''.join(chr(i) for i in packet[10:20] if i != 0x00)
+        data["model"] = "".join(chr(i) for i in packet[3:8] if i != 0x00)
+        data["serial_number"] = "".join(chr(i) for i in packet[10:20] if i != 0x00)
         ret_val = data
         if as_string:
-            ret_val = ''
+            ret_val = ""
             for key, value in sorted(data.items()):
-                ret_val += '{}: {},'.format(key, value)
+                ret_val += "{}: {},".format(key, value)
         return ret_val
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from fixate.drivers import pps
 
     mypps = pps.open(restrictions={"baud_rates": [9600]})

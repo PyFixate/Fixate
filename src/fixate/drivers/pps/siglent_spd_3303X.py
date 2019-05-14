@@ -40,8 +40,11 @@ class SPD3303X(PPS):
             ("channel1._call", self.write, "OUTPut:TRACK 0;OUTPut CH1,{value}"),
             ("channel1.wave", self.write, "OUTPut:TRACK 0;OUTPut:WAVE CH1,{value}"),
             # TODO Need to initialise all groups (1-5) to 0 V, A, s before setting the ones you need
-            ("channel1.timer.set_waveform", self.write_timer,
-             "OUTPut:TRACK 0;TIMEr:SET CH1,{group},{voltage},{current},{duration}"),
+            (
+                "channel1.timer.set_waveform",
+                self.write_timer,
+                "OUTPut:TRACK 0;TIMEr:SET CH1,{group},{voltage},{current},{duration}",
+            ),
             ("channel1.timer._call", self.write, "OUTPut:TRACK 0;TIMEr CH1,{value}"),
             # Channel 2 Commands
             ("channel2.voltage", self.write, "OUTPut:TRACK 0;CH2:VOLT {value}"),
@@ -49,14 +52,25 @@ class SPD3303X(PPS):
             ("channel2._call", self.write, "OUTPut:TRACK 0;OUTPut CH2,{value}"),
             ("channel2.wave", self.write, "OUTPut:TRACK 0;OUTPut:WAVE CH2,{value}"),
             # TODO Need to initialise all groups (1-5) to 0 V, A, s before setting the ones you need
-            ("channel2.timer.set_waveform", self.write_timer,
-             "OUTPut:TRACK 0;TIMEr:SET CH2,{group},{voltage},{current},{duration}"),
+            (
+                "channel2.timer.set_waveform",
+                self.write_timer,
+                "OUTPut:TRACK 0;TIMEr:SET CH2,{group},{voltage},{current},{duration}",
+            ),
             ("channel2.timer._call", self.write, "OUTPut:TRACK 0;TIMEr CH2,{value}"),
             # Output Setting Commands
-            ("series._call", self.write, "OUTPut:TRACK 1;OUTPut:TRACK 1;OUTPut CH1,{value}"),
+            (
+                "series._call",
+                self.write,
+                "OUTPut:TRACK 1;OUTPut:TRACK 1;OUTPut CH1,{value}",
+            ),
             ("series.voltage", self.write_half, "OUTPut:TRACK 1;CH1:VOLT {value}"),
             ("series.current", self.write, "OUTPut:TRACK 1;CH1:CURR {value}"),
-            ("parallel._call", self.write, "OUTPut:TRACK 2;OUTPut:TRACK 2;OUTPut CH1,{value}"),
+            (
+                "parallel._call",
+                self.write,
+                "OUTPut:TRACK 2;OUTPut:TRACK 2;OUTPut CH1,{value}",
+            ),
             ("parallel.voltage", self.write, "OUTPut:TRACK 2;CH1:VOLT {value}"),
             ("parallel.current", self.write_half, "OUTPut:TRACK 2;CH1:CURR {value}"),
             # Address Setting Commands
@@ -72,7 +86,7 @@ class SPD3303X(PPS):
             # Channel 2 Measuring
             ("channel2.measure.current", self.query_value, "MEAS:CURRent? CH2"),
             ("channel2.measure.voltage", self.query_value, "MEAS:VOLTage? CH2"),
-            ("channel2.measure.power", self.query_value, "MEAS:POWEr? CH2")
+            ("channel2.measure.power", self.query_value, "MEAS:POWEr? CH2"),
         ]
         self.init_api()
 
@@ -95,14 +109,18 @@ class SPD3303X(PPS):
     def write_timer(self, base_str, waveform):
 
         if len(waveform) > 5:
-            raise ValueError("Error: Too many points in waveform. Waveform must have 5 or fewer points")
+            raise ValueError(
+                "Error: Too many points in waveform. Waveform must have 5 or fewer points"
+            )
         # We need to set the remaining waveforms to blank so that the previous values are initialised to 0
         blank = [[0, 0, 0] for _ in range(5 - len(waveform))]
 
         waveform.extend(blank)
         for group, wave in enumerate(waveform, start=1):
             voltage, current, duration = wave
-            formatted_string = base_str.format(group=group, voltage=voltage, current=current, duration=duration)
+            formatted_string = base_str.format(
+                group=group, voltage=voltage, current=current, duration=duration
+            )
             self._write(formatted_string)
 
     def write_half(self, base_str, value):
@@ -110,7 +128,7 @@ class SPD3303X(PPS):
         self._write(formatted_string)
 
     def _format_string(self, base_str, **kwargs):
-        kwargs['self'] = self
+        kwargs["self"] = self
         prev_string = base_str
         cur_string = ""
         while True:
@@ -181,14 +199,14 @@ class SPD3303X(PPS):
         flat 20ms is added to allow processing time.
         This is especially important for commands that write large amounts of data such as user arbitrary forms.
         """
-        for cmd in data.split(';'):
+        for cmd in data.split(";"):
             self.instrument.write(cmd)
             time.sleep(0.02 + len(cmd) / 6000)
         self._is_error()
 
     def _check_errors(self):
         resp = self.instrument.query("SYST:ERR?")
-        comp = re.compile(r'(\d+) {1,2}([\w ]+)', re.UNICODE)
+        comp = re.compile(r"(\d+) {1,2}([\w ]+)", re.UNICODE)
         resp = comp.match(resp)
         code = resp[1]
         msg = resp[2]
@@ -203,8 +221,10 @@ class SPD3303X(PPS):
             if silent:
                 return [(code, msg)]
             else:
-                raise InstrumentError("Error Returned from PPS\n" +
-                                      "Code: {}\nMessage:{}".format(code, msg))
+                raise InstrumentError(
+                    "Error Returned from PPS\n"
+                    + "Code: {}\nMessage:{}".format(code, msg)
+                )
 
     def init_api(self):
         for func_str, handler, base_str in self.api:

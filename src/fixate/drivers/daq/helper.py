@@ -12,7 +12,7 @@ def open():
     A instantiated class connected to a valid daq
     """
     for daq, cls in fixate.config.DRIVERS["DAQ"]:
-        if daq == 'DaqMx':
+        if daq == "DaqMx":
             return cls()
 
 

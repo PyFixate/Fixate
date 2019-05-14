@@ -5,18 +5,30 @@ Drivers are hard coded into the config to prevent issues arising from auto disco
 Must ensure driver imports are infallible to prevent program crash on start
 """
 import importlib
-from fixate.config.helper import load_dict_config, load_json_config, load_yaml_config, get_plugin_data, get_plugins, \
-    get_config_dict, render_template
+from fixate.config.helper import (
+    load_dict_config,
+    load_json_config,
+    load_yaml_config,
+    get_plugin_data,
+    get_plugins,
+    get_config_dict,
+    render_template,
+)
 
 # TODO review all these values to determine if they should exist in this module
-DRIVER_LIST = {"DMM": {"dmm.fluke_8846a.Fluke8846A"},
-               "FUNC_GEN": {"funcgen.rigol_dg1022.RigolDG1022", "funcgen.keysight_33500b.Keysight33500B"},
-               "DAQ": {"daq.daqmx.DaqMx"},
-               "LCR": {"lcr.agilent_u1732c.AgilentU1732C"},
-               "PROGRESSION": {"progression.Progression"},
-               "PPS": {'pps.bk_178x.BK178X', 'pps.siglent_spd_3303X.SPD3303X'},
-               "DSO": {'dso.agilent_mso_x.MSO_X_3000'},
-               "FTDI": {"ftdi.FTDI2xx"}}
+DRIVER_LIST = {
+    "DMM": {"dmm.fluke_8846a.Fluke8846A"},
+    "FUNC_GEN": {
+        "funcgen.rigol_dg1022.RigolDG1022",
+        "funcgen.keysight_33500b.Keysight33500B",
+    },
+    "DAQ": {"daq.daqmx.DaqMx"},
+    "LCR": {"lcr.agilent_u1732c.AgilentU1732C"},
+    "PROGRESSION": {"progression.Progression"},
+    "PPS": {"pps.bk_178x.BK178X", "pps.siglent_spd_3303X.SPD3303X"},
+    "DSO": {"dso.agilent_mso_x.MSO_X_3000"},
+    "FTDI": {"ftdi.FTDI2xx"},
+}
 CONFIG_LOADED = False
 
 # INSTRUMENTS gets populated when fixate.config.load_json_config is called.
@@ -39,25 +51,31 @@ plg_csv = {
     "REPORT_FORMAT_VERSION": 3,
     "tpl_first_line": [
         "0",
-        'Sequence',
+        "Sequence",
         "started={start_date_time}",
         "fixate-version={fixate_version}",
         "test-script-name={test_script_name}",
         "report-format={REPORT_FORMAT_VERSION}",
-        "index_string={index}"]
+        "index_string={index}",
+    ],
 }
 index = None
 # TODO Remove this and do this as part of the plugin initialisation routine
 # Import the drivers from the DRIVER_LIST
 for key, value in DRIVER_LIST.items():
     for drv in value:
-        imp_path = '.'.join(drv.split('.')[:-1])
-        cls = drv.split('.')[-1]
+        imp_path = ".".join(drv.split(".")[:-1])
+        cls = drv.split(".")[-1]
 
         if DRIVERS.get(key, None) is None:
             DRIVERS[key] = []
         try:
-            DRIVERS[key].append((cls, getattr(importlib.import_module('fixate.drivers.' + imp_path), cls)))
+            DRIVERS[key].append(
+                (
+                    cls,
+                    getattr(importlib.import_module("fixate.drivers." + imp_path), cls),
+                )
+            )
         except Exception as e:
             # print(repr(e))
             pass

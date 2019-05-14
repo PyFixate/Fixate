@@ -25,13 +25,32 @@ class VirtualAddressMap:
 
     @property
     def pin_values(self):
-        return list(zip(self.virtual_pin_list,
-                        bits(self._virtual_pin_values_active, num_bits=len(self.virtual_pin_list), order="LSB")))
+        return list(
+            zip(
+                self.virtual_pin_list,
+                bits(
+                    self._virtual_pin_values_active,
+                    num_bits=len(self.virtual_pin_list),
+                    order="LSB",
+                ),
+            )
+        )
 
     def active_pins(self):
-        return [(self.virtual_pin_list[pin], self.mux_assigned_pins[self.virtual_pin_list[pin]]) for pin, value in
-                enumerate(bits(self._virtual_pin_values_active, num_bits=len(self.virtual_pin_list), order="LSB")) if
-                value]
+        return [
+            (
+                self.virtual_pin_list[pin],
+                self.mux_assigned_pins[self.virtual_pin_list[pin]],
+            )
+            for pin, value in enumerate(
+                bits(
+                    self._virtual_pin_values_active,
+                    num_bits=len(self.virtual_pin_list),
+                    order="LSB",
+                )
+            )
+            if value
+        ]
 
     def install_address_handler(self, handler):
         """
@@ -44,7 +63,11 @@ class VirtualAddressMap:
         # Checks
         common_elements = set(handler.pin_list).intersection(set(self.virtual_pin_list))
         if common_elements:
-            raise ValueError("Duplicate pin identifiers not allowed\n{}".format(', '.join(common_elements)))
+            raise ValueError(
+                "Duplicate pin identifiers not allowed\n{}".format(
+                    ", ".join(common_elements)
+                )
+            )
 
         self.virtual_pin_list.extend(handler.pin_list)
         self.address_handlers.append((len(self.virtual_pin_list), handler))
@@ -61,12 +84,18 @@ class VirtualAddressMap:
         mux.pin_mask = []
         for itm in mux.pin_list:
             if itm in self.mux_assigned_pins:
-                warnings.warn("Pin {} in {} already assigned in {}".format(itm, mux, self.mux_assigned_pins[itm]),
-                              MuxWarning)
+                warnings.warn(
+                    "Pin {} in {} already assigned in {}".format(
+                        itm, mux, self.mux_assigned_pins[itm]
+                    ),
+                    MuxWarning,
+                )
             try:
                 mux.pin_mask.append(self.virtual_pin_list.index(itm))
             except ValueError as e:
-                raise ValueError("Multiplexer pin {} not found in Virtual Address Map".format(itm)) from e
+                raise ValueError(
+                    "Multiplexer pin {} not found in Virtual Address Map".format(itm)
+                ) from e
             self.mux_assigned_pins[itm] = mux
         mux.update_callback = self.update_pin_values
         mux._clear_callback = self.update_clearing_pin_values
@@ -112,7 +141,9 @@ class VirtualAddressMap:
             values = handler.update_input()
             if values is not None:  # Handler can return valid input values
                 pin_values = []
-                for index, b in enumerate(bits(values, num_bits=len(handler.pin_list), order="LSB")):
+                for index, b in enumerate(
+                    bits(values, num_bits=len(handler.pin_list), order="LSB")
+                ):
                     pin_values.append((index + start_addr, b))
                 self.update_pin_values(pin_values, trigger_update=False)
             start_addr = addr
@@ -174,7 +205,9 @@ class VirtualAddressMap:
         self.update_pin_values([(index, value)], trigger_update)
 
     def update_pins_by_name(self, pins, trigger_update=True):
-        pin_values = [(self.virtual_pin_list.index(name), value) for name, value in pins]
+        pin_values = [
+            (self.virtual_pin_list.index(name), value) for name, value in pins
+        ]
         self.update_pin_values(pin_values, trigger_update)
 
     def __getitem__(self, item):
@@ -191,6 +224,7 @@ class AddressHandler:
     :param pin_list: Iterable of pins (type string) that the AddressHandler handles
     :param defaults: Iterable of pins (type string subset of pin_list) that should default to high logic on reset
     """
+
     pin_list = ()
     pin_defaults = ()
 
@@ -243,7 +277,9 @@ class VirtualMux:
             try:
                 virtual_address = self.signal_map[signal_output]
             except ValueError as e:
-                raise ValueError("signal_output {} not found in multiplexer".format(signal_output)) from e
+                raise ValueError(
+                    "signal_output {} not found in multiplexer".format(signal_output)
+                ) from e
 
         values = self._build_values_update(virtual_address)
         self.clear_callback()
@@ -254,7 +290,9 @@ class VirtualMux:
 
     def _build_values_update(self, virtual_address):
         values = []
-        for index, b in enumerate(bits(virtual_address, num_bits=len(self.pin_list), order="LSB")):
+        for index, b in enumerate(
+            bits(virtual_address, num_bits=len(self.pin_list), order="LSB")
+        ):
             try:
                 values.append((self.pin_mask[index], b))
             except IndexError:
@@ -271,7 +309,9 @@ class VirtualMux:
         address map.
         :return:
         """
-        raise NotImplementedError("Callback not set. Consider installing virtual mux into a virtual address map")
+        raise NotImplementedError(
+            "Callback not set. Consider installing virtual mux into a virtual address map"
+        )
 
     def clear_callback(self):
         """
@@ -300,7 +340,9 @@ class VirtualMux:
         """
 
     def update_callback(self, values, trigger_update):
-        raise NotImplementedError("Callback not set. Consider installing virtual mux into a virtual address map")
+        raise NotImplementedError(
+            "Callback not set. Consider installing virtual mux into a virtual address map"
+        )
 
     def _check_duplicates(self, addr, value):
         if addr in self._reserved_addr:
@@ -309,7 +351,11 @@ class VirtualMux:
                 if addr == v:
                     dup = k
                     break
-            raise ValueError("Address 0b{:b} already in use\n{} is a duplicate of {}".format(addr, value, dup))
+            raise ValueError(
+                "Address 0b{:b} already in use\n{} is a duplicate of {}".format(
+                    addr, value, dup
+                )
+            )
         self._reserved_addr.add(addr)
 
     def map_shifted(self, base_index, start_index, values):
@@ -344,13 +390,18 @@ class VirtualMux:
                 addr |= 1 << self.pin_list.index(name)
             except ValueError as e:
                 raise Exception(
-                    'pin "{}" was not found in pin_list of VirtualMux {}'.format(name, self.__class__)) from e
+                    'pin "{}" was not found in pin_list of VirtualMux {}'.format(
+                        name, self.__class__
+                    )
+                ) from e
         self._check_duplicates(addr, value)
         self.signal_map[value] = addr
 
     def condensed_signal_map(self):
         binary_length = "0b{:0" + "{}".format(len(self.pin_list)) + "b}"
-        return sorted([(binary_length.format(ind), val) for val, ind in self.signal_map.items()])
+        return sorted(
+            [(binary_length.format(ind), val) for val, ind in self.signal_map.items()]
+        )
 
     def map_signals(self):
         """
@@ -574,7 +625,8 @@ class VirtualSwitch(VirtualMux):
     the VirtualMux base class to use the callable syntax on the switch object. It remains for
     backward compatibility.
     """
-    pin_name = ''
+
+    pin_name = ""
     map_tree = ("FALSE", "TRUE")
 
     def multiplex(self, signal_output, trigger_update=True):
@@ -603,7 +655,12 @@ class VirtualSwitch(VirtualMux):
 class TestAddressHandler(AddressHandler):
     def update_output(self, value):
         print("Updating from {}".format(self.__class__.__name__))
-        print(*zip(self.pin_list, [b for b in bits(value, len(self.pin_list), order="LSB")]), sep="\n")
+        print(
+            *zip(
+                self.pin_list, [b for b in bits(value, len(self.pin_list), order="LSB")]
+            ),
+            sep="\n"
+        )
 
 
 class RelayMatrixMux(VirtualMux):
@@ -642,6 +699,7 @@ class JigDriver(metaclass=JigMeta):
 
     :attribute defaults: Iterable of the default pins to set high on driver reset
     """
+
     multiplexers = ()
     address_handlers = ()
     defaults = ()

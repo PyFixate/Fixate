@@ -45,5 +45,5 @@ class ParameterisedTest(TestClass):
 test_data = {
     "minimal": [SimpleTest()],
     "small": [SimpleTest(), MyTestList([ParameterisedTest(1), ParameterisedTest(2)])],
-    "large": [SimpleTest(), MyTestList([ParameterisedTest(x) for x in range(50)])]
+    "large": [SimpleTest(), MyTestList([ParameterisedTest(x) for x in range(50)])],
 }

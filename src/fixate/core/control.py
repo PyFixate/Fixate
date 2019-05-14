@@ -11,7 +11,15 @@ def _range_gen(value=None):
             yield True
 
 
-def converge_scalar_tolerance(dmm, funcgen, set_point, tolerance, limit_amplitude=None, settle_number=1, attempts=5):
+def converge_scalar_tolerance(
+    dmm,
+    funcgen,
+    set_point,
+    tolerance,
+    limit_amplitude=None,
+    settle_number=1,
+    attempts=5,
+):
     p = LinearScalarControl(funcgen.amplitude_ch1)
     p.set_point(set_point)
     settle_cnt = 0
@@ -31,15 +39,29 @@ def converge_scalar_tolerance(dmm, funcgen, set_point, tolerance, limit_amplitud
         # Put the control value into the kwargs for the control function
         if contr_val >= limit_amplitude:
             raise InstrumentError(
-                "Converge function value {}Vpp exceeded the limit set {}Vpp".format(contr_val, limit_amplitude))
+                "Converge function value {}Vpp exceeded the limit set {}Vpp".format(
+                    contr_val, limit_amplitude
+                )
+            )
         funcgen.amplitude_ch1 = contr_val
     raise InstrumentError("Could not converge in {} attempts".format(attempts))
 
 
-def converge_amplitude_scalar(dmm, funcgen_or_ps, set_point, cur_amplitude,
-                              mode=None, frequency=None, offset=0,
-                              retries=None, timeout=None,
-                              settle_min=None, settle_max=None, settle_number=1, limit_amplitude=None):
+def converge_amplitude_scalar(
+    dmm,
+    funcgen_or_ps,
+    set_point,
+    cur_amplitude,
+    mode=None,
+    frequency=None,
+    offset=0,
+    retries=None,
+    timeout=None,
+    settle_min=None,
+    settle_max=None,
+    settle_number=1,
+    limit_amplitude=None,
+):
     """
     :param dmm:
         the instantiated class used as a dmm.
@@ -121,20 +143,35 @@ def converge_amplitude_scalar(dmm, funcgen_or_ps, set_point, cur_amplitude,
         # Put the control value into the kwargs for the control function
         if limit_amplitude and contr_val >= limit_amplitude:
             raise InstrumentError(
-                "Converge function value {}Vpp exceeded the limit set {}Vpp".format(contr_val, limit_amplitude))
-        new_kwargs.update(dict([('amplitude', contr_val)]))
+                "Converge function value {}Vpp exceeded the limit set {}Vpp".format(
+                    contr_val, limit_amplitude
+                )
+            )
+        new_kwargs.update(dict([("amplitude", contr_val)]))
         funcgen_or_ps.function(mode, **new_kwargs)
         if not (contr_val * 0.95 < funcgen_or_ps.amplitude_ch1 <= contr_val * 1.05):
-            raise InstrumentError("Amplitude {} set outside of instrument range {}"
-                                  .format(contr_val, funcgen_or_ps.amplitude_ch1))
+            raise InstrumentError(
+                "Amplitude {} set outside of instrument range {}".format(
+                    contr_val, funcgen_or_ps.amplitude_ch1
+                )
+            )
             # Check if programmable power supply
             # raise NotImplemented("Programmable Power Supply Not implemented for this control")
             # if issubclass(ProgPS, funcgen_or_ps):
             # pass
 
 
-def converge_scalar(control_func, feedback_func, set_point, initial_state, settle_min, settle_max,
-                    limit_control=(None, None), timeout=10, settle_number=1):
+def converge_scalar(
+    control_func,
+    feedback_func,
+    set_point,
+    initial_state,
+    settle_min,
+    settle_max,
+    limit_control=(None, None),
+    timeout=10,
+    settle_number=1,
+):
     """
     Uses a linear scalar controller to converge two functions.
     Best used in a linear system and with an informed starting point.
@@ -228,11 +265,17 @@ class LinearScalarControl:
         try:
             self._updated_value = float(initial_state)
         except ValueError as e:
-            raise ParameterError("initial_state found {}. Must be a non-zero number".format(initial_state)) from e
+            raise ParameterError(
+                "initial_state found {}. Must be a non-zero number".format(
+                    initial_state
+                )
+            ) from e
 
     def update(self, measured_value):
         if self._updated_value == 0.0:
-            raise ParameterError("Cannot apply a scalar value to 0.0 because it will always return 0.0")
+            raise ParameterError(
+                "Cannot apply a scalar value to 0.0 because it will always return 0.0"
+            )
         self._updated_value *= self._set_point / measured_value
         return self._updated_value
 
@@ -253,7 +296,9 @@ class LinearAbsoluteControl:
         try:
             self._updated_value = float(initial_state)
         except ValueError as e:
-            raise ParameterError("initial_state found {}. Must be a number".format(initial_state)) from e
+            raise ParameterError(
+                "initial_state found {}. Must be a number".format(initial_state)
+            ) from e
         self._error_scalar = None
         self._error = None
         self._damp_factor = 0.8
@@ -264,11 +309,17 @@ class LinearAbsoluteControl:
             If it is past the first time then the error scalar needs to be updated based on the measured results
         """
         if self._error_scalar:
-            self._error_scalar *= (self._error - (self._set_point - measured_value)) * self._damp_factor
+            self._error_scalar *= (
+                self._error - (self._set_point - measured_value)
+            ) * self._damp_factor
         else:
             self._error_scalar = 1
         self._error = self._set_point - measured_value
-        print("Update params error {} error scalar {}".format(self._error, self._error_scalar))
+        print(
+            "Update params error {} error scalar {}".format(
+                self._error, self._error_scalar
+            )
+        )
         self._updated_value += self._error * self._error_scalar
 
         return self._updated_value
@@ -297,7 +348,16 @@ class PID:
 
     """
 
-    def __init__(self, P=2.0, I=0.0, D=1.0, Derivator=0, Integrator=0, Integrator_max=500, Integrator_min=-500):
+    def __init__(
+        self,
+        P=2.0,
+        I=0.0,
+        D=1.0,
+        Derivator=0,
+        Integrator=0,
+        Integrator_max=500,
+        Integrator_min=-500,
+    ):
 
         self.Kp = P
         self.Ki = I

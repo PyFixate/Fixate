@@ -12,7 +12,9 @@ class ResizeImageView(QtWidgets.QGraphicsView):
 
     def resizeEvent(self, event):
         if self.scene is not None:
-            self.fitInView(0, 0, self.scene.width(), self.scene.height(), QtCore.Qt.KeepAspectRatio)
+            self.fitInView(
+                0, 0, self.scene.width(), self.scene.height(), QtCore.Qt.KeepAspectRatio
+            )
 
 
 class SubmissionTextBox(QtWidgets.QPlainTextEdit):
