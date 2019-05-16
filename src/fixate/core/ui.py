@@ -154,7 +154,7 @@ def user_input_float(msg):
     return _user_req_input(msg, target=_float_validate)
 
 
-def user_action(msg, target, topic="UI_action"):
+def user_action(msg, target):
     """
     WIP
     Prompts the user to complete an action.
@@ -162,7 +162,6 @@ def user_action(msg, target, topic="UI_action"):
     :param msg:
     Message to display to the user
     :param target:
-    :param topic Pubsub topic to communicate a user action
 
     :return:
     """
@@ -171,7 +170,7 @@ def user_action(msg, target, topic="UI_action"):
     # UI command that will push
     # False into the queue if the user fails the test through an external interface.
     # True if the user passes the test through an external interface.
-    pub.sendMessage(topic, msg=msg, q=q, abort=abort)
+    pub.sendMessage("UI_action", msg=msg, q=q, abort=abort)
     while True:
         try:
             itm = q.get_nowait()
@@ -183,34 +182,6 @@ def user_action(msg, target, topic="UI_action"):
             abort.put(True)
             return True
         time.sleep(0)  # Yield control for other threads but don't slow down target
-
-
-def user_action_pass_fail(msg, target):
-    """
-    WIP
-    Prompts the user to complete an action.
-    Actively monitors the target infinitely until the event is detected or a user fail event occurs
-    :param msg:
-    Message to display to the user
-    :param target:
-
-    :return:
-    """
-    user_action(msg, target, "UI_action.pass_fail")
-
-
-def user_action_fail(msg, target):
-    """
-    WIP
-    Prompts the user to complete an action.
-    Actively monitors the target infinitely until the event is detected or a user fail event occurs
-    :param msg:
-    Message to display to the user
-    :param target:
-
-    :return:
-    """
-    user_action(msg, target, "UI_action.fail")
 
 
 def user_ok(msg):
