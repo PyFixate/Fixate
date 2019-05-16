@@ -1,10 +1,9 @@
 import sys
-import os
 import pkgutil
 import textwrap
 import traceback
 from collections import OrderedDict
-from os import path
+import os.path
 from queue import Empty
 from queue import Queue
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -20,7 +19,7 @@ wrapper.break_long_words = False
 
 wrapper.drop_whitespace = True
 
-QT_GUI_WORKING_INDICATOR = path.join(path.dirname(__file__), "working_indicator.gif")
+QT_GUI_WORKING_INDICATOR = os.path.join(os.path.dirname(__file__), "working_indicator.gif")
 
 ERROR_STYLE = """
 QProgressBar{
@@ -86,9 +85,9 @@ def get_status_colours(status):
     return STATUS_PRIORITY[status]
 
 
-def exception_hook(exctype, value, traceback):  # TODO DEBUG REMOVE
-    # logger.error("{}:{}:{}".format(exctype, value, traceback))
-    sys.__excepthook__(exctype, value, traceback)
+def exception_hook(exctype, value, tb):  # TODO DEBUG REMOVE
+    # logger.error("{}:{}:{}".format(exctype, value, tb))
+    sys.__excepthook__(exctype, value, tb)
     sys.exit(1)
 
 
@@ -122,9 +121,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     # Active Window
     sig_active_update = pyqtSignal(str)
     sig_active_clear = pyqtSignal()
-    # History Window
-    sig_history_update = pyqtSignal(str)
-    sig_history_clear = pyqtSignal(str)
     # Error Window
     sig_error_update = pyqtSignal(str)
     sig_error_clear = pyqtSignal(str)
@@ -138,11 +134,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     sig_working = pyqtSignal()
     sig_progress = pyqtSignal()
     sig_finish = pyqtSignal()
-
-    # Deprecated Replace with Active , History and Error Window signals
-    output_signal = pyqtSignal(str, str)
-    # Deprecated replace with Image Window signals
-    update_image = pyqtSignal(str, bool)
 
     """Class Constructor and destructor"""
 
@@ -223,16 +214,11 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_indicator_stop.connect(self._stop_indicator)
         self.sig_active_update.connect(self._active_update)
         self.sig_active_clear.connect(self._active_clear)
-        self.sig_history_update.connect(self.history_update)
-        self.sig_history_clear.connect(self.history_clear)
+        # TODO: I don't think the error signals and widow are used. Delete?
         self.sig_error_update.connect(self.error_update)
         self.sig_error_clear.connect(self.error_clear)
         self.sig_image_update.connect(self._image_update)
         self.sig_image_clear.connect(self._image_clear)
-        # Deprecated
-        # self.update_image.connect(self.display_image)
-        # self.output_signal.connect(self.display_output)
-        # self.working.connect(self.start_indicator)
 
     """Pubsub handlers for setup and teardown
        These are run in the main thread"""
@@ -269,11 +255,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         pub.subscribe(self.start_indicator, "UI_block_end")
         pub.subscribe(self.stop_indicator, "UI_block_start")
 
-        return
-
     def unregister_events(self):
         pub.unsubAll()
-        return
 
     """Slot handlers for thread-gui interaction
        These are run in the main thread"""
@@ -352,46 +335,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
     def _image_clear(self):
         self.image_scene.clear()
-
-    def display_image(self, path="", overlay=False):
-        if path == "" or not overlay:
-            self.image_scene.clear()
-            if overlay:
-                image = QtGui.QPixmap()
-                image.loadFromData(self.base_image)
-                if image.isNull():
-                    self.file_not_found(self.base_image)
-            elif path == "":
-                self.base_image = path
-                return
-            else:
-                self.base_image = self.retrieve_packaged_data(path)
-                image = QtGui.QPixmap()
-                image.loadFromData(self.base_image)
-                if image.isNull():
-                    self.file_not_found(path)
-            self.image_scene.addPixmap(image)
-            self.ImageView.fitInView(
-                0,
-                0,
-                self.image_scene.width(),
-                self.image_scene.height(),
-                QtCore.Qt.KeepAspectRatio,
-            )
-            return
-        image = QtGui.QPixmap()
-        image.loadFromData(self.retrieve_packaged_data(path))
-        if image.isNull():
-            self.file_not_found(path)
-        self.image_scene.addPixmap(image)
-        self.ImageView.fitInView(
-            0,
-            0,
-            self.image_scene.width(),
-            self.image_scene.height(),
-            QtCore.Qt.KeepAspectRatio,
-        )
-        return
 
     def file_not_found(self, path):
         """
@@ -577,18 +520,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             self.Errors.verticalScrollBar().maximum()
         )
 
-    # def display_output(self, message, status):
-    #     self.Events.append(message)
-    #     self.Events.verticalScrollBar().setValue(self.Events.verticalScrollBar().maximum())
-    #
-    #     if status == "False":  # Print errors
-    #         self.Errors.append(self.ActiveTest.text() + ' - ' + message[1:])
-    #         self.Errors.verticalScrollBar().setValue(self.Errors.verticalScrollBar().maximum())
-    #
-    #     if status in ["Active", "False"]:
-    #         self.ActiveEvent.append(message)
-    #         self.ActiveEvent.verticalScrollBar().setValue(self.ActiveEvent.verticalScrollBar().maximum())
-
     def progress_update(self):
         self.ActiveEvent.clear()
         self.ProgressBar.setValue(self.worker.worker.get_current_task())
@@ -691,44 +622,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     """User IO handlers, emit signals to trigger main thread updates via slots.
        These are run in the sequencer thread"""
 
-    def event_output(self, message, status="True"):
-        self.output_signal.emit(message, str(status))
-
-    def gui_text_input(self, message):
-        self.sig_text_input.emit(message)
-        self.blocked = True
-        result = self.input_queue.get(True)
-        self.blocked = False
-        self.sig_working.emit()
-        return result
-
-    def gui_choices(self, message, choices):
-        self.sig_choices_input.emit(message, choices)
-        self.blocked = True
-        result = self.input_queue.get(True)
-        self.blocked = False
-        self.sig_working.emit()
-        return result
-
-    def gui_user_action_pass_fail(self, message, q, abort):
-        """
-        Non blocking user call
-        :param message:
-        :param q:
-        :param abort:
-        :return:
-        """
-        self.sig_choices_input.emit(message, ["PASS", "FAIL"])
-        self.sig_timer.emit()
-        self.user_action_queue = q
-        self.abort_queue = abort
-
-    def gui_user_action_fail(self, message, q, abort):
-        self.sig_choices_input.emit(message, ["FAIL"])
-        self.sig_timer.emit()
-        self.user_action_queue = q
-        self.abort_queue = abort
-
     def gui_user_input(self, message, choices=None, blocking=True):
         result = None
         if choices is not None:  # Button Prompt
@@ -808,11 +701,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                 wrapper.initial_indent = subsequent_line_fill
             lines.append(wrapper.fill(line))
         return "\n".join(lines)
-
-    # def _image(self, path, overlay):
-    #     if self.closing:
-    #         return
-    #     self.update_image.emit(path, overlay)
 
     def _user_action(self, msg, q, abort):
         """
