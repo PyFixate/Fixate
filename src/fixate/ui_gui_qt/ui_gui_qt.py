@@ -7,7 +7,7 @@ import os.path
 from queue import Empty
 from queue import Queue
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QObject, QThread, pyqtSignal
+from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 from pubsub import pub
 import fixate.config
 from fixate.config import RESOURCES
@@ -37,48 +37,12 @@ QProgressBar::chunk{
 
 STATUS_PRIORITY = OrderedDict(
     [
-        (
-            "In Progress",
-            (
-                QtGui.QBrush(QtGui.QColor(255, 255, 128)),
-                QtGui.QBrush(QtGui.QColor(0, 0, 0)),
-            ),
-        ),
-        (
-            "Error",
-            (
-                QtGui.QBrush(QtGui.QColor(255, 0, 0)),
-                QtGui.QBrush(QtGui.QColor(255, 255, 255)),
-            ),
-        ),
-        (
-            "Failed",
-            (
-                QtGui.QBrush(QtGui.QColor(255, 0, 0)),
-                QtGui.QBrush(QtGui.QColor(255, 255, 255)),
-            ),
-        ),
-        (
-            "Aborted",
-            (
-                QtGui.QBrush(QtGui.QColor(128, 128, 128)),
-                QtGui.QBrush(QtGui.QColor(255, 255, 255)),
-            ),
-        ),
-        (
-            "Passed",
-            (
-                QtGui.QBrush(QtGui.QColor(0, 255, 0)),
-                QtGui.QBrush(QtGui.QColor(0, 0, 0)),
-            ),
-        ),
-        (
-            "Skipped",
-            (
-                QtGui.QBrush(QtGui.QColor(90, 255, 255)),
-                QtGui.QBrush(QtGui.QColor(0, 0, 0)),
-            ),
-        ),
+        ("In Progress", (QtGui.QBrush(Qt.yellow), QtGui.QBrush(Qt.black))),
+        ("Error", (QtGui.QBrush(Qt.red), QtGui.QBrush(Qt.white))),
+        ("Failed", (QtGui.QBrush(Qt.red), QtGui.QBrush(Qt.black))),
+        ("Aborted", (QtGui.QBrush(Qt.gray), QtGui.QBrush(Qt.white))),
+        ("Passed", (QtGui.QBrush(Qt.green), QtGui.QBrush(Qt.black))),
+        ("Skipped", (QtGui.QBrush(Qt.cyan), QtGui.QBrush(Qt.black))),
     ]
 )
 
