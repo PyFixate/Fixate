@@ -4,16 +4,11 @@ This module details user input api
 import time
 from queue import Queue, Empty
 from pubsub import pub
-from fixate.core.exceptions import UserInputError
-from fixate.core.checks import chk_log_value
 from fixate.config import RESOURCES
 from collections import OrderedDict
 
-USER_CONFIRMATION = ("OK", "ABORT", "CANCEL")
 USER_YES_NO = ("YES", "NO")
-USER_PASS_FAIL = ("PASS", "FAIL")
 USER_RETRY_ABORT_FAIL = ("RETRY", "ABORT", "FAIL")
-USER_RETRY_ABORT = ("RETRY", "ABORT")
 
 
 def _user_req(msg):
@@ -178,26 +173,10 @@ def user_image_clear():
     pub.sendMessage("UI_image_clear")
 
 
-def user_confirmation_box(msg, attempts=1):
-    return user_choices(msg, choices=USER_CONFIRMATION, attempts=attempts)
-
-
+# TODO: This is used by the sequencer. Should make internal. Doesn't makes
+# sense that a test script would call this.
 def user_retry_abort_fail(msg):
     return _user_req_choices(msg, target=_user_choices, choices=USER_RETRY_ABORT_FAIL)
-
-
-def user_retry_abort(msg):
-    return _user_req_choices(msg, target=_user_choices, choices=USER_RETRY_ABORT)
-
-
-def user_retry_auto():
-    return "RESULT", "RETRY"
-
-
-def user_pass_fail(msg, attempts=1):
-    return _user_req_choices(
-        msg, attempts=attempts, target=_user_choices, choices=USER_PASS_FAIL
-    )
 
 
 def user_yes_no(msg, attempts=1):
@@ -214,22 +193,7 @@ def _user_choices(response, choices):
     return False
 
 
-def user_choices(msg, choices, attempts=5):
-    """
-    Get information from the user
-    :param msg:
-        text string indicating the request to the user
-    :return:
-        user response
-    """
-    return _user_req_choices(
-        msg, attempts=attempts, target=_user_choices, choices=choices
-    )
-
-
-def _ten_digit_serial(
-    response
-):  # input_type argument added due to input_type="INPUT" on user_serial
+def _ten_digit_serial(response):
     return (len(response) == 10) and int(response)
 
 
@@ -272,20 +236,3 @@ def user_post_sequence_info(msg):
     if "_post_sequence_info" not in RESOURCES["SEQUENCER"].context_data:
         RESOURCES["SEQUENCER"].context_data["_post_sequence_info"] = OrderedDict()
     RESOURCES["SEQUENCER"].context_data["_post_sequence_info"][msg] = "ALL"
-
-
-RETRY_METHODS = {
-    "RETRY ABORT SKIP": user_retry_abort_fail,
-    "RETRY ABORT": user_retry_abort,
-}
-
-
-def user_retry(msg, retry_method):
-    method = RETRY_METHODS.get(retry_method, None)
-    while True:
-        try:
-            return method(msg)[1]
-        except TypeError:
-            return "RETRY"
-        except UserInputError:
-            pass
