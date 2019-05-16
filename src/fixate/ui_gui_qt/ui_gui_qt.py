@@ -622,25 +622,27 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     """User IO handlers, emit signals to trigger main thread updates via slots.
        These are run in the sequencer thread"""
 
-    def gui_user_input(self, message, choices=None, blocking=True):
-        result = None
+    def gui_user_input_non_blocking(self, message, choices=None):
         if choices is not None:  # Button Prompt
-            if blocking:
-                self.sig_choices_input.emit(message, choices)
-            else:
-                self.sig_choices_input.emit(message, (choices[0],))
-                self.sig_timer.emit()
+            self.sig_choices_input.emit(message, (choices[0],))
+            self.sig_timer.emit()
         else:  # Text Prompt
             self.sig_text_input.emit(message)
 
-        if blocking:  # Block sequencer until user responds
-            self.blocked = True
-            result = self.input_queue.get(True)
-            self.blocked = False
-            self.sig_working.emit()
-        else:
-            self.user_action_queue = choices[1]
-            self.abort_queue = choices[2]
+        self.user_action_queue = choices[1]
+        self.abort_queue = choices[2]
+
+    def gui_user_input(self, message, choices=None):
+        result = None
+        if choices is not None:  # Button Prompt
+            self.sig_choices_input.emit(message, choices)
+        else:  # Text Prompt
+            self.sig_text_input.emit(message)
+
+        self.blocked = True
+        result = self.input_queue.get(True)
+        self.blocked = False
+        self.sig_working.emit()
         return result
 
     """UI Event Handlers, process actions taken by the user on the GUI.
@@ -723,7 +725,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             q.put(False)
             abort.put(True)
             return
-        self.gui_user_input(self.reformat_text(msg), ("Fail", q, abort), False)
+        self.gui_user_input_non_blocking(self.reformat_text(msg), ("Fail", q, abort))
 
     def _user_ok(self, msg, q):
         """
@@ -803,7 +805,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         wrapper.subsequent_indent = ""
         for _ in range(attempts):
             # This will change based on the interface
-            ret_val = self.gui_user_input(msg, None, True)
+            ret_val = self.gui_user_input(msg, None)
             if target is None or ret_val == "ABORT_FORCE":
                 q.put(ret_val)
                 return
