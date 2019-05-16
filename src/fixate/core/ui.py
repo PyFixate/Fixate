@@ -11,28 +11,6 @@ USER_YES_NO = ("YES", "NO")
 USER_RETRY_ABORT_FAIL = ("RETRY", "ABORT", "FAIL")
 
 
-def _user_req(msg):
-    """
-    A blocking function that waits for the user returned values
-    :param msg:
-     A message that will be shown to the user
-    :param target:
-     A function that will verify the user input
-    :param args:
-     Args for the target
-    :param kwargs:
-     Kwargs for the target
-    :return:
-     Returns the user response
-    """
-    q = Queue()
-    pub.sendMessage("UI_block_start")
-    pub.sendMessage("UI_req", msg=msg, q=q)
-    resp = q.get()
-    pub.sendMessage("UI_block_end")
-    return resp
-
-
 def _user_req_input(msg, target=None, attempts=5, **kwargs):
     """
     A blocking function that waits for the user returned values
@@ -103,8 +81,6 @@ def user_input(msg):
     Get information from the user
     :param msg:
         text string indicating the request to the user
-    :param input_type:
-        tells the _user_driver that this is an input and not to print the default choices text
     :return:
         user response
     """
@@ -162,7 +138,18 @@ def user_action(msg, target):
 
 
 def user_ok(msg):
-    return _user_req(msg)
+    """
+    Display the provided message and waits for the user to acknowledge
+
+    :param msg:
+     A message that will be shown to the user
+    """
+    q = Queue()
+    pub.sendMessage("UI_block_start")
+    pub.sendMessage("UI_req", msg=msg, q=q)
+    resp = q.get()
+    pub.sendMessage("UI_block_end")
+    return resp
 
 
 def user_image(path):
