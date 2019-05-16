@@ -19,7 +19,9 @@ wrapper.break_long_words = False
 
 wrapper.drop_whitespace = True
 
-QT_GUI_WORKING_INDICATOR = os.path.join(os.path.dirname(__file__), "working_indicator.gif")
+QT_GUI_WORKING_INDICATOR = os.path.join(
+    os.path.dirname(__file__), "working_indicator.gif"
+)
 
 ERROR_STYLE = """
 QProgressBar{
