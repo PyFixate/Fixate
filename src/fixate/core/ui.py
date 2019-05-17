@@ -109,32 +109,55 @@ def user_input_float(msg):
 
 def user_action(msg, target):
     """
-    WIP
     Prompts the user to complete an action.
     Actively monitors the target infinitely until the event is detected or a user fail event occurs
     :param msg:
     Message to display to the user
-    :param target:
+    :param target: A function that will be called until the user action is cancelled. The function
+    should return False if it hasn't completed. If the action is finished return True.
 
-    :return:
+    :return: True if target returns True to finish the loop, False if user
+            cancels vi the UserActionCallback
     """
-    q = Queue()
-    abort = Queue()
-    # UI command that will push
-    # False into the queue if the user fails the test through an external interface.
-    # True if the user passes the test through an external interface.
-    pub.sendMessage("UI_action", msg=msg, q=q, abort=abort)
-    while True:
-        try:
-            itm = q.get_nowait()
-            abort.put(True)
-            return itm
-        except Empty:
-            pass
-        if target():
-            abort.put(True)
-            return True
-        time.sleep(0)  # Yield control for other threads but don't slow down target
+
+    class UserActionCallback:
+        def __init__(self):
+            # The UI implementation must provide queue.Queue object. We
+            # monitor that object. If it is non-empty, we get the message
+            # in the q and cancel the target call.
+            self.user_cancel_queue = None
+
+            # In the case that the target exists the user action instead
+            # of the user, we need to tell the UI to do any clean up that
+            # might be required. (e.g. return GUI buttons to the default state
+            # Does not need to be implemented by the UI.
+            # Function takes no args and should return None.
+            self.target_finished_callback = lambda: None
+
+        def set_user_cancel_queue(self, cancel_queue):
+            self.user_cancel_queue = cancel_queue
+
+        def set_target_finished_callback(self, callback):
+            self.target_finished_callback = callback
+
+    callback_obj = UserActionCallback()
+    pub.sendMessage("UI_action", msg=msg, callback_obj=callback_obj)
+    try:
+        while True:
+            try:
+                callback_obj.user_cancel_queue.get_nowait()
+                return False
+            except Empty:
+                pass
+
+            if target():
+                return True
+
+            # Yield control for other threads but don't slow down target
+            time.sleep(0)
+    finally:
+        # No matter what, if we exit, we want to reset the UI
+        callback_obj.target_finished_callback()
 
 
 def user_ok(msg):

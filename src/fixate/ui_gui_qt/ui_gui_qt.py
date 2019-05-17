@@ -4,7 +4,6 @@ import textwrap
 import traceback
 from collections import OrderedDict
 import os.path
-from queue import Empty
 from queue import Queue
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
@@ -79,8 +78,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     sig_label_update = pyqtSignal(str, str)
     # Signal for the text user input
     sig_text_input = pyqtSignal(str)
-    # Timer for abort cleanup. TODO Rethink?
-    sig_timer = pyqtSignal()
     # Tree Events
     sig_tree_init = pyqtSignal(list)
     sig_tree_update = pyqtSignal(str, str)
@@ -101,6 +98,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     sig_progress = pyqtSignal()
     sig_finish = pyqtSignal()
 
+    sig_button_reset = pyqtSignal()
+
     """Class Constructor and destructor"""
 
     def __init__(self, worker, application):
@@ -108,6 +107,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.application = application
         self.register_events()
         self.setupUi(self)
+
+        # used as a lock in display_tree so it can only be run once.
         self.treeSet = False
         self.blocked = False
         self.closing = False
@@ -131,15 +132,10 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         # Timers and Threads
         self.input_queue = Queue()
-        self.abort_timer = QtCore.QTimer(self)
-        self.abort_timer.timeout.connect(self.abort_check)
         self.worker = SequencerThread(worker)
         self.worker_thread = QThread()
         self.worker.moveToThread(self.worker_thread)
         self.worker_thread.started.connect(self.worker.run_thread)
-
-        self.user_action_queue = None
-        self.abort_queue = None
 
         # UI Binds
         self.Button_1.clicked.connect(self.button_1_click)
@@ -170,7 +166,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_choices_input.connect(self.get_input)
         self.sig_label_update.connect(self.display_test)
         self.sig_text_input.connect(self.open_text_input)
-        self.sig_timer.connect(self.start_timer)
         self.sig_tree_init.connect(self.display_tree)
         self.sig_tree_update.connect(self.update_tree)
         self.sig_progress.connect(self.progress_update)
@@ -185,6 +180,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_error_clear.connect(self.error_clear)
         self.sig_image_update.connect(self._image_update)
         self.sig_image_clear.connect(self._image_clear)
+
+        self.sig_button_reset.connect(self.button_reset)
 
     """Pubsub handlers for setup and teardown
        These are run in the main thread"""
@@ -226,20 +223,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
     """Slot handlers for thread-gui interaction
        These are run in the main thread"""
-
-    def start_timer(self):
-        self.abort_timer.start(100)
-
-    def abort_check(self):
-        if self.abort_queue is None:
-            return
-        try:
-            self.abort_queue.get_nowait()
-            self.abort_queue = None
-            self.button_reset(True)
-            self.abort_timer.stop()
-        except Empty:
-            return
 
     def open_text_input(self, message):
         self.ActiveEvent.append(message)
@@ -539,14 +522,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         This function ensures that sequence aborting is handled correctly if the sequencer is blocked waiting for input
         """
 
-        # Release user input waiting loops
-        if self.user_action_queue is not None:
-            self.user_action_queue.put(False)
-            self.user_action_queue = None
-        if self.abort_queue is not None:
-            self.abort_queue.put(True)
-            self.abort_queue = None
-
         # Release sequence blocking calls
         if self.blocked:
             self.input_queue.put("ABORT_FORCE")
@@ -563,7 +538,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             return
 
         # The following actions must be done in a specific order, be careful when making changes to this section
-        self.abort_timer.stop()
         self.closing = True
 
         if (
@@ -588,25 +562,14 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     """User IO handlers, emit signals to trigger main thread updates via slots.
        These are run in the sequencer thread"""
 
-    def gui_user_input_non_blocking(self, message, choices=None):
-        if choices is not None:  # Button Prompt
-            self.sig_choices_input.emit(message, (choices[0],))
-            self.sig_timer.emit()
-        else:  # Text Prompt
-            self.sig_text_input.emit(message)
-
-        self.user_action_queue = choices[1]
-        self.abort_queue = choices[2]
-
     def gui_user_input(self, message, choices=None):
-        result = None
         if choices is not None:  # Button Prompt
             self.sig_choices_input.emit(message, choices)
         else:  # Text Prompt
             self.sig_text_input.emit(message)
 
         self.blocked = True
-        result = self.input_queue.get(True)
+        result = self.input_queue.get()
         self.blocked = False
         self.sig_working.emit()
         return result
@@ -625,30 +588,25 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.button_reset()
 
     def button_2_click(self):
-        if self.user_action_queue is not None:
-            self.user_action_queue.put(self.Button_2.text())
-            self.user_action_queue = None
-            self.abort_timer.stop()
-            self.abort_queue = None
-        else:
-            self.input_queue.put(self.Button_2.text())
+        self.input_queue.put(self.Button_2.text())
         self.button_reset()
 
     def button_3_click(self):
         self.input_queue.put(self.Button_3.text())
         self.button_reset()
 
-    def button_reset(self, fail_only=False):
+    def button_reset(self):
+        self.Button_1.setText("")
         self.Button_2.setText("")
+        self.Button_3.setText("")
+
+        self.Button_1.setEnabled(False)
         self.Button_2.setEnabled(False)
+        self.Button_3.setEnabled(False)
+
+        self.Button_1.setDefault(False)
         self.Button_2.setDefault(False)
-        if not fail_only:
-            self.Button_1.setText("")
-            self.Button_3.setText("")
-            self.Button_1.setEnabled(False)
-            self.Button_3.setEnabled(False)
-            self.Button_1.setDefault(False)
-            self.Button_3.setDefault(False)
+        self.Button_3.setDefault(False)
 
     """Thread listener, called from the sequencer thread"""
 
@@ -670,28 +628,41 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             lines.append(wrapper.fill(line))
         return "\n".join(lines)
 
-    def _user_action(self, msg, q, abort):
+    def _user_action(self, msg, callback_obj):
         """
         This is for tests that aren't entirely dependant on the automated system.
         This works by monitoring a queue to see if the test completed successfully.
-        Also while doing this it is monitoring if the escape key is pressed to signal to the system that the test fails.
+        Also while doing this it is monitoring if the Fail button is pressed to signal to
+        the system that the test fails.
 
-        Use this in situations where you want the user to do something (like press all the keys on a keypad) where the
-        system is automatically monitoring for success but has no way of monitoring failure.
-        :param msg:
-         Information for the user
-        :param q:
-         The queue object to put false if the user fails the test
-        :param abort:
-         The queue object to abort this monitoring as the test has already passed.
-        :return:
-        None
+        TODO: Connect this to ESC also, so that it is consistent with the cli?
+
+        Use this in situations where you want the user to do something (like press all the keys
+        on a keypad) where the system is automatically monitoring for success but has no way of
+        monitoring failure.
+        :param msg: Information for the user
+        :param callback_obj:
+         callback_obj used to communicate back to the user_action call in ui.py.
+        :return: None
         """
+
+        # Subscribed to "UI_action" pubsub topic.
+        # pub.sendMessage("UI_action", msg=msg, callback=callback_obj)
         if self.closing:
-            q.put(False)
-            abort.put(True)
-            return
-        self.gui_user_input_non_blocking(self.reformat_text(msg), ("Fail", q, abort))
+            # We're closing, so we won't connect the real input_queue.
+            # Instead create a new one and put something in it so the
+            # user action bails immediately.
+            fake_input_queue = Queue.queue()
+            callback_obj.set_user_cancel_queue(fake_input_queue)
+            fake_input_queue.put("Fail")
+        else:
+            callback_obj.set_user_cancel_queue(self.input_queue)
+            # If the test script target finishes the user_action, we
+            # want to reset the button back to the default state. So
+            # we pass in the signal emit method to call button_reset
+            # in the GUI thread.
+            callback_obj.set_target_finished_callback(self.sig_button_reset.emit)
+            self.sig_choices_input.emit(msg, ("Fail",))
 
     def _user_ok(self, msg, q):
         """
