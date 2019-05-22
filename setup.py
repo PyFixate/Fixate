@@ -64,7 +64,8 @@ setup(
                       # "pyqt5", # Required for the QT GUI
                       "pynput",
                       "ruamel.yaml",
-                      "pyserial"
+                      "pyserial",
+                      "cmd2",       # required for fxconfig
                       ],
     python_requires='~=3.4',
     dependency_links=[],
