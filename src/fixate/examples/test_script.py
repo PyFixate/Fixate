@@ -339,4 +339,4 @@ ERRORS = [
 
 TEST_SEQUENCE = PASSES
 
-test_data = {"passes": PASSES, "fails": FAILS, "ERRORS": ERRORS}
+test_data = {"default": PASSES, "passes": PASSES, "fails": FAILS, "ERRORS": ERRORS}

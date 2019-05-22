@@ -4,56 +4,11 @@ This module details user input api
 import time
 from queue import Queue, Empty
 from pubsub import pub
-from fixate.core.exceptions import UserInputError
-from fixate.core.checks import chk_log_value
 from fixate.config import RESOURCES
 from collections import OrderedDict
 
-USER_CONFIRMATION = ("OK", "ABORT", "CANCEL")
 USER_YES_NO = ("YES", "NO")
-USER_PASS_FAIL = ("PASS", "FAIL")
 USER_RETRY_ABORT_FAIL = ("RETRY", "ABORT", "FAIL")
-USER_RETRY_ABORT = ("RETRY", "ABORT")
-
-
-def _user_req(msg):
-    """
-    A blocking function that waits for the user returned values
-    :param msg:
-     A message that will be shown to the user
-    :param target:
-     A function that will verify the user input
-    :param args:
-     Args for the target
-    :param kwargs:
-     Kwargs for the target
-    :return:
-     Returns the user response
-    """
-    q = Queue()
-    pub.sendMessage("UI_block_start")
-    pub.sendMessage("UI_req", msg=msg, q=q)
-    resp = q.get()
-    pub.sendMessage("UI_block_end")
-    return resp
-
-
-def _user_image(path):
-    """
-    A GUI function that updates the displayed image on-screen
-    :param path:
-     A relative path to the image
-    """
-    pub.sendMessage("UI_image", path=path)
-
-
-def _user_image_clear():
-    """
-    A GUI function that updates the displayed image on-screen
-    :param path:
-     A relative path to the image
-    """
-    pub.sendMessage("UI_image_clear")
 
 
 def _user_req_input(msg, target=None, attempts=5, **kwargs):
@@ -126,8 +81,6 @@ def user_input(msg):
     Get information from the user
     :param msg:
         text string indicating the request to the user
-    :param input_type:
-        tells the _user_driver that this is an input and not to print the default choices text
     :return:
         user response
     """
@@ -154,97 +107,86 @@ def user_input_float(msg):
     return _user_req_input(msg, target=_float_validate)
 
 
-def user_action(msg, target, topic="UI_action"):
+def user_action(msg, target):
     """
-    WIP
     Prompts the user to complete an action.
     Actively monitors the target infinitely until the event is detected or a user fail event occurs
     :param msg:
     Message to display to the user
-    :param target:
-    :param topic Pubsub topic to communicate a user action
+    :param target: A function that will be called until the user action is cancelled. The function
+    should return False if it hasn't completed. If the action is finished return True.
 
-    :return:
+    :return: True if target returns True to finish the loop, False if user
+            cancels vi the UserActionCallback
     """
-    q = Queue()
-    abort = Queue()
-    # UI command that will push
-    # False into the queue if the user fails the test through an external interface.
-    # True if the user passes the test through an external interface.
-    pub.sendMessage(topic, msg=msg, q=q, abort=abort)
-    while True:
-        try:
-            itm = q.get_nowait()
-            abort.put(True)
-            return itm
-        except Empty:
-            pass
-        if target():
-            abort.put(True)
-            return True
-        time.sleep(0)  # Yield control for other threads but don't slow down target
 
+    class UserActionCallback:
+        def __init__(self):
+            # The UI implementation must provide queue.Queue object. We
+            # monitor that object. If it is non-empty, we get the message
+            # in the q and cancel the target call.
+            self.user_cancel_queue = None
 
-def user_action_pass_fail(msg, target):
-    """
-    WIP
-    Prompts the user to complete an action.
-    Actively monitors the target infinitely until the event is detected or a user fail event occurs
-    :param msg:
-    Message to display to the user
-    :param target:
+            # In the case that the target exists the user action instead
+            # of the user, we need to tell the UI to do any clean up that
+            # might be required. (e.g. return GUI buttons to the default state
+            # Does not need to be implemented by the UI.
+            # Function takes no args and should return None.
+            self.target_finished_callback = lambda: None
 
-    :return:
-    """
-    user_action(msg, target, "UI_action.pass_fail")
+        def set_user_cancel_queue(self, cancel_queue):
+            self.user_cancel_queue = cancel_queue
 
+        def set_target_finished_callback(self, callback):
+            self.target_finished_callback = callback
 
-def user_action_fail(msg, target):
-    """
-    WIP
-    Prompts the user to complete an action.
-    Actively monitors the target infinitely until the event is detected or a user fail event occurs
-    :param msg:
-    Message to display to the user
-    :param target:
+    callback_obj = UserActionCallback()
+    pub.sendMessage("UI_action", msg=msg, callback_obj=callback_obj)
+    try:
+        while True:
+            try:
+                callback_obj.user_cancel_queue.get_nowait()
+                return False
+            except Empty:
+                pass
 
-    :return:
-    """
-    user_action(msg, target, "UI_action.fail")
+            if target():
+                return True
+
+            # Yield control for other threads but don't slow down target
+            time.sleep(0)
+    finally:
+        # No matter what, if we exit, we want to reset the UI
+        callback_obj.target_finished_callback()
 
 
 def user_ok(msg):
-    return _user_req(msg)
+    """
+    Display the provided message and waits for the user to acknowledge
+
+    :param msg:
+     A message that will be shown to the user
+    """
+    q = Queue()
+    pub.sendMessage("UI_block_start")
+    pub.sendMessage("UI_req", msg=msg, q=q)
+    resp = q.get()
+    pub.sendMessage("UI_block_end")
+    return resp
 
 
 def user_image(path):
-    return _user_image(path)
+    pub.sendMessage("UI_image", path=path)
 
 
 def user_image_clear():
-    return _user_image_clear()
+    pub.sendMessage("UI_image_clear")
 
 
-def user_confirmation_box(msg, attempts=1):
-    return user_choices(msg, choices=USER_CONFIRMATION, attempts=attempts)
-
-
+# TODO: This is used by the sequencer. Should make internal. Doesn't makes
+# sense that a test script would call this.
 def user_retry_abort_fail(msg):
     return _user_req_choices(msg, target=_user_choices, choices=USER_RETRY_ABORT_FAIL)
-
-
-def user_retry_abort(msg):
-    return _user_req_choices(msg, target=_user_choices, choices=USER_RETRY_ABORT)
-
-
-def user_retry_auto():
-    return "RESULT", "RETRY"
-
-
-def user_pass_fail(msg, attempts=1):
-    return _user_req_choices(
-        msg, attempts=attempts, target=_user_choices, choices=USER_PASS_FAIL
-    )
 
 
 def user_yes_no(msg, attempts=1):
@@ -261,22 +203,7 @@ def _user_choices(response, choices):
     return False
 
 
-def user_choices(msg, choices, attempts=5):
-    """
-    Get information from the user
-    :param msg:
-        text string indicating the request to the user
-    :return:
-        user response
-    """
-    return _user_req_choices(
-        msg, attempts=attempts, target=_user_choices, choices=choices
-    )
-
-
-def _ten_digit_serial(
-    response
-):  # input_type argument added due to input_type="INPUT" on user_serial
+def _ten_digit_serial(response):
     return (len(response) == 10) and int(response)
 
 
@@ -319,20 +246,3 @@ def user_post_sequence_info(msg):
     if "_post_sequence_info" not in RESOURCES["SEQUENCER"].context_data:
         RESOURCES["SEQUENCER"].context_data["_post_sequence_info"] = OrderedDict()
     RESOURCES["SEQUENCER"].context_data["_post_sequence_info"][msg] = "ALL"
-
-
-RETRY_METHODS = {
-    "RETRY ABORT SKIP": user_retry_abort_fail,
-    "RETRY ABORT": user_retry_abort,
-}
-
-
-def user_retry(msg, retry_method):
-    method = RETRY_METHODS.get(retry_method, None)
-    while True:
-        try:
-            return method(msg)[1]
-        except TypeError:
-            return "RETRY"
-        except UserInputError:
-            pass

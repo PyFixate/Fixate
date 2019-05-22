@@ -2,7 +2,6 @@ import traceback
 import sys
 import time
 import textwrap
-from queue import Empty
 from pubsub import pub
 from fixate.ui_cmdline.kbhit import KBHit
 from queue import Queue
@@ -11,7 +10,6 @@ from fixate.core.common import ExcThread
 from fixate.config import RESOURCES
 import fixate.config
 
-cmd_line_queue = Queue()
 wrapper = textwrap.TextWrapper(width=75)
 wrapper.break_long_words = False
 
@@ -20,44 +18,63 @@ wrapper.drop_whitespace = True
 kb = KBHit()
 
 
-def kb_hit_monitor(cmd_q):
-    while True:
-        resp = cmd_q.get()
-        if resp is None:
-            break  # Command send to close kb_hit monitor
-        q, abort, key_presses = resp  # Begin active monitoring
+class KeyboardHook:
+    def kb_hit_monitor(self):
         while True:
-            try:
-                abort.get_nowait()
+            if self.stop_thread:
+                self.monitoring = False
                 break
-            except Empty:
-                pass
-            if kb.kbhit():  # Check for key press
-                key_press = kb.getch()
-                key = key_presses.get(key_press, None)
-                if key is not None:
-                    q.put(key)
-                    break
+            if self.monitor_active:
+                self.monitoring = True
+                if kb.kbhit():  # Check for key press
+                    # Our dictionary keys are bytestring. We must do the same
+                    # to the detected key press to ensure the look works!
+                    key_press = bytes(kb.getch().encode())
+                    key = self.keys_to_monitor.get(key_press, None)
+                    if key is not None:
+                        self.key_queue.put(key)
+            else:
+                self.monitoring = False
             time.sleep(0.05)
 
-
-class KeyboardHook:
     def __init__(self):
-        self.user_fail_queue = Queue()
-        self.key_monitor = None
+        self.key_monitor_thread = None
+        # a dictionary mapping key strings to values which will
+        # be returned if matching key press is detected
+        self.keys_to_monitor = {}
+
+        self.key_queue = None
+        # when true, the thread's will keep running
+        self.stop_thread = False
+        # when true, the thread will monitor key presses.
+        # when false, it will sit waiting
+        self.monitor_active = True
+        self.monitoring = False
+
+    def start_monitor(self, key_queue, keys_to_monitor):
+        self.keys_to_monitor = keys_to_monitor
+        self.key_queue = key_queue
+        self.monitor_active = True
+        while not self.monitoring:
+            pass
+
+    def stop_monitor(self):
+        self.monitor_active = False
+        while self.monitoring:
+            pass
+        self.keys_to_monitor = None
+        self.key_queue = None
 
     def install(self):
-        self.key_monitor = ExcThread(
-            target=kb_hit_monitor, args=(self.user_fail_queue,)
-        )
-        self.key_monitor.start()
+        self.key_monitor_thread = ExcThread(target=self.kb_hit_monitor)
+        self.key_monitor_thread.start()
 
     def uninstall(self):
-        if self.key_monitor:
-            self.user_fail_queue.put(None)
-            self.key_monitor.stop()
-            self.key_monitor.join()
-        self.key_monitor = None
+        if self.key_monitor_thread:
+            self.stop_thread = True
+            self.key_monitor_thread.stop()
+            self.key_monitor_thread.join()
+        self.key_monitor_thread = None
 
 
 key_hook = KeyboardHook()
@@ -99,7 +116,7 @@ def reformat_text(text_str, first_line_fill="", subsequent_line_fill=""):
     return "\n".join(lines)
 
 
-def _user_action(msg, q, abort):
+def _user_action(msg, callback_obj):
     """
     This is for tests that aren't entirely dependant on the automated system.
     This works by monitoring a queue to see if the test completed successfully.
@@ -117,9 +134,12 @@ def _user_action(msg, q, abort):
     """
     print("\a")
     print(reformat_text(msg))
-    print("Press escape to fail the test or space to pass")
-    global key_hook
-    key_hook.user_fail_queue.put((q, abort, {b"\x1b": False, b" ": True}))
+    print('Press escape or "f" to fail')
+    cancel_queue = Queue()
+    callback_obj.set_user_cancel_queue(cancel_queue)
+    callback_obj.set_target_finished_callback(key_hook.stop_monitor)
+
+    key_hook.start_monitor(cancel_queue, {b"\x1b": False, b"f": False})
 
 
 def _user_ok(msg, q):
