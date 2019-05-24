@@ -9,9 +9,9 @@ from time import sleep
 from zipimport import zipimporter
 from pubsub import pub
 import fixate.config
-from fixate.config import ASYNC_TASKS, RESOURCES
+from fixate.config import RESOURCES
 from fixate.core.exceptions import SequenceAbort
-from fixate.core.ui import user_input, user_serial, user_ok
+from fixate.core.ui import user_serial, user_ok
 from fixate.reporting import register_csv, unregister_csv
 from fixate.ui_cmdline import register_cmd_line, unregister_cmd_line
 
@@ -145,7 +145,6 @@ class FixateController:
 
     def __init__(self, sequencer, test_script_path, args, loop):
         register_cmd_line()
-        # self.register()
         self.worker = FixateWorker(
             sequencer=sequencer, test_script_path=test_script_path, args=args, loop=loop
         )
@@ -153,7 +152,6 @@ class FixateController:
     def fixate_exec(self):
         exit_code = self.worker.ui_run()
         unregister_cmd_line()
-        # self.unregister()
         return exit_code
 
 
@@ -189,9 +187,8 @@ class FixateSupervisor:
                     self.fixateApp = QtWidgets.QApplication(sys.argv)
                     self.fixateApp.setQuitOnLastWindowClosed(False)
                     self.fixateDisplay = gui.FixateGUI(self.worker, self.fixateApp)
-                    self.fixateApp.aboutToQuit.connect(
-                        self.fixateDisplay.clean_up
-                    )  # Duplicate call except in the case where termination is caused by logoff/shutdown
+                    # Duplicate call except in the case where termination is caused by logoff/shutdown
+                    self.fixateApp.aboutToQuit.connect(self.fixateDisplay.clean_up)
                     self.fixateDisplay.show()
 
                 def fixate_exec(self):
@@ -271,12 +268,6 @@ class FixateWorker:
             if self.args.dev:
                 fixate.config.DEBUG = True
 
-            if self.args.index is None:
-                test_selector = user_input("Please enter test selector string")
-                self.args.index = test_selector[1]
-                if test_selector == "ABORT_FORCE":
-                    return
-
             if self.args.serial_number is None:
                 serial_number = user_serial("Please enter serial number")
                 self.sequencer.context_data["serial_number"] = serial_number[1]
@@ -316,15 +307,13 @@ class FixateWorker:
 
             def finished_test_run_response(future):
                 future.result()
-                self.loop.call_later(
-                    1, self.loop.stop
-                )  # Max 1 second to clean up tasks before aborting
+                # Max 1 second to clean up tasks before aborting
+                self.loop.call_later(1, self.loop.stop)
 
             def finished_test_run(future):
                 if self.sequencer.non_interactive:
-                    self.loop.call_later(
-                        1, self.loop.stop
-                    )  # Max 1 second to clean up tasks before aborting
+                    # Max 1 second to clean up tasks before aborting
+                    self.loop.call_later(1, self.loop.stop)
                     return
 
                 if self.sequencer.status in ["Finished", "Aborted"]:
@@ -350,9 +339,8 @@ class FixateWorker:
             unregister_csv()
             if serial_number == "ABORT_FORCE" or test_selector == "ABORT_FORCE":
                 return 11
-            self.clean = (
-                True
-            )  # Let the supervisor know that the program is finishing normally
+            # Let the supervisor know that the program is finishing normally
+            self.clean = True
             if self.sequencer.end_status == "FAILED":
                 return 10
             elif self.sequencer.status == "Aborted":
