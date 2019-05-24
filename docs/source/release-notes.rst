@@ -2,6 +2,25 @@
 Release Notes
 ==================================
 *************
+Version 0.5.2
+*************
+Release Date 24/05/2019
+
+Breaking Changes
+################
+- Test script UI functions user_retry_abort, user_retry_auto, user_pass_fail, user_choices, user_retry have been removed.
+
+New Features
+############
+- None
+
+Improvements
+############
+- Fix dependency cmd2 that was missing when installing using pip.
+- Fix a bug where user_action calls didn't work correctly.
+- Many source level improvements.
+
+*************
 Version 0.5.1
 *************
 Release Date 14/05/2019
