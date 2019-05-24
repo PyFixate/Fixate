@@ -271,12 +271,6 @@ class FixateWorker:
             if self.args.dev:
                 fixate.config.DEBUG = True
 
-            if self.args.index is None:
-                test_selector = user_input("Please enter test selector string")
-                self.args.index = test_selector[1]
-                if test_selector == "ABORT_FORCE":
-                    return
-
             if self.args.serial_number is None:
                 serial_number = user_serial("Please enter serial number")
                 self.sequencer.context_data["serial_number"] = serial_number[1]
