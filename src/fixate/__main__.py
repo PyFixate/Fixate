@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import os
 import sys
@@ -143,11 +142,10 @@ class FixateController:
     It may be subclassed for different execution environments
     """
 
-    def __init__(self, sequencer, test_script_path, args, loop):
+    def __init__(self, sequencer, test_script_path, args):
         register_cmd_line()
         self.worker = FixateWorker(
-            sequencer=sequencer, test_script_path=test_script_path, args=args, loop=loop
-        )
+            sequencer=sequencer, test_script_path=test_script_path, args=args)
 
     def fixate_exec(self):
         exit_code = self.worker.ui_run()
@@ -161,23 +159,20 @@ class FixateSupervisor:
         # General setup
         self.test_script_path = test_script_path
         self.args = args
-        self.loop = asyncio.get_event_loop()
         self.sequencer = RESOURCES["SEQUENCER"]
 
         # Environment specific setup
         # TODO remove this to plugin architecture
         if self.args.qtgui:  # Run with the QT GUI
-            self.loop = asyncio.new_event_loop()
 
             class QTController(FixateController):
-                def __init__(self, sequencer, test_script_path, args, loop):
+                def __init__(self, sequencer, test_script_path, args):
                     from PyQt5 import QtWidgets, QtCore
                     import fixate.ui_gui_qt as gui
 
                     self.worker = FixateWorker(
                         test_script_path=test_script_path,
                         args=args,
-                        loop=loop,
                         sequencer=sequencer,
                     )
 
@@ -203,14 +198,12 @@ class FixateSupervisor:
                 sequencer=self.sequencer,
                 test_script_path=test_script_path,
                 args=args,
-                loop=self.loop,
             )
         else:  # Command line execution
             self.controller = FixateController(
                 sequencer=self.sequencer,
                 test_script_path=test_script_path,
                 args=args,
-                loop=self.loop,
             )
 
     def run_fixate(self):
@@ -218,11 +211,10 @@ class FixateSupervisor:
 
 
 class FixateWorker:
-    def __init__(self, sequencer, test_script_path, args, loop):
+    def __init__(self, sequencer, test_script_path, args):
         self.sequencer = sequencer
         self.test_script_path = test_script_path
         self.args = args
-        self.loop = loop
         self.start = False
         self.clean = False
         self.config = None
@@ -242,23 +234,11 @@ class FixateWorker:
         pub.sendMessage(
             "Sequence_Abort", exception=SequenceAbort("Application Closing")
         )
-        self.loop.stop()
-
-        for _ in range(15):
-            if self.loop.is_running():  # Wait max 15 seconds for loop to end
-                sleep(1)
-            else:
-                break
-        try:
-            self.loop.close()
-        except Exception:
-            pass  # If the thread has hung, or reached an uninterruptable state, ignore it, it'll be force terminated at the end anyway
 
         return 11
 
     def ui_run(self):
 
-        asyncio.set_event_loop(self.loop)
         serial_number = None
         test_selector = None
         self.start = True
@@ -305,31 +285,10 @@ class FixateWorker:
             register_csv()
             self.sequencer.status = "Running"
 
-            def finished_test_run_response(future):
-                future.result()
-                # Max 1 second to clean up tasks before aborting
-                self.loop.call_later(1, self.loop.stop)
+            self.sequencer.run_sequence()
+            if not self.sequencer.non_interactive:
+                user_ok("Finished testing")
 
-            def finished_test_run(future):
-                if self.sequencer.non_interactive:
-                    # Max 1 second to clean up tasks before aborting
-                    self.loop.call_later(1, self.loop.stop)
-                    return
-
-                if self.sequencer.status in ["Finished", "Aborted"]:
-                    f = partial(user_ok, "Finished testing")
-                    self.loop.run_in_executor(None, f).add_done_callback(
-                        finished_test_run_response
-                    )
-
-            self.loop.run_in_executor(
-                None, self.sequencer.run_sequence
-            ).add_done_callback(finished_test_run)
-
-            try:
-                self.loop.run_forever()
-            finally:
-                self.loop.close()
         except BaseException:
             import traceback
 
