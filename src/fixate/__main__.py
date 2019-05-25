@@ -145,7 +145,8 @@ class FixateController:
     def __init__(self, sequencer, test_script_path, args):
         register_cmd_line()
         self.worker = FixateWorker(
-            sequencer=sequencer, test_script_path=test_script_path, args=args)
+            sequencer=sequencer, test_script_path=test_script_path, args=args
+        )
 
     def fixate_exec(self):
         exit_code = self.worker.ui_run()
@@ -195,15 +196,11 @@ class FixateSupervisor:
                     return exit_code
 
             self.controller = QTController(
-                sequencer=self.sequencer,
-                test_script_path=test_script_path,
-                args=args,
+                sequencer=self.sequencer, test_script_path=test_script_path, args=args
             )
         else:  # Command line execution
             self.controller = FixateController(
-                sequencer=self.sequencer,
-                test_script_path=test_script_path,
-                args=args,
+                sequencer=self.sequencer, test_script_path=test_script_path, args=args
             )
 
     def run_fixate(self):
