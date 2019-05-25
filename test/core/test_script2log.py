@@ -103,15 +103,19 @@ basichierachy_data = [
     # In addition to all that, they fail because the log compare function assume the first and last lines of
     # the file are the sequence beginning and end entries. However, that is not the case when some exceptions are
     # raised. Ideally we will improve the log comparison to be more sophisticated.
-    pytest.mark.xfail(["list_enter", "None", None, 11]),
-    pytest.mark.xfail(["list_exit", "None", None, 11]),
+    pytest.param("list_enter", "None", None, 11, marks=pytest.mark.xfail),
+    pytest.param("list_exit", "None", None, 11, marks=pytest.mark.xfail),
     # Tests which raise an exception. Note: There are some bug in the order. We test the current behaviour
     ["None", "test_test", None, 10],
     # Tests which raise an exception. XFAIL tests which demonstrate the desired behaviour.
-    pytest.mark.xfail(
-        ["None", "test_test", "xfail", 10],
-        reason="Assert Log order not chronological with checks",
-        strict=True,
+    pytest.param(
+        "None",
+        "test_test",
+        "xfail",
+        10,
+        marks=pytest.mark.xfail(
+            reason="Assert Log order not chronological with checks", strict=True
+        ),
     ),
 ]
 
