@@ -4,7 +4,6 @@ import sys
 from argparse import ArgumentParser, RawTextHelpFormatter
 from functools import partial
 from importlib.machinery import SourceFileLoader
-from time import sleep
 from zipimport import zipimporter
 from pubsub import pub
 import fixate.config
@@ -104,6 +103,9 @@ parser.add_argument(
     "--non-interactive",
     action="store_true",
     help="The sequencer will not prompt for retries.",
+)
+parser.add_argument(
+    "--disable-logs", action="store_true", help="Turn off diagnostic logs"
 )
 
 
@@ -328,6 +330,13 @@ def retrieve_test_data(test_suite, index):
 
 def run_main_program(test_script_path=None):
     args, unknown = parser.parse_known_args()
+    if not args.disable_logs:
+        logging.basicConfig(
+            filename="fixate.log",
+            level=logging.DEBUG,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        )
+
     load_config(args.config)
     fixate.config.load_dict_config({"log_file": args.log_file})
     supervisor = FixateSupervisor(test_script_path, args)
