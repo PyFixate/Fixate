@@ -72,7 +72,6 @@ class KeyboardHook:
     def uninstall(self):
         if self.key_monitor_thread:
             self.stop_thread = True
-            self.key_monitor_thread.stop()
             self.key_monitor_thread.join()
         self.key_monitor_thread = None
 

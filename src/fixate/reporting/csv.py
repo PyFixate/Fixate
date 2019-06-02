@@ -121,13 +121,14 @@ class CSVWriter:
         self.reporting = CsvReporting()
 
     def install(self):
-        self.csv_writer = ExcThread(target=self._csv_write, args=(self.csv_queue,))
+        self.csv_writer = ExcThread(
+            target=self._csv_write, args=(self.csv_queue,), name="csv-writer"
+        )
         self.csv_writer.start()
 
     def uninstall(self):
         if self.csv_writer:
             self.csv_queue.put(None)
-            self.csv_writer.stop()
             self.csv_writer.join()
         self.csv_writer = None
 

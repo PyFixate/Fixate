@@ -6,9 +6,10 @@ import ctypes
 import logging
 import warnings
 from functools import wraps
+from collections import namedtuple
 from fixate.core.exceptions import ParameterError, InvalidScalarQuantityError
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 def _async_raise(tid, exctype):
@@ -260,19 +261,46 @@ def bits(n, num_bytes=1, num_bits=None, order="MSB"):
         raise ParameterError("Unknown order {} please choose MSB or LSB".format(order))
 
 
+UnhandledExcInfo = namedtuple(
+    "UnhandledExcInfo", "exc_type exc_value exc_traceback thread"
+)
+
+
+def _default_thread_exception_hook(exception_info: UnhandledExcInfo):
+    """If the UI doesn't install a hook, at least log the error"""
+    logger.exception("Exception raised in thread '%s'", exception_info.thread)
+
+
+thread_exception_hook = _default_thread_exception_hook
+
+
+def thread_unhandled_exception(thread):
+    """
+    Called from a dying thread when there is an unhandled exception.
+
+    Creates a UnhandledExcInfo object and calls the exception hook if installed.
+    """
+    info = UnhandledExcInfo(*sys.exc_info(), thread)
+    if thread_exception_hook:
+        thread_exception_hook(info)
+
+
 class ExcThread(threading.Thread):
-    exec_info = None
+    """
+    A Thread subclass that captures any unhandled exceptions and saves the details.
+
+    When subclassed or used with the target argument, the run method get wrapped in a
+    new outer try/except clause. The except clause calls the module level function
+    'thread_unhandled_exception' so that the exception details can be stored, logged,
+    acted upon as needed.
+
+    If using a thread, you can either use this class which automatically wraps the
+    run, or simply have a top level try/except and call thread_unhandled_exception
+    in the except clause.
+    """
 
     def __init__(
-        self,
-        group=None,
-        target=None,
-        name=None,
-        args=(),
-        kwargs=None,
-        *,
-        daemon=True,
-        test_index=None
+        self, group=None, target=None, name=None, args=(), kwargs=None, *, daemon=True
     ):
         super().__init__(
             group=group,
@@ -282,30 +310,20 @@ class ExcThread(threading.Thread):
             kwargs=kwargs,
             daemon=daemon,
         )
-        self.test_index = test_index
 
-    def run(self):
-        """Method representing the thread's activity.
+        def _wrap_run(old_run):
+            @wraps(old_run)
+            def inner(*args, **kwargs):
+                try:
+                    old_run(*args, **kwargs)
+                except Exception:
+                    # we capture all exception here, because that is the whole point! Unhandled
+                    # exceptions can be caught and notified back in our main thread.
+                    thread_unhandled_exception(self.name)
 
-        The standard run() method invokes the callable object passed to the
-        object's constructor as the target argument, if any, with sequential
-        and keyword arguments taken from the args and kwargs arguments, respectively.
-        """
-        try:
-            self._target(*self._args, **self._kwargs)
-        except BaseException:
-            self.exec_info = sys.exc_info()[1]
-            # raise
-        finally:
-            # Avoid a refcycle if the thread is running a function with
-            # an argument that has a member that points to the thread.
-            del self._target, self._args, self._kwargs
+            return inner
 
-    def stop(self):
-        try:
-            _async_raise(self.ident, SystemExit)
-        except (ValueError, SystemError):
-            pass  # System could not find thread. Most likely already killed
+        self.run = _wrap_run(self.run)
 
 
 def deprecated(func):
