@@ -333,7 +333,7 @@ def run_main_program(test_script_path=None):
     args, unknown = parser.parse_known_args()
     if not args.disable_logs:
         handler = logging.handlers.RotatingFileHandler(
-            "fixate.log", maxBytes=10_000_000, backupCount=10
+            "fixate.log", maxBytes=10*1000*1000, backupCount=10
         )
         handler.setFormatter(
             logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
