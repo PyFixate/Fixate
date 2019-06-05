@@ -332,8 +332,12 @@ def retrieve_test_data(test_suite, index):
 def run_main_program(test_script_path=None):
     args, unknown = parser.parse_known_args()
     if not args.disable_logs:
-        handler = logging.handlers.RotatingFileHandler("fixate.log", maxBytes=10_000_000, backupCount=10)
-        handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+        handler = logging.handlers.RotatingFileHandler(
+            "fixate.log", maxBytes=10_000_000, backupCount=10
+        )
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        )
         root_logger = logging.getLogger()
         root_logger.addHandler(handler)
         root_logger.setLevel(logging.DEBUG)
