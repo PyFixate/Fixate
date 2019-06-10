@@ -57,12 +57,15 @@ def exception_hook(exctype, value, tb):  # TODO DEBUG REMOVE
 
 
 class SequencerThread(QObject):
-    def __init__(self, worker):
+    def __init__(self, worker, completion_callback):
         super(QObject, self).__init__()
         self.worker = worker
+        self.completion_callback = completion_callback
 
     def run_thread(self):
-        pub.sendMessage("Finish", code=self.worker.ui_run())
+        exit_code = self.worker.ui_run()
+
+        self.completion_callback(exit_code)
 
 
 class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
@@ -132,7 +135,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         # Timers and Threads
         self.input_queue = Queue()
-        self.worker = SequencerThread(worker)
+        self.worker = SequencerThread(worker, self._completion_code)
         self.worker_thread = QThread()
         self.worker.moveToThread(self.worker_thread)
         self.worker_thread.started.connect(self.worker.run_thread)
@@ -187,36 +190,43 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
        These are run in the main thread"""
 
     def register_events(self):
-        pub.subscribe(self._seq_abort, "Sequence_Abort")
-        pub.subscribe(self._user_ok, "UI_req")
-        pub.subscribe(self._user_choices, "UI_req_choices")
-        pub.subscribe(self._user_input, "UI_req_input")
-        pub.subscribe(self._user_display, "UI_display")
-        pub.subscribe(self._user_display_important, "UI_display_important")
-        pub.subscribe(self._user_action, "UI_action")
-        pub.subscribe(self._completion_code, "Finish")
+        pub.subscribe(self._topic_Sequence_Abort, "Sequence_Abort")
+        pub.subscribe(self._topic_UI_req, "UI_req")
+        pub.subscribe(self._topic_UI_req_choices, "UI_req_choices")
+        pub.subscribe(self._topic_UI_req_input, "UI_req_input")
+        pub.subscribe(self._topic_UI_display, "UI_display")
+        pub.subscribe(self._topic_UI_display_important, "UI_display_important")
+        pub.subscribe(self._topic_UI_action, "UI_action")
+
         # Image Window
-        pub.subscribe(self.image_update, "UI_image")
-        pub.subscribe(self.image_clear, "UI_image_clear")
-        pub.subscribe(self.image_clear, "UI_block_end")
-        # Active Window
-        pub.subscribe(self.active_clear, "UI_block_end")
-        # Multi Window
-        pub.subscribe(self._print_test_start, "Test_Start")
-        pub.subscribe(self._print_test_seq_start, "TestList_Start")
-        pub.subscribe(self._print_test_complete, "Test_Complete")
-        pub.subscribe(self._print_comparisons, "Check")
-        pub.subscribe(self._print_errors, "Test_Exception")
-        pub.subscribe(self._print_sequence_end, "Sequence_Complete")
-        pub.subscribe(self._print_test_skip, "Test_Skip")
-        pub.subscribe(self._print_test_retry, "Test_Retry")
+        pub.subscribe(self._topic_UI_image, "UI_image")
+        pub.subscribe(self._topic_UI_image_clear, "UI_image_clear")
 
-        # Error Window
+        pub.subscribe(self._topic_Test_Start, "Test_Start")
+        pub.subscribe(self._topic_TestList_Start, "TestList_Start")
+        pub.subscribe(self._topic_Test_Complete, "Test_Complete")
+        pub.subscribe(self._topic_Check, "Check")
+        pub.subscribe(self._topic_Test_Exception, "Test_Exception")
+        pub.subscribe(self._topic_Sequence_Complete, "Sequence_Complete")
+        pub.subscribe(self._topic_Test_Skip, "Test_Skip")
+        pub.subscribe(self._topic_Test_Retry, "Test_Retry")
 
-        # Working Indicator
-        pub.subscribe(self.start_indicator, "Test_Start")
-        pub.subscribe(self.start_indicator, "UI_block_end")
-        pub.subscribe(self.stop_indicator, "UI_block_start")
+        pub.subscribe(self._topic_UI_block_start, "UI_block_start")
+        pub.subscribe(self._topic_UI_block_end, "UI_block_end")
+
+    def _topic_Test_Start(self, data, test_index):
+        self._print_test_start(data, test_index)
+        self.start_indicator()
+
+    def _topic_UI_block_end(self):
+        # image clear
+        self.sig_image_clear.emit()
+
+        # active window clear
+        self.active_clear()
+
+        # start_indicator
+        self.start_indicator()
 
     def unregister_events(self):
         pub.unsubAll()
@@ -237,14 +247,14 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.UserInputBox.setEnabled(True)
         self.UserInputBox.setFocus()
 
-    def start_indicator(self, **kwargs):
+    def start_indicator(self):
         self.sig_indicator_start.emit()
 
     def _start_indicator(self):
         self.WorkingIndicator.show()
         self.working_indicator.start()
 
-    def stop_indicator(self):
+    def _topic_UI_block_start(self):
         self.sig_indicator_stop.emit()
 
     def _stop_indicator(self):
@@ -257,7 +267,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         except FileNotFoundError:
             return b""
 
-    def image_update(self, path):
+    def _topic_UI_image(self, path):
         self.sig_image_update.emit(path)
 
     def _image_update(self, path):
@@ -279,7 +289,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             QtCore.Qt.KeepAspectRatio,
         )
 
-    def image_clear(self):
+    def _topic_UI_image_clear(self):
         self.sig_image_clear.emit()
 
     def _image_clear(self):
@@ -517,7 +527,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             self.Button_3.setShortcut(QtGui.QKeySequence(choices[2][0:1]))
             self.Button_3.setEnabled(True)
 
-    def _seq_abort(self, exception=None):
+    def _topic_Sequence_Abort(self, exception=None):
         """
         This function ensures that sequence aborting is handled correctly if the sequencer is blocked waiting for input
         """
@@ -628,7 +638,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             lines.append(wrapper.fill(line))
         return "\n".join(lines)
 
-    def _user_action(self, msg, callback_obj):
+    def _topic_UI_action(self, msg, callback_obj):
         """
         This is for tests that aren't entirely dependant on the automated system.
         This works by monitoring a queue to see if the test completed successfully.
@@ -664,7 +674,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             callback_obj.set_target_finished_callback(self.sig_button_reset.emit)
             self.sig_choices_input.emit(msg, ("Fail",))
 
-    def _user_ok(self, msg, q):
+    def _topic_UI_req(self, msg, q):
         """
         This can be replaced anywhere in the project that needs to implement the user driver
         The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the
@@ -681,7 +691,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.gui_user_input(msg, ("Continue",))
         q.put("Result", None)
 
-    def _user_choices(self, msg, q, choices, target, attempts=5):
+    def _topic_UI_req_choices(self, msg, q, choices, target, attempts=5):
         """
         This can be replaced anywhere in the project that needs to implement the user driver
         Temporarily a simple input function.
@@ -714,7 +724,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             UserInputError("Maximum number of attempts {} reached".format(attempts)),
         )
 
-    def _user_input(self, msg, q, target=None, attempts=5, kwargs=None):
+    def _topic_UI_req_input(self, msg, q, target=None, attempts=5, kwargs=None):
         """
         This can be replaced anywhere in the project that needs to implement the user driver
         Temporarily a simple input function.
@@ -755,7 +765,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             UserInputError("Maximum number of attempts {} reached".format(attempts)),
         )
 
-    def _user_display(self, msg):
+    def _topic_UI_display(self, msg):
         """
         :param msg:
         :return:
@@ -765,7 +775,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.active_update(self.reformat_text(msg))
         self.history_update(self.reformat_text(msg))
 
-    def _user_display_important(self, msg):
+    def _topic_UI_display_important(self, msg):
         """
         :param msg:
         :return:
@@ -783,7 +793,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.history_update("!" * wrapper.width)
         self.active_update("!" * wrapper.width)
 
-    def _print_sequence_end(
+    def _topic_Sequence_Complete(
         self, status, passed, failed, error, skipped, sequence_status
     ):
         if self.closing:
@@ -825,7 +835,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_label_update.emit(test_index, data.test_desc)
         self.sig_tree_update.emit(test_index, "In Progress")
 
-    def _print_test_seq_start(self, data, test_index):
+    def _topic_TestList_Start(self, data, test_index):
         if self.closing:
             return
 
@@ -834,7 +844,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_progress.emit()
         self._print_test_start(data, test_index)
 
-    def _print_test_complete(self, data, test_index, status):
+    def _topic_Test_Complete(self, data, test_index, status):
         if self.closing:
             return
 
@@ -862,20 +872,20 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         else:
             self.sig_tree_update.emit(test_index, "Failed")
 
-    def _print_test_skip(self, data, test_index):
+    def _topic_Test_Skip(self, data, test_index):
         if self.closing:
             return
 
         self.history_update("\nTest Marked as skip")
         self.sig_tree_update.emit(test_index, "Skipped")
 
-    def _print_test_retry(self, data, test_index):
+    def _topic_Test_Retry(self, data, test_index):
         if self.closing:
             return
 
         self.history_update(self.reformat_text("\nTest {}: Retry".format(test_index)))
 
-    def _print_errors(self, exception, test_index):
+    def _topic_Test_Exception(self, exception, test_index):
         if self.closing:
             return
 
@@ -923,7 +933,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                 pass
         return ret_dict
 
-    def _print_comparisons(self, passes, chk, chk_cnt, context):
+    def _topic_Check(self, passes, chk, chk_cnt, context):
         if passes:
             status = "PASS"
         else:
