@@ -108,7 +108,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     """Class Constructor and destructor"""
 
     def __init__(self, worker, application):
-        super(FixateGUI, self).__init__(None)
+        super().__init__()
         self.application = application
         self.register_events()
         self.setupUi(self)
