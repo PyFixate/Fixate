@@ -90,6 +90,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     # Error Window
     sig_error_update = pyqtSignal(str)
     sig_error_clear = pyqtSignal(str)
+    # History Windows
+    sig_history_update = pyqtSignal(str)
     # Image Window
     sig_image_update = pyqtSignal(str)
     sig_image_clear = pyqtSignal()
@@ -181,6 +183,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         # TODO: I don't think the error signals and widow are used. Delete?
         self.sig_error_update.connect(self.error_update)
         self.sig_error_clear.connect(self.error_clear)
+        self.sig_history_update.connect(self._history_update)
+
         self.sig_image_update.connect(self._image_update)
         self.sig_image_clear.connect(self._image_clear)
 
@@ -456,13 +460,10 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         )
 
     def history_update(self, message):
-        self.Events.append(message)
-        self.Events.verticalScrollBar().setValue(
-            self.Events.verticalScrollBar().maximum()
-        )
+        self.sig_history_update.emit(message)
 
-    def history_clear(self):
-        self.Events.clear()
+    def _history_update(self, message):
+        self.Events.append(message)
         self.Events.verticalScrollBar().setValue(
             self.Events.verticalScrollBar().maximum()
         )
@@ -827,11 +828,11 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             return
 
         self.sig_progress.emit()
-        self.history_update("*" * wrapper.width)
-        self.history_update(
+        self.sig_history_update.emit("*" * wrapper.width)
+        self.sig_history_update.emit(
             self.reformat_text("Test {}: {}".format(test_index, data.test_desc))
         )
-        self.history_update("-" * wrapper.width)
+        self.sig_history_update.emit("-" * wrapper.width)
         self.sig_label_update.emit(test_index, data.test_desc)
         self.sig_tree_update.emit(test_index, "In Progress")
 
