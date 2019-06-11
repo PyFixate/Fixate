@@ -131,7 +131,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         self.working_indicator = QtGui.QMovie(QT_GUI_WORKING_INDICATOR)
         self.WorkingIndicator.setMovie(self.working_indicator)
-        self.start_indicator()
+        self.sig_indicator_start.emit()
+
 
         self.status_code = -1  # Default status code used to check for unusual exit
 
@@ -220,17 +221,12 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
     def _topic_Test_Start(self, data, test_index):
         self._print_test_start(data, test_index)
-        self.start_indicator()
+        self.sig_indicator_start.emit()
 
     def _topic_UI_block_end(self):
-        # image clear
         self.sig_image_clear.emit()
-
-        # active window clear
-        self.active_clear()
-
-        # start_indicator
-        self.start_indicator()
+        self.sig_active_clear.emit()
+        self.sig_indicator_start.emit()
 
     def unregister_events(self):
         pub.unsubAll()
@@ -250,9 +246,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.UserInputBox.setPlaceholderText("Input:")
         self.UserInputBox.setEnabled(True)
         self.UserInputBox.setFocus()
-
-    def start_indicator(self):
-        self.sig_indicator_start.emit()
 
     def _start_indicator(self):
         self.WorkingIndicator.show()
@@ -449,9 +442,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.ActiveEvent.verticalScrollBar().setValue(
             self.ActiveEvent.verticalScrollBar().maximum()
         )
-
-    def active_clear(self, **kwargs):
-        self.sig_active_clear.emit()
 
     def _active_clear(self):
         self.ActiveEvent.clear()
