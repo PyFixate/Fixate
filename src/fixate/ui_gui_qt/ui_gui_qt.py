@@ -99,7 +99,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     # Progress Signals
     sig_indicator_start = pyqtSignal()
     sig_indicator_stop = pyqtSignal()
-    sig_working = pyqtSignal()
     sig_progress = pyqtSignal()
     sig_finish = pyqtSignal()
 
@@ -160,36 +159,31 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         event.ignore()
         self.hide()
-        self.clean_up()
+        self.on_finish()
 
     def bind_qt_signals(self):
         """
         Binds the qt signals to the appropriate handlers
         :return:
         """
-        # Signal Binds
-        self.sig_finish.connect(self.clean_up)  # Normal termination
-        self.sig_choices_input.connect(self.get_input)
-        self.sig_label_update.connect(self.display_test)
-        self.sig_text_input.connect(self.open_text_input)
-        self.sig_tree_init.connect(self.display_tree)
-        self.sig_tree_update.connect(self.update_tree)
-        self.sig_progress.connect(self.progress_update)
-
-        # New Binds
-        self.sig_indicator_start.connect(self._start_indicator)
-        self.sig_indicator_stop.connect(self._stop_indicator)
-        self.sig_active_update.connect(self._active_update)
-        self.sig_active_clear.connect(self._active_clear)
-        # TODO: I don't think the error signals and widow are used. Delete?
-        self.sig_error_update.connect(self.error_update)
-        self.sig_error_clear.connect(self.error_clear)
-        self.sig_history_update.connect(self._history_update)
-
-        self.sig_image_update.connect(self._image_update)
-        self.sig_image_clear.connect(self._image_clear)
-
-        self.sig_button_reset.connect(self.button_reset)
+        self.sig_finish.connect(self.on_finish)  # Normal termination
+        self.sig_choices_input.connect(self.on_choices_input)
+        self.sig_label_update.connect(self.on_label_update)
+        self.sig_text_input.connect(self.on_text_input)
+        self.sig_tree_init.connect(self.on_tree_init)
+        self.sig_tree_update.connect(self.on_tree_update)
+        self.sig_progress.connect(self.on_progress)
+        self.sig_indicator_start.connect(self.on_indicator_start)
+        self.sig_indicator_stop.connect(self.on_indicator_stop)
+        self.sig_active_update.connect(self.on_active_update)
+        self.sig_active_clear.connect(self.on_active_clear)
+        # TODO: I don't think the error signals and window are used. Delete?
+        self.sig_error_update.connect(self.on_error_update)
+        self.sig_error_clear.connect(self.on_error_clear)
+        self.sig_history_update.connect(self.on_history_update)
+        self.sig_image_update.connect(self.on_image_update)
+        self.sig_image_clear.connect(self.on_image_clear)
+        self.sig_button_reset.connect(self.on_button_reset)
 
     """Pubsub handlers for setup and teardown
        These are run in the main thread"""
@@ -234,7 +228,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     """Slot handlers for thread-gui interaction
        These are run in the main thread"""
 
-    def open_text_input(self, message):
+    def on_text_input(self, message):
         self.ActiveEvent.append(message)
         self.ActiveEvent.verticalScrollBar().setValue(
             self.ActiveEvent.verticalScrollBar().maximum()
@@ -247,14 +241,14 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.UserInputBox.setEnabled(True)
         self.UserInputBox.setFocus()
 
-    def _start_indicator(self):
+    def on_indicator_start(self):
         self.WorkingIndicator.show()
         self.working_indicator.start()
 
     def _topic_UI_block_start(self):
         self.sig_indicator_stop.emit()
 
-    def _stop_indicator(self):
+    def on_indicator_stop(self):
         self.working_indicator.stop()
         self.WorkingIndicator.hide()
 
@@ -267,7 +261,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     def _topic_UI_image(self, path):
         self.sig_image_update.emit(path)
 
-    def _image_update(self, path):
+    def on_image_update(self, path):
         """
         Adds an image to the image viewer. These images can be stacked with transparent layers to form overlays
         :param path: Relative path to image within the test scripts package
@@ -289,7 +283,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     def _topic_UI_image_clear(self):
         self.sig_image_clear.emit()
 
-    def _image_clear(self):
+    def on_image_clear(self):
         self.image_scene.clear()
 
     def file_not_found(self, path):
@@ -307,7 +301,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.dialog.setIcon(QtWidgets.QMessageBox.Warning)
         self.dialog.exec()
 
-    def display_tree(self, tree):
+    def on_tree_init(self, tree):
 
         # Make sure this function is only run once
         if self.treeSet:
@@ -345,7 +339,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             else:  # Top Level
                 self.TestTree.addTopLevelItem(level_stack[-1])
 
-    def update_tree(self, test_index, status):
+    def on_tree_update(self, test_index, status):
 
         if len(test_index) == 0:
             return
@@ -430,20 +424,20 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             if parent_status not in ["In Progress"]:
                 current_test.setExpanded(False)
 
-    def display_test(self, test_index, description):
+    def on_label_update(self, test_index, description):
         self.ActiveTest.setText("Test {}:".format(test_index))
         self.TestDescription.setText("{}".format(description))
 
     def active_update(self, msg, **kwargs):
         self.sig_active_update.emit(msg)
 
-    def _active_update(self, message):
+    def on_active_update(self, message):
         self.ActiveEvent.append(message)
         self.ActiveEvent.verticalScrollBar().setValue(
             self.ActiveEvent.verticalScrollBar().maximum()
         )
 
-    def _active_clear(self):
+    def on_active_clear(self):
         self.ActiveEvent.clear()
         self.ActiveEvent.verticalScrollBar().setValue(
             self.ActiveEvent.verticalScrollBar().maximum()
@@ -452,25 +446,25 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     def history_update(self, message):
         self.sig_history_update.emit(message)
 
-    def _history_update(self, message):
+    def on_history_update(self, message):
         self.Events.append(message)
         self.Events.verticalScrollBar().setValue(
             self.Events.verticalScrollBar().maximum()
         )
 
-    def error_update(self, message):
+    def on_error_update(self, message):
         self.Errors.append(message)
         self.Errors.verticalScrollBar().setValue(
             self.Errors.verticalScrollBar().maximum()
         )
 
-    def error_clear(self):
+    def on_error_clear(self):
         self.Errors.clear()
         self.Errors.verticalScrollBar().setValue(
             self.Errors.verticalScrollBar().maximum()
         )
 
-    def progress_update(self):
+    def on_progress(self):
         self.ActiveEvent.clear()
         self.ProgressBar.setValue(self.worker.worker.get_current_task())
         if (
@@ -479,7 +473,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         ):
             self.ProgressBar.setStyleSheet(ERROR_STYLE)
 
-    def get_input(self, message, choices):
+    def on_choices_input(self, message, choices):
         self.Events.append(message)
         self.ActiveEvent.append(message)
         self.Events.verticalScrollBar().setValue(
@@ -527,7 +521,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.blocked:
             self.input_queue.put("ABORT_FORCE")
 
-    def clean_up(self):
+    def on_finish(self):
         """
         This function is the second one called for normal termination, and the first one called for unusual termination.
         Check for abnormal termination, and stop the sequencer if required; then stop and delete the thread
@@ -572,7 +566,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.blocked = True
         result = self.input_queue.get()
         self.blocked = False
-        self.sig_working.emit()
         return result
 
     """UI Event Handlers, process actions taken by the user on the GUI.
@@ -586,17 +579,17 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
     def button_1_click(self):
         self.input_queue.put(self.Button_1.text())
-        self.button_reset()
+        self.on_button_reset()
 
     def button_2_click(self):
         self.input_queue.put(self.Button_2.text())
-        self.button_reset()
+        self.on_button_reset()
 
     def button_3_click(self):
         self.input_queue.put(self.Button_3.text())
-        self.button_reset()
+        self.on_button_reset()
 
-    def button_reset(self):
+    def on_button_reset(self):
         self.Button_1.setText("")
         self.Button_2.setText("")
         self.Button_3.setText("")
