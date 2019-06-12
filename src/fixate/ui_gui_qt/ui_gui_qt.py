@@ -645,7 +645,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             # We're closing, so we won't connect the real input_queue.
             # Instead create a new one and put something in it so the
             # user action bails immediately.
-            fake_input_queue = Queue.queue()
+            fake_input_queue = Queue()
             callback_obj.set_user_cancel_queue(fake_input_queue)
             fake_input_queue.put("Fail")
         else:
@@ -782,7 +782,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.closing:
             return
 
-            self.sig_history_update.emit("#" * wrapper.width)
+        self.sig_history_update.emit("#" * wrapper.width)
         post_sequence_info = RESOURCES["SEQUENCER"].context_data.get(
             "_post_sequence_info", {}
         )
@@ -874,9 +874,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         if isinstance(exception, SequenceAbort):
             self.sig_tree_update.emit(test_index, "Aborted")
-            status = True
         else:
-            status = False
             self.sig_tree_update.emit(test_index, "Error")
         self.sig_history_update.emit("")
         self.sig_history_update.emit("!" * wrapper.width)
@@ -990,6 +988,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                         description=chk.description, chk_cnt=chk_cnt, status=status
                     )
                 )
-                self.history_update(msg)
+                self.sig_history_update.emit(msg)
                 if status == "FAIL":
                     self.sig_active_update.emit(msg)
