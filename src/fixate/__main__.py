@@ -187,7 +187,7 @@ class FixateSupervisor:
                     self.fixateApp.setQuitOnLastWindowClosed(False)
                     self.fixateDisplay = gui.FixateGUI(self.worker, self.fixateApp)
                     # Duplicate call except in the case where termination is caused by logoff/shutdown
-                    self.fixateApp.aboutToQuit.connect(self.fixateDisplay.clean_up)
+                    self.fixateApp.aboutToQuit.connect(self.fixateDisplay.on_finish)
                     self.fixateDisplay.show()
 
                 def fixate_exec(self):
