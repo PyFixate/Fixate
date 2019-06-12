@@ -132,7 +132,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.WorkingIndicator.setMovie(self.working_indicator)
         self.sig_indicator_start.emit()
 
-
         self.status_code = -1  # Default status code used to check for unusual exit
 
         # Timers and Threads
