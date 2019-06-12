@@ -143,10 +143,10 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.worker_thread.started.connect(self.worker.run_thread)
 
         # UI Binds
-        self.Button_1.clicked.connect(self.button_1_click)
-        self.Button_2.clicked.connect(self.button_2_click)
-        self.Button_3.clicked.connect(self.button_3_click)
-        self.UserInputBox.submit.connect(self.text_input_submit)
+        self.Button_1.clicked.connect(self.on_button_1_click)
+        self.Button_2.clicked.connect(self.on_button_2_click)
+        self.Button_3.clicked.connect(self.on_button_3_click)
+        self.UserInputBox.submit.connect(self.on_text_input_submit)
 
         self.bind_qt_signals()
         sys.excepthook = exception_hook  # TODO DEBUG REMOVE
@@ -369,6 +369,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         # In case of an abort, update all remaining tests
         else:
+            # todo: this seems like the wrong place for this...
             self.sig_active_update.emit("Aborting, please wait...")
             sub_finish = False
             original_test = current_test
@@ -566,21 +567,21 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     """UI Event Handlers, process actions taken by the user on the GUI.
        These are run in the main thread """
 
-    def text_input_submit(self):
+    def on_text_input_submit(self):
         self.input_queue.put(self.UserInputBox.toPlainText())
         self.UserInputBox.clear()
         self.UserInputBox.setPlaceholderText("")
         self.UserInputBox.setEnabled(False)
 
-    def button_1_click(self):
+    def on_button_1_click(self):
         self.input_queue.put(self.Button_1.text())
         self.on_button_reset()
 
-    def button_2_click(self):
+    def on_button_2_click(self):
         self.input_queue.put(self.Button_2.text())
         self.on_button_reset()
 
-    def button_3_click(self):
+    def on_button_3_click(self):
         self.input_queue.put(self.Button_3.text())
         self.on_button_reset()
 
