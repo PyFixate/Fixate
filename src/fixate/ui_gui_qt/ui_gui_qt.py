@@ -864,7 +864,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.closing:
             return
 
-        self.sig_history_update.emit(self.reformat_text("\nTest {}: Retry".format(test_index)))
+        self.sig_history_update.emit(
+            self.reformat_text("\nTest {}: Retry".format(test_index))
+        )
 
     def _topic_Test_Exception(self, exception, test_index):
         if self.closing:
