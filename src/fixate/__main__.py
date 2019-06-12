@@ -329,12 +329,28 @@ def retrieve_test_data(test_suite, index):
     return sequence
 
 
+class RotateEachInstanceHandler(logging.handlers.RotatingFileHandler):
+    def __init__(self, filename, mode="a", backupCount=0, encoding=None, delay=False):
+        super().__init__(
+            filename=filename,
+            mode=mode,
+            backupCount=backupCount,
+            encoding=encoding,
+            delay=delay,
+        )
+        self.rotated = False
+
+    def emit(self, record):
+        if not self.rotated:
+            self.rotated = True
+            self.doRollover()
+        super().emit(record)
+
+
 def run_main_program(test_script_path=None):
     args, unknown = parser.parse_known_args()
     if not args.disable_logs:
-        handler = logging.handlers.RotatingFileHandler(
-            "fixate.log", maxBytes=10 * 1000 * 1000, backupCount=10
-        )
+        handler = RotateEachInstanceHandler("fixate.log", backupCount=10)
         handler.setFormatter(
             logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         )
