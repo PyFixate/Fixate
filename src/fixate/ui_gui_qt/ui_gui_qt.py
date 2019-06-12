@@ -103,6 +103,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     sig_finish = pyqtSignal()
 
     sig_button_reset = pyqtSignal()
+    sig_progress_set_max = pyqtSignal(int)
 
     """Class Constructor and destructor"""
 
@@ -183,6 +184,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_image_update.connect(self.on_image_update)
         self.sig_image_clear.connect(self.on_image_clear)
         self.sig_button_reset.connect(self.on_button_reset)
+        self.sig_progress_set_max.connect(self.on_progress_set_max)
 
     """Pubsub handlers for setup and teardown
        These are run in the main thread"""
@@ -367,7 +369,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         # In case of an abort, update all remaining tests
         else:
-            self.active_update("Aborting, please wait...")
+            self.sig_active_update.emit("Aborting, please wait...")
             sub_finish = False
             original_test = current_test
             while current_test is not None:
@@ -427,9 +429,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.ActiveTest.setText("Test {}:".format(test_index))
         self.TestDescription.setText("{}".format(description))
 
-    def active_update(self, msg, **kwargs):
-        self.sig_active_update.emit(msg)
-
     def on_active_update(self, message):
         self.ActiveEvent.append(message)
         self.ActiveEvent.verticalScrollBar().setValue(
@@ -441,9 +440,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.ActiveEvent.verticalScrollBar().setValue(
             self.ActiveEvent.verticalScrollBar().maximum()
         )
-
-    def history_update(self, message):
-        self.sig_history_update.emit(message)
 
     def on_history_update(self, message):
         self.Events.append(message)
@@ -601,6 +597,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.Button_2.setDefault(False)
         self.Button_3.setDefault(False)
 
+    def on_progress_set_max(self, test_count):
+        self.ProgressBar.setMaximum(test_count)
+
     """Thread listener, called from the sequencer thread"""
 
     def _completion_code(self, code):
@@ -755,8 +754,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         """
         if self.closing:
             return
-        self.active_update(self.reformat_text(msg))
-        self.history_update(self.reformat_text(msg))
+        self.sig_active_update.emit(self.reformat_text(msg))
+        self.sig_history_update.emit(self.reformat_text(msg))
 
     def _topic_UI_display_important(self, msg):
         """
@@ -766,15 +765,15 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.closing:
             return
 
-        self.history_update("")
-        self.history_update("!" * wrapper.width)
-        self.active_update("!" * wrapper.width)
-        self.history_update("")
-        self.history_update(self.reformat_text(msg))
-        self.active_update(self.reformat_text(msg))
-        self.history_update("")
-        self.history_update("!" * wrapper.width)
-        self.active_update("!" * wrapper.width)
+        self.sig_history_update.emit("")
+        self.sig_history_update.emit("!" * wrapper.width)
+        self.sig_active_update.emit("!" * wrapper.width)
+        self.sig_history_update.emit("")
+        self.sig_history_update.emit(self.reformat_text(msg))
+        self.sig_active_update.emit(self.reformat_text(msg))
+        self.sig_history_update.emit("")
+        self.sig_history_update.emit("!" * wrapper.width)
+        self.sig_active_update.emit("!" * wrapper.width)
 
     def _topic_Sequence_Complete(
         self, status, passed, failed, error, skipped, sequence_status
@@ -782,28 +781,28 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.closing:
             return
 
-        self.history_update("#" * wrapper.width)
+            self.sig_history_update.emit("#" * wrapper.width)
         post_sequence_info = RESOURCES["SEQUENCER"].context_data.get(
             "_post_sequence_info", {}
         )
         if post_sequence_info:
-            self.history_update("-" * wrapper.width)
-            self.history_update("IMPORTANT INFORMATION")
-            self.active_update("IMPORTANT INFORMATION")
+            self.sig_history_update.emit("-" * wrapper.width)
+            self.sig_history_update.emit("IMPORTANT INFORMATION")
+            self.sig_active_update.emit("IMPORTANT INFORMATION")
 
             for msg, state in post_sequence_info.items():
                 if status == "PASSED":
                     if state == "PASSED" or state == "ALL":
-                        self.history_update(self.reformat_text(msg))
-                        self.active_update(self.reformat_text(msg))
+                        self.sig_history_update.emit(self.reformat_text(msg))
+                        self.sig_active_update.emit(self.reformat_text(msg))
                 elif state != "PASSED":
-                    self.history_update(self.reformat_text(msg))
-                    self.active_update(self.reformat_text(msg))
+                    self.sig_history_update.emit(self.reformat_text(msg))
+                    self.sig_active_update.emit(self.reformat_text(msg))
 
-        self.history_update("-" * wrapper.width)
-        self.history_update(self.reformat_text("Status: {}".format(status)))
-        self.active_update(self.reformat_text("Status: {}".format(status)))
-        self.history_update("#" * wrapper.width)
+        self.sig_history_update.emit("-" * wrapper.width)
+        self.sig_history_update.emit(self.reformat_text("Status: {}".format(status)))
+        self.sig_active_update.emit(self.reformat_text("Status: {}".format(status)))
+        self.sig_history_update.emit("#" * wrapper.width)
 
     def _print_test_start(self, data, test_index):
         if self.closing:
@@ -822,7 +821,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.closing:
             return
 
-        self.ProgressBar.setMaximum(self.worker.worker.get_task_count())
+        self.sig_progress_set_max.emit(self.worker.worker.get_task_count())
         self.sig_tree_init.emit(self.worker.worker.get_test_tree())
         self.sig_progress.emit()
         self._print_test_start(data, test_index)
@@ -832,20 +831,18 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             return
 
         sequencer = RESOURCES["SEQUENCER"]
-        self.history_update("-" * wrapper.width)
-        self.history_update(
+        self.sig_history_update.emit("-" * wrapper.width)
+        self.sig_history_update.emit(
             self.reformat_text(
                 "Checks passed: {}, Checks failed: {}".format(
                     sequencer.chk_pass, sequencer.chk_fail
                 )
             )
         )
-        # self.history_update("Checks passed: {}, Checks failed: {}".format(sequencer.chk_pass, sequencer.chk_fail))
-        self.history_update(
+        self.sig_history_update.emit(
             self.reformat_text("Test {}: {}".format(test_index, status.upper()))
         )
-        # self.history_update("Test {}: {}".format(test_index, status.upper()))
-        self.history_update("-" * wrapper.width)
+        self.sig_history_update.emit("-" * wrapper.width)
 
         if status.upper() in ["ERROR", "SKIPPED"]:
             return
@@ -859,14 +856,14 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.closing:
             return
 
-        self.history_update("\nTest Marked as skip")
+        self.sig_history_update.emit("\nTest Marked as skip")
         self.sig_tree_update.emit(test_index, "Skipped")
 
     def _topic_Test_Retry(self, data, test_index):
         if self.closing:
             return
 
-        self.history_update(self.reformat_text("\nTest {}: Retry".format(test_index)))
+        self.sig_history_update.emit(self.reformat_text("\nTest {}: Retry".format(test_index)))
 
     def _topic_Test_Exception(self, exception, test_index):
         if self.closing:
@@ -878,25 +875,25 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         else:
             status = False
             self.sig_tree_update.emit(test_index, "Error")
-        self.history_update("")
-        self.history_update("!" * wrapper.width)
-        self.active_update("!" * wrapper.width)
-        self.history_update(
+        self.sig_history_update.emit("")
+        self.sig_history_update.emit("!" * wrapper.width)
+        self.sig_active_update.emit("!" * wrapper.width)
+        self.sig_history_update.emit(
             self.reformat_text(
                 "Test {}: Exception Occurred, {} {}".format(
                     test_index, type(exception), exception
                 )
             )
         )
-        self.active_update(
+        self.sig_active_update.emit(
             self.reformat_text(
                 "Test {}: Exception Occurred, {} {}".format(
                     test_index, type(exception), exception
                 )
             )
         )
-        self.history_update("!" * wrapper.width)
-        self.active_update("!" * wrapper.width)
+        self.sig_history_update.emit("!" * wrapper.width)
+        self.sig_active_update.emit("!" * wrapper.width)
         # TODO self.history_update traceback into a debug log file
         if fixate.config.DEBUG:
             traceback.print_tb(exception.__traceback__, file=sys.stderr)
@@ -933,9 +930,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                     **format_dict
                 )
             )
-            self.history_update(msg)
+            self.sig_history_update.emit(msg)
             if status == "FAIL":
-                self.active_update(msg)
+                self.sig_active_update.emit(msg)
         elif chk.nominal is not None and chk.tol is not None:
             msg = self.reformat_text(
                 "\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {nominal} +- {tol}% : "
@@ -947,9 +944,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                     **format_dict
                 )
             )
-            self.history_update(msg)
+            self.sig_history_update.emit(msg)
             if status == "FAIL":
-                self.active_update(msg)
+                self.sig_active_update.emit(msg)
         elif chk._min is not None or chk._max is not None or chk.nominal is not None:
             # Grabs the first value that isn't none. Nominal takes priority
             comp_val = next(
@@ -968,9 +965,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                     **format_dict
                 )
             )
-            self.history_update(msg)
+            self.sig_history_update.emit(msg)
             if status == "FAIL":
-                self.active_update(msg)
+                self.sig_active_update.emit(msg)
         else:
             if chk.test_val is not None:
                 msg = self.reformat_text(
@@ -981,9 +978,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                         **format_dict
                     )
                 )
-                self.history_update(msg)
+                self.sig_history_update.emit(msg)
                 if status == "FAIL":
-                    self.active_update(msg)
+                    self.sig_active_update.emit(msg)
             else:
                 msg = self.reformat_text(
                     "\nCheck {chk_cnt} : {status}: {description}".format(
@@ -992,4 +989,4 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                 )
                 self.history_update(msg)
                 if status == "FAIL":
-                    self.active_update(msg)
+                    self.sig_active_update.emit(msg)
