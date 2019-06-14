@@ -2,6 +2,7 @@ import sys
 import pkgutil
 import textwrap
 import traceback
+import logging
 from collections import OrderedDict
 import os.path
 from queue import Queue
@@ -12,6 +13,8 @@ import fixate.config
 from fixate.config import RESOURCES
 from fixate.core.exceptions import UserInputError, SequenceAbort
 from . import layout
+
+logger = logging.getLogger(__name__)
 
 wrapper = textwrap.TextWrapper(width=75)
 wrapper.break_long_words = False
@@ -123,7 +126,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.TestTree.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         self.TestTree.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Fixed)
 
-        self.base_image = ""
         self.dialog = None
         self.image_scene = QtWidgets.QGraphicsScene()
         self.ImageView.set_scene(self.image_scene)
@@ -253,12 +255,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.working_indicator.stop()
         self.WorkingIndicator.hide()
 
-    def retrieve_packaged_data(self, path):
-        try:
-            return pkgutil.get_data("module.loaded_tests", path)
-        except FileNotFoundError:
-            return b""
-
     def _topic_UI_image(self, path):
         self.sig_image_update.emit(path)
 
@@ -268,18 +264,24 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         :param path: Relative path to image within the test scripts package
         :return: None
         """
-        image = QtGui.QPixmap()
-        image.loadFromData(self.retrieve_packaged_data(path))
-        if image.isNull():
-            self.file_not_found(path)
-        self.image_scene.addPixmap(image)
-        self.ImageView.fitInView(
-            0,
-            0,
-            self.image_scene.width(),
-            self.image_scene.height(),
-            QtCore.Qt.KeepAspectRatio,
-        )
+        try:
+            image_data = pkgutil.get_data("module.loaded_tests", path)
+        except FileNotFoundError:
+            logger.exception("Image path specific in the test script was invalid")
+            self.file_not_found(
+                path
+            )  # message dialog so the user knows the image didn't load
+        else:
+            image = QtGui.QPixmap()
+            image.loadFromData(image_data)
+            self.image_scene.addPixmap(image)
+            self.ImageView.fitInView(
+                0,
+                0,
+                self.image_scene.width(),
+                self.image_scene.height(),
+                QtCore.Qt.KeepAspectRatio,
+            )
 
     def _topic_UI_image_clear(self):
         self.sig_image_clear.emit()
