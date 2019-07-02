@@ -347,7 +347,20 @@ class RotateEachInstanceHandler(logging.handlers.RotatingFileHandler):
         super().emit(record)
 
 
+def exception_hook(exctype, value, tb):
+    # Sometime we don't see stderr when there is a crash. So we will log any unhandled exception
+    # to improve debugging and visibility of errors.
+    # note, unhandled exception might originate from a Qt Slot. For info on what Qt does
+    # In that case, see the documentation here:
+    # https://www.riverbankcomputing.com/static/Docs/PyQt5/incompatibilities.html#unhandled-python-exceptions
+    logger.exception("Unhandled Exception", exc_info=(exctype, value, tb))
+    sys.__excepthook__(exctype, value, tb)
+    sys.exit(1)
+
+
 def run_main_program(test_script_path=None):
+    sys.excepthook = exception_hook
+
     args, unknown = parser.parse_known_args()
     if not args.disable_logs:
         handler = RotateEachInstanceHandler("fixate.log", backupCount=10)

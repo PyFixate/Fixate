@@ -53,12 +53,6 @@ def get_status_colours(status):
     return STATUS_PRIORITY[status]
 
 
-def exception_hook(exctype, value, tb):  # TODO DEBUG REMOVE
-    # logger.error("{}:{}:{}".format(exctype, value, tb))
-    sys.__excepthook__(exctype, value, tb)
-    sys.exit(1)
-
-
 class SequencerThread(QObject):
     def __init__(self, worker, completion_callback):
         super(QObject, self).__init__()
@@ -151,7 +145,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.UserInputBox.submit.connect(self.on_text_input_submit)
 
         self.bind_qt_signals()
-        sys.excepthook = exception_hook  # TODO DEBUG REMOVE
 
     def run_sequencer(self):
         self.worker_thread.start()
