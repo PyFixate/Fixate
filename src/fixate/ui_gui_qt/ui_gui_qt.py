@@ -266,11 +266,12 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         """
         try:
             image_data = pkgutil.get_data("module.loaded_tests", path)
-        except FileNotFoundError:
+        except (FileNotFoundError, OSError):
+            # When running direct from the file system, if an image isn't found we
+            # get FileNotFoundError. When running from a zip file, we get OSError
             logger.exception("Image path specific in the test script was invalid")
-            self.file_not_found(
-                path
-            )  # message dialog so the user knows the image didn't load
+            # message dialog so the user knows the image didn't load
+            self.file_not_found(path)
         else:
             image = QtGui.QPixmap()
             image.loadFromData(image_data)
