@@ -1,11 +1,10 @@
-import asyncio
 import logging
+import logging.handlers
 import os
 import sys
 from argparse import ArgumentParser, RawTextHelpFormatter
 from functools import partial
 from importlib.machinery import SourceFileLoader
-from time import sleep
 from zipimport import zipimporter
 from pubsub import pub
 import fixate.config
@@ -106,6 +105,9 @@ parser.add_argument(
     action="store_true",
     help="The sequencer will not prompt for retries.",
 )
+parser.add_argument(
+    "--disable-logs", action="store_true", help="Turn off diagnostic logs"
+)
 
 
 def load_test_suite(script_path, zip_path, zip_selector):
@@ -143,10 +145,10 @@ class FixateController:
     It may be subclassed for different execution environments
     """
 
-    def __init__(self, sequencer, test_script_path, args, loop):
+    def __init__(self, sequencer, test_script_path, args):
         register_cmd_line()
         self.worker = FixateWorker(
-            sequencer=sequencer, test_script_path=test_script_path, args=args, loop=loop
+            sequencer=sequencer, test_script_path=test_script_path, args=args
         )
 
     def fixate_exec(self):
@@ -161,23 +163,20 @@ class FixateSupervisor:
         # General setup
         self.test_script_path = test_script_path
         self.args = args
-        self.loop = asyncio.get_event_loop()
         self.sequencer = RESOURCES["SEQUENCER"]
 
         # Environment specific setup
         # TODO remove this to plugin architecture
         if self.args.qtgui:  # Run with the QT GUI
-            self.loop = asyncio.new_event_loop()
 
             class QTController(FixateController):
-                def __init__(self, sequencer, test_script_path, args, loop):
+                def __init__(self, sequencer, test_script_path, args):
                     from PyQt5 import QtWidgets, QtCore
                     import fixate.ui_gui_qt as gui
 
                     self.worker = FixateWorker(
                         test_script_path=test_script_path,
                         args=args,
-                        loop=loop,
                         sequencer=sequencer,
                     )
 
@@ -188,7 +187,7 @@ class FixateSupervisor:
                     self.fixateApp.setQuitOnLastWindowClosed(False)
                     self.fixateDisplay = gui.FixateGUI(self.worker, self.fixateApp)
                     # Duplicate call except in the case where termination is caused by logoff/shutdown
-                    self.fixateApp.aboutToQuit.connect(self.fixateDisplay.clean_up)
+                    self.fixateApp.aboutToQuit.connect(self.fixateDisplay.on_finish)
                     self.fixateDisplay.show()
 
                 def fixate_exec(self):
@@ -200,17 +199,11 @@ class FixateSupervisor:
                     return exit_code
 
             self.controller = QTController(
-                sequencer=self.sequencer,
-                test_script_path=test_script_path,
-                args=args,
-                loop=self.loop,
+                sequencer=self.sequencer, test_script_path=test_script_path, args=args
             )
         else:  # Command line execution
             self.controller = FixateController(
-                sequencer=self.sequencer,
-                test_script_path=test_script_path,
-                args=args,
-                loop=self.loop,
+                sequencer=self.sequencer, test_script_path=test_script_path, args=args
             )
 
     def run_fixate(self):
@@ -218,11 +211,10 @@ class FixateSupervisor:
 
 
 class FixateWorker:
-    def __init__(self, sequencer, test_script_path, args, loop):
+    def __init__(self, sequencer, test_script_path, args):
         self.sequencer = sequencer
         self.test_script_path = test_script_path
         self.args = args
-        self.loop = loop
         self.start = False
         self.clean = False
         self.config = None
@@ -242,23 +234,11 @@ class FixateWorker:
         pub.sendMessage(
             "Sequence_Abort", exception=SequenceAbort("Application Closing")
         )
-        self.loop.stop()
-
-        for _ in range(15):
-            if self.loop.is_running():  # Wait max 15 seconds for loop to end
-                sleep(1)
-            else:
-                break
-        try:
-            self.loop.close()
-        except Exception:
-            pass  # If the thread has hung, or reached an uninterruptable state, ignore it, it'll be force terminated at the end anyway
 
         return 11
 
     def ui_run(self):
 
-        asyncio.set_event_loop(self.loop)
         serial_number = None
         test_selector = None
         self.start = True
@@ -305,31 +285,10 @@ class FixateWorker:
             register_csv()
             self.sequencer.status = "Running"
 
-            def finished_test_run_response(future):
-                future.result()
-                # Max 1 second to clean up tasks before aborting
-                self.loop.call_later(1, self.loop.stop)
+            self.sequencer.run_sequence()
+            if not self.sequencer.non_interactive:
+                user_ok("Finished testing")
 
-            def finished_test_run(future):
-                if self.sequencer.non_interactive:
-                    # Max 1 second to clean up tasks before aborting
-                    self.loop.call_later(1, self.loop.stop)
-                    return
-
-                if self.sequencer.status in ["Finished", "Aborted"]:
-                    f = partial(user_ok, "Finished testing")
-                    self.loop.run_in_executor(None, f).add_done_callback(
-                        finished_test_run_response
-                    )
-
-            self.loop.run_in_executor(
-                None, self.sequencer.run_sequence
-            ).add_done_callback(finished_test_run)
-
-            try:
-                self.loop.run_forever()
-            finally:
-                self.loop.close()
         except BaseException:
             import traceback
 
@@ -370,8 +329,48 @@ def retrieve_test_data(test_suite, index):
     return sequence
 
 
+class RotateEachInstanceHandler(logging.handlers.RotatingFileHandler):
+    def __init__(self, filename, mode="a", backupCount=0, encoding=None, delay=False):
+        super().__init__(
+            filename=filename,
+            mode=mode,
+            backupCount=backupCount,
+            encoding=encoding,
+            delay=delay,
+        )
+        self.rotated = False
+
+    def emit(self, record):
+        if not self.rotated:
+            self.rotated = True
+            self.doRollover()
+        super().emit(record)
+
+
+def exception_hook(exctype, value, tb):
+    # Sometime we don't see stderr when there is a crash. So we will log any unhandled exception
+    # to improve debugging and visibility of errors.
+    # note, unhandled exception might originate from a Qt Slot. For info on what Qt does
+    # In that case, see the documentation here:
+    # https://www.riverbankcomputing.com/static/Docs/PyQt5/incompatibilities.html#unhandled-python-exceptions
+    logger.exception("Unhandled Exception", exc_info=(exctype, value, tb))
+    sys.__excepthook__(exctype, value, tb)
+    sys.exit(1)
+
+
 def run_main_program(test_script_path=None):
+    sys.excepthook = exception_hook
+
     args, unknown = parser.parse_known_args()
+    if not args.disable_logs:
+        handler = RotateEachInstanceHandler("fixate.log", backupCount=10)
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        )
+        root_logger = logging.getLogger()
+        root_logger.addHandler(handler)
+        root_logger.setLevel(logging.DEBUG)
+
     load_config(args.config)
     fixate.config.load_dict_config({"log_file": args.log_file})
     supervisor = FixateSupervisor(test_script_path, args)

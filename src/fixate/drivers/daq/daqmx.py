@@ -410,7 +410,6 @@ class TwoEdgeSeparation(DaqTask):
     def trigger(self):
         if self._trigger_thread:
             self.clear()
-            self._trigger_thread.stop()
             self._trigger_thread.join(10)
             if self._trigger_thread.is_alive():
                 raise InstrumentError("Existing Trigger Event in Progress")
