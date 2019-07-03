@@ -12,14 +12,14 @@ Breaking Changes
 
 New Features
 ############
-- Operation logging is now enabled. "fixate.log" will be written to the working directory on each invocation. Logging can be disabled with the --disable-log command line argument
+- Operation logging is now enabled. "fixate.log" will be written to the working directory on each invocation. Logging can be disabled with the --disable-log command line argument.
 
 Improvements
 ############
 - Previously the sequencer was called from an async event loop, even though async was not used anywhere. This has been removed, simplifying __main__.py significantly.
 - ExcThread changed so it doesn't try to force re-raise exceptions in the main thread.
 - GUI code cleaned up to make distinction between different execution contexts clearer.
-- Fixed some thread safety issues in the GUI were widgets were getting updating outside of the main thread.
+- Fixed some thread safety issues in the GUI where widgets were getting updating outside of the main thread.
 
 *************
 Version 0.5.2
