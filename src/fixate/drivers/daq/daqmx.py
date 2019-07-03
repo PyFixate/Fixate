@@ -77,13 +77,13 @@ class DaqTask:
     task = None
 
     def read(self):
-        raise NotImplemented("Read not available for this Task")
+        raise NotImplementedError("Read not available for this Task")
 
     def write(self, data):
-        raise NotImplemented("Write not available for this Task")
+        raise NotImplementedError("Write not available for this Task")
 
     def trigger(self):
-        raise NotImplemented("Trigger not available for this Task")
+        raise NotImplementedError("Trigger not available for this Task")
 
     def init(self):
         """

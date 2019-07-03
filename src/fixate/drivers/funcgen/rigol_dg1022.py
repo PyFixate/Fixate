@@ -567,7 +567,7 @@ class RigolDG1022(FuncGen):
         :param mode_params:
         :return:
         """
-        raise NotImplemented()
+        raise NotImplementedError
 
     def _write(self, data):
         """

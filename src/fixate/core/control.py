@@ -156,7 +156,7 @@ def converge_amplitude_scalar(
                 )
             )
             # Check if programmable power supply
-            # raise NotImplemented("Programmable Power Supply Not implemented for this control")
+            # raise NotImplementedError("Programmable Power Supply Not implemented for this control")
             # if issubclass(ProgPS, funcgen_or_ps):
             # pass
 
