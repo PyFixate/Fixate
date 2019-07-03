@@ -665,7 +665,7 @@ class MSO_X_3000(DSO):
                         )
                     )
         elif file_name and file_type == "bin":
-            raise NotImplemented("Binary Output not implemented")
+            raise NotImplementedError("Binary Output not implemented")
         return results
 
     def retrieve_waveform_data(self):

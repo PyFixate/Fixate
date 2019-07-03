@@ -943,39 +943,39 @@ class FuncGen(metaclass=ABCMeta):
 
     # @property
     def amplitude_ch1(self):
-        raise NotImplemented()
+        raise NotImplementedError
 
     # @amplitude_ch1.setter
     def amplitude_ch1(self, val):
-        raise NotImplemented()
+        raise NotImplementedError
 
     # @property
     def amplitude_ch2(self):
-        raise NotImplemented()
+        raise NotImplementedError
 
     # @amplitude_ch2.setter
     def amplitude_ch2(self, val):
-        raise NotImplemented()
+        raise NotImplementedError
 
     @property
     def output_ch1(self):
-        raise NotImplemented()
+        raise NotImplementedError
 
     @property
     def output_ch2(self):
-        raise NotImplemented()
+        raise NotImplementedError
 
     @property
     def output_ch3(self):
-        raise NotImplemented()
+        raise NotImplementedError
 
     @property
     def output_ch4(self):
-        raise NotImplemented()
+        raise NotImplementedError
 
     @property
     def output_sync(self):
-        raise NotImplemented()
+        raise NotImplementedError
 
     @output_ch1.setter
     def output_ch1(self, val):
