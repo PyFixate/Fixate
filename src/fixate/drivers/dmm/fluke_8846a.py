@@ -60,7 +60,7 @@ class Fluke8846A(DMM):
         self._range_string = ""
         self._bandwidth = None
         self._mode = None
-         # Set to True to have explicit error checks on each read
+        # Set to True to have explicit error checks on each read
         self.legacy_mode = False
         self._modes = {
             "voltage_ac": "CONF:VOLTage:AC",
