@@ -392,9 +392,7 @@ def serial_id_query(port, baudrate):
     :return:	
     """
     pps = BK178X(port)
-    pps.baud_rate = (
-        baudrate
-    )  # baud_rate property implementation has the side effect of opening the port.
+    pps.baud_rate = baudrate  # baud_rate property implementation has the side effect of opening the port.
     return pps.identify(as_string=True)
 
 
