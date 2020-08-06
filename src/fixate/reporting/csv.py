@@ -184,7 +184,7 @@ class CsvReporting:
                 self.test_module.__file__
             ).split(".")[0]
             self.data.update(sequencer.context_data)
-            self.start_time = time.clock()
+            self.start_time = time.perf_counter()
             self._write_line_to_csv(
                 fixate.config.render_template(
                     self.data["tpl_first_line"], **self.data, self=self
@@ -196,7 +196,7 @@ class CsvReporting:
     ):
         self._write_line_to_csv(
             [
-                "{:.2f}".format(time.clock() - self.start_time),
+                "{:.2f}".format(time.perf_counter() - self.start_time),
                 "Sequence",
                 "ended={}".format(
                     self.data["tpl_time_stamp"].format(datetime.datetime.now())
@@ -224,7 +224,7 @@ class CsvReporting:
         # Test <test_index>, start, <test name>
         self._write_line_to_csv(
             [
-                "{:.2f}".format(time.clock() - self.start_time),
+                "{:.2f}".format(time.perf_counter() - self.start_time),
                 "Test {}".format(test_index),
                 "start",
                 data.test_desc,
@@ -237,7 +237,7 @@ class CsvReporting:
         if len(test_params):
             # Test <test_index>, test-parameters, <param_name>=<param_value>, ...
             param_line = [
-                "{:.2f}".format(time.clock() - self.start_time),
+                "{:.2f}".format(time.perf_counter() - self.start_time),
                 "Test {}".format(test_index),
                 "test-parameters",
             ]
@@ -248,7 +248,7 @@ class CsvReporting:
     def test_exception(self, exception, test_index):
         self.current_test = test_index
         exc_line = [
-            "{:.2f}".format(time.clock() - self.start_time),
+            "{:.2f}".format(time.perf_counter() - self.start_time),
             "Test {}".format(test_index),
             "exception",
             re.sub(r",\)", ")", repr(exception)),
@@ -264,7 +264,7 @@ class CsvReporting:
         # Test <test_index>, check<number>, <check type>, <status>, <test_val>, <expected>
         # If exception <test_index>, check<number>, <exception details>
         chk_line = [
-            "{:.2f}".format(time.clock() - self.start_time),
+            "{:.2f}".format(time.perf_counter() - self.start_time),
             "Test {}".format(context),
             "check{}".format(chk_cnt),
             chk.target.__name__[1:].replace("check_", "").replace("_", " "),
@@ -288,7 +288,7 @@ class CsvReporting:
 
             self._write_line_to_csv(
                 [
-                    "{:.2f}".format(time.clock() - self.start_time),
+                    "{:.2f}".format(time.perf_counter() - self.start_time),
                     "Test {}".format(test_index),
                     "end",
                     status,
@@ -302,7 +302,7 @@ class CsvReporting:
     def user_wait_start(self, *args, **kwargs):
         self._write_line_to_csv(
             [
-                "{:.2f}".format(time.clock() - self.start_time),
+                "{:.2f}".format(time.perf_counter() - self.start_time),
                 "Test {}".format(self.current_test),
                 "user_wait_start",
             ]
@@ -311,7 +311,7 @@ class CsvReporting:
     def user_wait_end(self, *args, **kwargs):
         self._write_line_to_csv(
             [
-                "{:.2f}".format(time.clock() - self.start_time),
+                "{:.2f}".format(time.perf_counter() - self.start_time),
                 "Test {}".format(self.current_test),
                 "user_wait_end",
             ]
