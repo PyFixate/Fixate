@@ -410,9 +410,7 @@ class TestClass:
 
     RT_ABORT = 1  # Abort the whole test sequence
     RT_RETRY = 2  # Automatically retry up to "attempts"
-    RT_PROMPT = (
-        3
-    )  # Prompt the user; Options are Abort the sequence, retry, or fail and continue
+    RT_PROMPT = 3  # Prompt the user; Options are Abort the sequence, retry, or fail and continue
     RT_FAIL = 4  # Automatically fail and move on
 
     test_desc = None

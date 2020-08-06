@@ -476,9 +476,8 @@ class RigolDG1022(FuncGen):
         period. This could cause issues. Ensure that setup is in a safe state to receive such a signal.
         :return:
         """
-        self.output_ch1 = (
-            False
-        )  # Due to the 5Vpp 1kHz signal. Explicit call to turn output off first
+        # Due to the 5Vpp 1kHz signal. Explicit call to turn output off first
+        self.output_ch1 = False
         self.output_ch2 = False
         self._write("*RST")
 

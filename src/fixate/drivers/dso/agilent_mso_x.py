@@ -819,9 +819,8 @@ class MSO_X_3000(DSO):
             self._wave_acquired = True
             return
         elif self._mode == "RUN":
-            self._wave_acquired = (
-                True
-            )  # Can't detect a complete acquire, just going to have to risk it
+            # Can't detect a complete acquire, just going to have to risk it
+            self._wave_acquired = True
             return
         else:
             raise Exception(
