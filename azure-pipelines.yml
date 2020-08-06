@@ -19,13 +19,11 @@ jobs:
     vmImage: 'VS2017-Win2016'
   strategy:
     matrix:
-      Python35:
-        python.version: '3.5'
       Python36:
         python.version: '3.6'
       Python37:
         python.version: '3.7'
-    maxParallel: 3
+    maxParallel: 2
     
   steps:
     - task: UsePythonVersion@0

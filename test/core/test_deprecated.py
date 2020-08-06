@@ -26,8 +26,8 @@ def test_warning_warn():
 
 def test_returns_functional(mocker):
     test_input = 123
-    with mocker.patch("fixate.core.common.warnings"):
-        assert test_input == mock_function(test_input)
+    mocker.patch("fixate.core.common.warnings")
+    assert test_input == mock_function(test_input)
 
 
 class Foo:

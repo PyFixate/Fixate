@@ -582,4 +582,4 @@ class TestRelayMuxClearingTime(TestCase):
         self.jig.mux.Mux1("")
         self.jig.mux.Mux2("")
         self.jig.mux.Mux3("")
-        self.assertEquals(None, self.handler_mock.update_output.assert_not_called())
+        self.assertEqual(None, self.handler_mock.update_output.assert_not_called())
