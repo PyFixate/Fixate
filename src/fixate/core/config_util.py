@@ -5,6 +5,7 @@ import json
 import copy
 from shutil import copy2
 from pathlib import Path
+from cmd2.ansi import Fore
 from fixate.drivers.pps.bk_178x import BK178X
 import fixate.config
 from pyvisa.errors import VisaIOError
@@ -34,12 +35,6 @@ fx> new <path>                              # like open, but creates a new file 
 """
 
 # TODO: Prevent writing duplicate to the config.
-
-# I found these here: http://www.lihaoyi.com/post/BuildyourownCommandLinewithANSIescapecodes.html
-# But surely there is a library or some other magic that can do this for us?
-RED = "\u001b[31m"
-CYAN = "\u001b[36m"
-GREEN = "\u001b[32m"
 
 
 choices = ["existing", "updated", "visa"]
@@ -305,14 +300,14 @@ class FxConfigCmd(cmd2.Cmd):
             self.poutput("SERIAL || " + com_port + " || " + str(parameters))
 
     def _test_print_error(self, name, msg):
-        self.poutput("ERROR: ", end="", color=RED)
-        self.poutput(str(name), end="", color=CYAN)
-        self.poutput(" - {}".format(msg))
+        self.poutput(Fore.RED + "ERROR: ", end="")
+        self.poutput(Fore.CYAN + str(name), end="")
+        self.poutput(Fore.WHITE + " - {}".format(msg))
 
     def _test_print_ok(self, name, msg):
-        self.poutput("OK: ", end="", color=GREEN)
-        self.poutput(str(name), end="", color=CYAN)
-        self.poutput(" - {}".format(msg))
+        self.poutput(Fore.GREEN + "OK: ", end="")
+        self.poutput(Fore.CYAN + str(name), end="")
+        self.poutput(Fore.WHITE + " - {}".format(msg))
 
     def _test_config_dict(self, config_dict):
         visa_resources = config_dict["INSTRUMENTS"]["visa"]
