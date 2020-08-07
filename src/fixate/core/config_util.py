@@ -5,7 +5,7 @@ import json
 import copy
 from shutil import copy2
 from pathlib import Path
-from cmd2.ansi import Fore
+from cmd2.ansi import style, fg
 from fixate.drivers.pps.bk_178x import BK178X
 import fixate.config
 from pyvisa.errors import VisaIOError
@@ -300,14 +300,14 @@ class FxConfigCmd(cmd2.Cmd):
             self.poutput("SERIAL || " + com_port + " || " + str(parameters))
 
     def _test_print_error(self, name, msg):
-        self.poutput(Fore.RED + "ERROR: ", end="")
-        self.poutput(Fore.CYAN + str(name), end="")
-        self.poutput(Fore.WHITE + " - {}".format(msg))
+        self.poutput(style("ERROR: ", fg=fg.red), end="")
+        self.poutput(style(str(name), fg=fg.cyan), end="")
+        self.poutput(" - {}".format(msg))
 
     def _test_print_ok(self, name, msg):
-        self.poutput(Fore.GREEN + "OK: ", end="")
-        self.poutput(Fore.CYAN + str(name), end="")
-        self.poutput(Fore.WHITE + " - {}".format(msg))
+        self.poutput(style("OK: ", fg=fg.green), end="")
+        self.poutput(style(str(name), fg=fg.cyan), end="")
+        self.poutput(" - {}".format(msg))
 
     def _test_config_dict(self, config_dict):
         visa_resources = config_dict["INSTRUMENTS"]["visa"]
