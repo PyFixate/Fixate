@@ -67,3 +67,6 @@ class DMM:
 
     def reset(self):
         raise NotImplementedError
+
+    def get_serial(self):
+        raise NotImplementedError

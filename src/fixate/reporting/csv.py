@@ -317,6 +317,16 @@ class CsvReporting:
             ]
         )
 
+    def discover_visa(self, instr_type, serial):
+        self._write_line_to_csv(
+            [
+                "{:.2f}".format(time.perf_counter() - self.start_time),
+                "VISA",
+                instr_type,
+                serial,
+            ]
+        )
+
     @staticmethod
     def extract_test_parameters(test_cls):
         """
@@ -367,6 +377,7 @@ def register_csv():
     pub.subscribe(writer.reporting.sequence_complete, "Sequence_Complete")
     pub.subscribe(writer.reporting.user_wait_start, "UI_block_start")
     pub.subscribe(writer.reporting.user_wait_end, "UI_block_end")
+    pub.subscribe(writer.reporting.discover_visa, "discover_visa")
 
 
 def unregister_csv():

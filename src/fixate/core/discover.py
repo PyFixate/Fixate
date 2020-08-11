@@ -1,5 +1,5 @@
 import re
-
+from pubsub import pub
 import visa
 import fixate.config
 from fixate.drivers import ftdi
@@ -18,10 +18,16 @@ def open_visa_instrument(instr_type):
     instruments = filter_connected(
         fixate.config.INSTRUMENTS, fixate.config.DRIVERS.get(instr_type, {})
     )
-    if instruments:
-        for instr in instruments:
-            return instruments[instr]
-    raise InstrumentNotConnected("No valid {} found".format(instr_type))
+    try:
+        instrument = list(instruments.values())[0]
+
+    except IndexError:
+        raise InstrumentNotConnected("No valid {} found".format(instr_type))
+    else:
+        pub.sendMessage(
+            "discover_visa", instr_type=instr_type, serial=instrument.serial
+        )
+        return instrument
 
 
 def discover_ftdi():
