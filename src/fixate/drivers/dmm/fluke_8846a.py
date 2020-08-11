@@ -62,7 +62,6 @@ class Fluke8846A(DMM):
         self._mode = None
         # Set to True to have explicit error checks on each read
         self.legacy_mode = False
-        self.serial = self.get_serial()
         self._modes = {
             "voltage_ac": "CONF:VOLTage:AC",
             "voltage_dc": "CONF:VOLTage:DC",
@@ -343,7 +342,7 @@ class Fluke8846A(DMM):
             self._write(self._filters[self.mode] + ":FILT:STAT ON")
         pass
 
-    def get_serial(self):
+    def get_identity(self) -> str:
         """
         serial string returned by *IDN?
         outg_sw_date is the
