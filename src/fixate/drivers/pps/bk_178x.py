@@ -362,20 +362,3 @@ class BK178X(PPSInterface):
         # TODO: this won't be formatted how we want
         return self.identify(as_string=True)
 
-if __name__ == "__main__":
-    from fixate.drivers import pps
-
-    mypps = pps.open(restrictions={"baud_rates": [9600]})
-    print(mypps.identify(as_string=True))
-    mypps.remote = True
-    mypps.voltage = 12
-    mypps.output_ch1 = True
-    mypps.output_ch1 = False
-    mypps.voltage = 5.5
-    mypps.output_ch1 = True
-    mypps.output_ch1 = False
-    mypps.voltage = 24
-    mypps.output_ch1 = True
-    mypps.output_ch1 = False
-
-    mypps.output_ch1 = False
