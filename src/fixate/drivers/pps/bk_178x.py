@@ -361,4 +361,3 @@ class BK178X(PPSInterface):
     def get_identity(self) -> str:
         # TODO: this won't be formatted how we want
         return self.identify(as_string=True)
-

@@ -905,4 +905,4 @@ class MSO_X_3000(DSO):
                 <serial number> ::= the serial number of the instrument
                 <X.XX.XX> ::= the software revision of the instrument
         """
-        return self.query('*IDN?')
+        return self.query("*IDN?")

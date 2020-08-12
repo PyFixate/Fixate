@@ -25,7 +25,9 @@ def open_instrument(instr_type):
     else:
         instrument_name = type(instrument).__name__
         pub.sendMessage(
-            "driver_open", instr_type=instrument_name, identity=instrument.get_identity()
+            "driver_open",
+            instr_type=instrument_name,
+            identity=instrument.get_identity(),
         )
         return instrument
 
