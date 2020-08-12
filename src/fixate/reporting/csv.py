@@ -317,13 +317,13 @@ class CsvReporting:
             ]
         )
 
-    def driver_open(self, instr_type, serial):
+    def driver_open(self, instr_type, identity):
         self._write_line_to_csv(
             [
                 "{:.2f}".format(time.perf_counter() - self.start_time),
                 "DRIVER",
                 instr_type,
-                serial,
+                identity,
             ]
         )
 

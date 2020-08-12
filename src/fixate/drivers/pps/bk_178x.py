@@ -231,6 +231,9 @@ class PPSInterface(PPS):
         else:
             raise IOError("No returning packet found")
 
+    def get_identity(self):
+        pass
+
 
 class BK178X(PPSInterface):
     REGEX_ID = "model: 6823"
@@ -355,6 +358,9 @@ class BK178X(PPSInterface):
                 ret_val += "{}: {},".format(key, value)
         return ret_val
 
+    def get_identity(self) -> str:
+        # TODO: this won't be formatted how we want
+        return self.identify(as_string=True)
 
 if __name__ == "__main__":
     from fixate.drivers import pps

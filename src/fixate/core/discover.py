@@ -6,7 +6,7 @@ from fixate.drivers import ftdi
 from fixate.core.exceptions import InstrumentNotConnected
 
 
-def open_visa_instrument(instr_type):
+def open_instrument(instr_type):
     """open_visa_instrument implements the  public api for each of the drivers for discovering and opening a connection
     :param instr_type:
     The abstract base class to implement
@@ -23,8 +23,9 @@ def open_visa_instrument(instr_type):
     except IndexError:
         raise InstrumentNotConnected("No valid {} found".format(instr_type))
     else:
+        instrument_name = type(instrument).__name__
         pub.sendMessage(
-            "driver_open", instr_type=instr_type, serial=instrument.get_identity()
+            "driver_open", instr_type=instrument_name, identity=instrument.get_identity()
         )
         return instrument
 
