@@ -267,4 +267,4 @@ class SPD3303X(PPS):
             Return Info Manufacturer, product type, series No., software version,hardware version
             Typical Return Siglent Technologies, SPD3303X, SPD00001130025,1.01.01.01.02,V3.0
         """
-        return self.instrument.query("*IDN?")
+        return self.instrument.query("*IDN?").strip()

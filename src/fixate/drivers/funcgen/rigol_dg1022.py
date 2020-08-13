@@ -710,4 +710,4 @@ class RigolDG1022(FuncGen):
         and the edition number that consists of numbers and separated by “.” .
         :return: RIGOL TECHNOLOGIES,DG1022,DG1000000002,00.01.00.04.00
         """
-        return self.instrument.query("*IDN?")
+        return self.instrument.query("*IDN?").strip()

@@ -276,4 +276,6 @@ class AgilentU1732C(LCR):
         # not sure why the default timeout is 2ms, we need a few hundred to reliably get the IDN string
 
         with self.instrument_timeout(1000):
-            return self.instrument.query("*IDN?")
+            idn = self.instrument.query("*IDN?")
+            # filter out nulls and escape characters
+            return "".join(filter(str.isprintable, idn))

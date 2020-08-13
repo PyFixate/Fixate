@@ -351,4 +351,4 @@ class Fluke8846A(DMM):
         :return:
             (example: FLUKE, 45, 9080025, 2.0, D2.0)
         """
-        return self.instrument.query("*IDN?")
+        return self.instrument.query("*IDN?").strip()

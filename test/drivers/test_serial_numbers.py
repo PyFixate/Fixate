@@ -23,15 +23,13 @@ def writer_function(instr_type, identity):
     """
     function that would be used by the csv writer
     """
-    print(
-        [
+    msg = [
             "{:.2f}".format(time.perf_counter()),
             "DRIVER",
             instr_type,
             identity,
         ]
-    )
-
+    print(msg)
 
 def test_open_lcr():
     lcr.open()

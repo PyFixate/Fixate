@@ -462,4 +462,4 @@ class Keysight33500B(FuncGen):
                 DD = FPGA revision
                 EE = PCBA revision
         """
-        return self.instrument.query("*IDN?")
+        return self.instrument.query("*IDN?").strip()
