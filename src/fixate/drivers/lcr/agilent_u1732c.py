@@ -1,6 +1,7 @@
 from threading import Lock
 from math import log10, floor
 import time
+from contextlib import contextmanager
 
 from visa import VisaIOError
 from pyvisa.errors import VI_ERROR_TMO
@@ -252,10 +253,27 @@ class AgilentU1732C(LCR):
         if "no error" not in err_resp.lower():
             raise InstrumentError(err_resp)
 
+    @contextmanager
+    def instrument_timeout(self, duration):
+        """
+        context manager for temporarily changing the instrument timeout value
+        :param duration: timeout length in ms
+        :return:
+        """
+        previous_timeout = self.instrument.timeout
+        try:
+            self.instrument.timeout = duration
+            yield
+        finally:
+            self.instrument.timeout = previous_timeout
+
     def get_identity(self) -> str:
         """
         Can't find programmers manual to explain what these parameters are
         Best guess is <manufacturer><model><serial><some sort of software version>
         :return: e.g. "Agilent Technologies,U1732C,MY54510075\u0000\u0000,00.28"
         """
-        return self.instrument.query("*IDN?")
+        # not sure why the default timeout is 2ms, we need a few hundred to reliably get the IDN string
+
+        with self.instrument_timeout(1000):
+            return self.instrument.query("*IDN?")
