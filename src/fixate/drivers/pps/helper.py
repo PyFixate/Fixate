@@ -1,8 +1,8 @@
-from abc import ABCMeta
 import inspect
-import fixate.config
-from fixate.core.discover import filter_connected, open_instrument
-from fixate.core.exceptions import InstrumentNotConnected, InstrumentFeatureUnavailable
+from abc import ABCMeta
+
+from fixate.core.discover import open_instrument
+from fixate.core.exceptions import InstrumentFeatureUnavailable
 
 try:
     import typing

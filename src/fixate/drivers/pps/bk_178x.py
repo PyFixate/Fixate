@@ -359,5 +359,14 @@ class BK178X(PPSInterface):
         return ret_val
 
     def get_identity(self) -> str:
-        # TODO: this won't be formatted how we want
+        """
+        ['address: 0,
+        checksum: 40,
+        command: 49,
+        model: 6823,
+        serial_number: 3697210019,
+        software_version: 29440,
+        start: 170,', '9600']
+        :return:
+        """
         return self.identify(as_string=True)
