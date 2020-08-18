@@ -413,7 +413,7 @@ class TwoEdgeSeparation(DaqTask):
             self.init()
             DAQmxReadCounterScalarF64(self.task, float64(10), byref(self._data), None)
         except Exception as e:
-            self._error_queue.put(e)
+            self._error_queue.put(ThreadError(e))
         return
 
     def trigger(self):
@@ -425,6 +425,11 @@ class TwoEdgeSeparation(DaqTask):
         self._trigger_thread = ExcThread(target=self._read)
         self._trigger_thread.start()
 
+class ThreadError(Exception):
+    """
+    give a name to an error that came from a thread
+    """
+    pass
 
 class DaqMx(DAQ):
     """
