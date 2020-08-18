@@ -14,7 +14,6 @@ from PyDAQmx import (
     float64,
     uInt64,
     c_char_p,
-    c_char,
     uInt32,
 )
 
@@ -329,7 +328,8 @@ class TwoEdgeSeparation(DaqTask):
         self.source_terminal = source_terminal
         self.destination_terminal = destination_terminal
         self.validate_terminals = validate_terminals
-        self.error_queue = Queue()
+        self._error_queue = Queue()
+        self._thread_timeout = 10
 
     def init(self):
         if self.task_state == "":
@@ -396,28 +396,30 @@ class TwoEdgeSeparation(DaqTask):
             self.task_state = "init"
 
     def read(self):
-        self._trigger_thread.join(10)
+        self._trigger_thread.join(self._thread_timeout)
+        if self._trigger_thread.is_alive():
+            raise InstrumentError("Trigger thread failed to terminate")
         try:
-            err = self.error_queue.get_nowait()
+            err = self._error_queue.get_nowait()
         except Empty:
-            # no error in queue or something else broke
+            # no error in queue
             pass
         else:
             raise err
         return self._data
 
     def _read(self):
-        self.init()
         try:
+            self.init()
             DAQmxReadCounterScalarF64(self.task, float64(10), byref(self._data), None)
         except Exception as e:
-            self.error_queue.put(e)
+            self._error_queue.put(e)
         return
 
     def trigger(self):
         if self._trigger_thread:
             self.clear()
-            self._trigger_thread.join(10)
+            self._trigger_thread.join(self._thread_timeout)
             if self._trigger_thread.is_alive():
                 raise InstrumentError("Existing Trigger Event in Progress")
         self._trigger_thread = ExcThread(target=self._read)
