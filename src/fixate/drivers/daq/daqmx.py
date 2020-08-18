@@ -425,11 +425,14 @@ class TwoEdgeSeparation(DaqTask):
         self._trigger_thread = ExcThread(target=self._read)
         self._trigger_thread.start()
 
+
 class ThreadError(Exception):
     """
     give a name to an error that came from a thread
     """
+
     pass
+
 
 class DaqMx(DAQ):
     """
