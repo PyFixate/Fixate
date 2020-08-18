@@ -5,3 +5,4 @@ pynput
 ruamel.yaml
 pyserial
 cmd2
+PyDAQmx==1.3

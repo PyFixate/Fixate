@@ -1,5 +1,7 @@
 from collections import namedtuple
 from fixate.core.common import ExcThread
+from queue import Queue, Empty
+
 
 # Basic Functions
 from PyDAQmx import (
@@ -12,6 +14,7 @@ from PyDAQmx import (
     float64,
     uInt64,
     c_char_p,
+    c_char,
     uInt32,
 )
 
@@ -326,6 +329,7 @@ class TwoEdgeSeparation(DaqTask):
         self.source_terminal = source_terminal
         self.destination_terminal = destination_terminal
         self.validate_terminals = validate_terminals
+        self.error_queue = Queue()
 
     def init(self):
         if self.task_state == "":
@@ -393,19 +397,22 @@ class TwoEdgeSeparation(DaqTask):
 
     def read(self):
         self._trigger_thread.join(10)
-        if self._trigger_thread.exec_info:
-            try:
-                raise self._trigger_thread.exec_info
-            finally:
-                self._trigger_thread = None
-        self._trigger_thread = None
+        try:
+            err = self.error_queue.get_nowait()
+        except Empty:
+            # no error in queue or something else broke
+            pass
+        else:
+            raise err
         return self._data
 
     def _read(self):
         self.init()
-        return DAQmxReadCounterScalarF64(
-            self.task, float64(10), byref(self._data), None
-        )
+        try:
+            DAQmxReadCounterScalarF64(self.task, float64(10), byref(self._data), None)
+        except Exception as e:
+            self.error_queue.put(e)
+        return
 
     def trigger(self):
         if self._trigger_thread:
