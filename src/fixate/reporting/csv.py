@@ -317,6 +317,16 @@ class CsvReporting:
             ]
         )
 
+    def driver_open(self, instr_type, identity):
+        self._write_line_to_csv(
+            [
+                "{:.2f}".format(time.perf_counter() - self.start_time),
+                "DRIVER",
+                instr_type,
+                identity,
+            ]
+        )
+
     @staticmethod
     def extract_test_parameters(test_cls):
         """
@@ -367,6 +377,7 @@ def register_csv():
     pub.subscribe(writer.reporting.sequence_complete, "Sequence_Complete")
     pub.subscribe(writer.reporting.user_wait_start, "UI_block_start")
     pub.subscribe(writer.reporting.user_wait_end, "UI_block_end")
+    pub.subscribe(writer.reporting.driver_open, "driver_open")
 
 
 def unregister_csv():

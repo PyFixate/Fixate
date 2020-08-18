@@ -448,3 +448,18 @@ class Keysight33500B(FuncGen):
             return handler(base_str, **nkwargs)
 
         return update_wrapper(temp_func, func)
+
+    def get_identity(self) -> str:
+        """
+        Identification string contains four comma separated fields:
+              Manufacturer name, Model number, Serial number, Revision code
+        :return:
+        Identification string is in the following format for the 33500 Series instruments:
+            Keysight Technologies,[Model Number],[10-char Serial Number],A.aaa-B.bb-C.cc-DD-EE
+                A.aaa = Firmware revision
+                B.bb = Front panel FW revision
+                C.cc = Power supply controller FW revision
+                DD = FPGA revision
+                EE = PCBA revision
+        """
+        return self.instrument.query("*IDN?").strip()

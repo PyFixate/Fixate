@@ -703,3 +703,11 @@ class RigolDG1022(FuncGen):
 
         return update_wrapper(temp_func, func)
         # ------------------------------------------------------------------------------------------
+
+    def get_identity(self):
+        """
+        Query ID character string of instrument, including a field separated by 4 “,”, manufactory, model, serial number
+        and the edition number that consists of numbers and separated by “.” .
+        :return: RIGOL TECHNOLOGIES,DG1022,DG1000000002,00.01.00.04.00
+        """
+        return self.instrument.query("*IDN?").strip()

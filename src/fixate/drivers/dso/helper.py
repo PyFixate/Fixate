@@ -1,7 +1,7 @@
 import inspect
 from abc import ABCMeta, abstractmethod
 from functools import update_wrapper
-from fixate.core.discover import open_visa_instrument
+from fixate.core.discover import open_instrument
 from fixate.core.exceptions import InstrumentFeatureUnavailable
 
 try:
@@ -21,7 +21,7 @@ def open():
     :return:
     A instantiated class connected to a valid dmm
     """
-    return open_visa_instrument("DSO")
+    return open_instrument("DSO")
 
 
 class CallableNoArgs:
@@ -773,6 +773,10 @@ class DSO(metaclass=ABCMeta):
 
     @abstractmethod
     def load_setup(self, file_name):
+        pass
+
+    @abstractmethod
+    def get_identity(self):
         pass
 
     def run(self):

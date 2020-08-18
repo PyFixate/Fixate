@@ -1,16 +1,15 @@
 import re
-
+from pubsub import pub
 import visa
 import fixate.config
 from fixate.drivers import ftdi
 from fixate.core.exceptions import InstrumentNotConnected
 
 
-def open_visa_instrument(instr_type):
+def open_instrument(instr_type):
     """open_visa_instrument implements the  public api for each of the drivers for discovering and opening a connection
     :param instr_type:
     The abstract base class to implement
-    :param restrictions:
     A dictionary containing the technical specifications of the required equipment
     :return:
     A instantiated class connected to a valid dmm
@@ -18,19 +17,24 @@ def open_visa_instrument(instr_type):
     instruments = filter_connected(
         fixate.config.INSTRUMENTS, fixate.config.DRIVERS.get(instr_type, {})
     )
-    if instruments:
-        for instr in instruments:
-            return instruments[instr]
-    raise InstrumentNotConnected("No valid {} found".format(instr_type))
+    try:
+        instrument = list(instruments.values())[0]
+
+    except IndexError:
+        raise InstrumentNotConnected("No valid {} found".format(instr_type))
+    else:
+        instrument_name = type(instrument).__name__
+        pub.sendMessage(
+            "driver_open",
+            instr_type=instrument_name,
+            identity=instrument.get_identity(),
+        )
+        return instrument
 
 
 def discover_ftdi():
     ftdi.create_device_info_list()
-    devices = ftdi.get_device_info_list()
-    ftdi_resources = []
-    for dev in devices:
-        ftdi_resources.append(dev)
-    return ftdi_resources
+    return list(ftdi.get_device_info_list())
 
 
 def filter_connected(instruments, classes):

@@ -1,4 +1,4 @@
-from fixate.core.discover import open_visa_instrument
+from fixate.core.discover import open_instrument
 
 
 def open():
@@ -10,7 +10,7 @@ def open():
     :return:
     A instantiated class connected to a valid dmm
     """
-    return open_visa_instrument("DMM")
+    return open_instrument("DMM")
 
 
 class DMM:
@@ -66,4 +66,7 @@ class DMM:
         raise NotImplementedError
 
     def reset(self):
+        raise NotImplementedError
+
+    def get_identity(self):
         raise NotImplementedError

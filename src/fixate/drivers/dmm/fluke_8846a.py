@@ -341,3 +341,14 @@ class Fluke8846A(DMM):
         elif any(x in self._mode for x in ["dc", "res"]):
             self._write(self._filters[self.mode] + ":FILT:STAT ON")
         pass
+
+    def get_identity(self) -> str:
+        """
+        Meter returns the identification code of the meter as four fields separated by commas.
+        These fields are:
+            manufacturer ("FLUKE"); model (“45"); seven-digit serial number;
+            version of main software and version of display software.
+        :return:
+            (example: FLUKE, 45, 9080025, 2.0, D2.0)
+        """
+        return self.instrument.query("*IDN?").strip()

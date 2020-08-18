@@ -897,3 +897,12 @@ class MSO_X_3000(DSO):
         base_str, store_dict = params
         self.store(store_dict)
         self.write(base_str, *args, **kwargs)
+
+    def get_identity(self) -> str:
+        """
+        :return: AGILENT TECHNOLOGIES,<model>,<serial number>,X.XX.XX
+                <model> ::= the model number of the instrument
+                <serial number> ::= the serial number of the instrument
+                <X.XX.XX> ::= the software revision of the instrument
+        """
+        return self.query("*IDN?").strip()

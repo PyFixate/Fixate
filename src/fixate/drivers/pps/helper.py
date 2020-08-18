@@ -1,8 +1,8 @@
-from abc import ABCMeta
 import inspect
-import fixate.config
-from fixate.core.discover import filter_connected
-from fixate.core.exceptions import InstrumentNotConnected, InstrumentFeatureUnavailable
+from abc import ABCMeta
+
+from fixate.core.discover import open_instrument
+from fixate.core.exceptions import InstrumentFeatureUnavailable
 
 try:
     import typing
@@ -14,17 +14,9 @@ except ImportError:
 
 def open():
     """
-    :param restrictions:
     :return:
     """
-    # All config values for implemented instruments should be called
-    classes = fixate.config.DRIVERS.get("PPS", {})
-    instruments = filter_connected(fixate.config.INSTRUMENTS, classes)
-    # This is where the restrictions would come in
-    if instruments:
-        for instr in instruments:
-            return instruments[instr]
-    raise InstrumentNotConnected("No valid {} found".format("PPS"))
+    return open_instrument("PPS")
 
 
 class Groups:
@@ -201,6 +193,17 @@ class PPS(metaclass=ABCMeta):
         )
 
     def idn(self):
+        raise InstrumentFeatureUnavailable(
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
+
+    def get_identity(self):
+        """
+        same function as idn, but discover.py expects this function
+        I don't know if any test scripts reference idn so I won't refactor it
+        """
         raise InstrumentFeatureUnavailable(
             "{} not available on this device".format(
                 inspect.currentframe().f_code.co_name

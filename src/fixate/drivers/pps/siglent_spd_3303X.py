@@ -261,19 +261,10 @@ class SPD3303X(PPS):
 
         return update_wrapper(temp_func, func)
 
-
-if __name__ == "__main__":
-    from fixate.drivers import pps
-
-    p = pps.open()
-    p.channel1.voltage(12)
-    p.channel1.current(0.5)
-    p.channel1(True)
-    p.channel1(False)
-
-    p.series.voltage(12)
-    p.series.current(0.5)
-    p.series(True)
-
-    p.series(False)
-    p.channel1.voltage(3)
+    def get_identity(self) -> str:
+        """
+        :return:
+            Return Info Manufacturer, product type, series No., software version,hardware version
+            Typical Return Siglent Technologies, SPD3303X, SPD00001130025,1.01.01.01.02,V3.0
+        """
+        return self.instrument.query("*IDN?").strip()

@@ -1,11 +1,11 @@
 import unittest
 from fixate.drivers.funcgen.keysight_33500b import Keysight33500B
 from fixate.core.exceptions import *
-from fixate.core.discover import open_visa_instrument
+from fixate.core.discover import open_instrument
 
 
 def get_funcgen():
-    return open_visa_instrument("FUNC_GEN")
+    return open_instrument("FUNC_GEN")
 
 
 class BaseSetup:

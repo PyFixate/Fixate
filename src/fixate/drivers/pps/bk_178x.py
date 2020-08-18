@@ -231,6 +231,9 @@ class PPSInterface(PPS):
         else:
             raise IOError("No returning packet found")
 
+    def get_identity(self):
+        pass
+
 
 class BK178X(PPSInterface):
     REGEX_ID = "model: 6823"
@@ -355,21 +358,15 @@ class BK178X(PPSInterface):
                 ret_val += "{}: {},".format(key, value)
         return ret_val
 
-
-if __name__ == "__main__":
-    from fixate.drivers import pps
-
-    mypps = pps.open(restrictions={"baud_rates": [9600]})
-    print(mypps.identify(as_string=True))
-    mypps.remote = True
-    mypps.voltage = 12
-    mypps.output_ch1 = True
-    mypps.output_ch1 = False
-    mypps.voltage = 5.5
-    mypps.output_ch1 = True
-    mypps.output_ch1 = False
-    mypps.voltage = 24
-    mypps.output_ch1 = True
-    mypps.output_ch1 = False
-
-    mypps.output_ch1 = False
+    def get_identity(self) -> str:
+        """
+        ['address: 0,
+        checksum: 40,
+        command: 49,
+        model: 6823,
+        serial_number: 3697210019,
+        software_version: 29440,
+        start: 170,', '9600']
+        :return:
+        """
+        return self.identify(as_string=True)

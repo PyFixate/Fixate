@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-from fixate.core.discover import open_visa_instrument
+from fixate.core.discover import open_instrument
 
 
 def open():
@@ -12,7 +12,7 @@ def open():
     :return:
     A instantiated class connected to a valid dmm
     """
-    return open_visa_instrument("LCR")
+    return open_instrument("LCR")
 
 
 class TestResult:
@@ -47,4 +47,8 @@ class LCR(metaclass=ABCMeta):
 
     @abstractmethod
     def reset(self):
+        pass
+
+    @abstractmethod
+    def get_identity(self):
         pass
