@@ -410,8 +410,9 @@ class TwoEdgeSeparation(DaqTask):
 
     def _read(self):
         try:
-            self.init()
-            DAQmxReadCounterScalarF64(self.task, float64(10), byref(self._data), None)
+            DAQmxReadCounterScalarF64(
+                self.task, float64(self._thread_timeout), byref(self._data), None
+            )
         except Exception as e:
             self._error_queue.put(ThreadError(e))
         return
@@ -422,6 +423,7 @@ class TwoEdgeSeparation(DaqTask):
             self._trigger_thread.join(self._thread_timeout)
             if self._trigger_thread.is_alive():
                 raise InstrumentError("Existing Trigger Event in Progress")
+        self.init()
         self._trigger_thread = ExcThread(target=self._read)
         self._trigger_thread.start()
 
