@@ -1,5 +1,7 @@
 from collections import namedtuple
 from fixate.core.common import ExcThread
+from queue import Queue, Empty
+
 
 # Basic Functions
 from PyDAQmx import (
@@ -326,6 +328,8 @@ class TwoEdgeSeparation(DaqTask):
         self.source_terminal = source_terminal
         self.destination_terminal = destination_terminal
         self.validate_terminals = validate_terminals
+        self._error_queue = Queue()
+        self._thread_timeout = 10
 
     def init(self):
         if self.task_state == "":
@@ -392,29 +396,44 @@ class TwoEdgeSeparation(DaqTask):
             self.task_state = "init"
 
     def read(self):
-        self._trigger_thread.join(10)
-        if self._trigger_thread.exec_info:
-            try:
-                raise self._trigger_thread.exec_info
-            finally:
-                self._trigger_thread = None
-        self._trigger_thread = None
+        self._trigger_thread.join(self._thread_timeout)
+        if self._trigger_thread.is_alive():
+            raise InstrumentError("Trigger thread failed to terminate")
+        try:
+            err = self._error_queue.get_nowait()
+        except Empty:
+            # no error in queue
+            pass
+        else:
+            raise err
         return self._data
 
     def _read(self):
-        self.init()
-        return DAQmxReadCounterScalarF64(
-            self.task, float64(10), byref(self._data), None
-        )
+        try:
+            DAQmxReadCounterScalarF64(
+                self.task, float64(self._thread_timeout), byref(self._data), None
+            )
+        except Exception as e:
+            self._error_queue.put(ThreadError(e))
+        return
 
     def trigger(self):
         if self._trigger_thread:
             self.clear()
-            self._trigger_thread.join(10)
+            self._trigger_thread.join(self._thread_timeout)
             if self._trigger_thread.is_alive():
                 raise InstrumentError("Existing Trigger Event in Progress")
+        self.init()
         self._trigger_thread = ExcThread(target=self._read)
         self._trigger_thread.start()
+
+
+class ThreadError(Exception):
+    """
+    give a name to an error that came from a thread
+    """
+
+    pass
 
 
 class DaqMx(DAQ):
