@@ -2,6 +2,21 @@
 Release Notes
 ==================================
 *************
+Version 0.5.4
+*************
+Release Date 20/08/2020
+
+New Features
+############
+- Driver can now report an identify string, which is logged when the driver is loaded.
+
+Improvements
+############
+- Fixes made to the daqmx TwoEdgeSeparation to fix the issue introduced from the previous release.
+- fxconfig updated to use the latest version of cmd2
+- Fix some tests that were failing due to updated dependencies.
+
+*************
 Version 0.5.3
 *************
 Release Date 03/07/2019
