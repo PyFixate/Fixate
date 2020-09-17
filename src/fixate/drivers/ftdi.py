@@ -297,12 +297,12 @@ class FTDI2xx(object):
 
     def write_bit_mode(self, mask, validate=False):
         """
-            handle; gained from device info
-            mask; value to write for the mask
-                for BIT_MODE.FT_BITMODE_CBUS_BITBANG
-                upper nibble is input (0) output (1)
-                lower nibble is pin value low (0) high (1)
-            bit_mode; Type BIT_MODE
+        handle; gained from device info
+        mask; value to write for the mask
+            for BIT_MODE.FT_BITMODE_CBUS_BITBANG
+            upper nibble is input (0) output (1)
+            lower nibble is pin value low (0) high (1)
+        bit_mode; Type BIT_MODE
         """
         check_return(ftdI2xx.FT_SetBitMode(self.handle, UCHAR(mask), self.bit_mode))
         data_bus = UCHAR()

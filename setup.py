@@ -7,13 +7,15 @@ import os
 
 BASE_LOCATION = os.path.abspath(os.path.dirname(__file__))
 
-VERSION_FILE = os.path.join(BASE_LOCATION, 'src', 'fixate', '__init__.py')
-REQUIRES_FILE = 'requirements.txt'
+VERSION_FILE = os.path.join(BASE_LOCATION, "src", "fixate", "__init__.py")
+REQUIRES_FILE = "requirements.txt"
 DEPENDENCIES_FILE = None
 
 
 def filter_comments(fd):
-    no_comments = list(filter(lambda l: l.strip().startswith("#") is False, fd.readlines()))
+    no_comments = list(
+        filter(lambda l: l.strip().startswith("#") is False, fd.readlines())
+    )
     return list(filter(lambda l: l.strip().startswith("-") is False, no_comments))
 
 
@@ -22,15 +24,18 @@ def readfile(filename, func):
         with open(os.path.join(BASE_LOCATION, filename)) as f:
             data = func(f)
     except (IOError, IndexError):
-        sys.stderr.write(u"""
+        sys.stderr.write(
+            u"""
 Can't find '%s' file. This doesn't seem to be a valid release.
-""" % filename)
+"""
+            % filename
+        )
         sys.exit(1)
     return data
 
 
 def get_version():
-    with open(VERSION_FILE, 'r') as f:
+    with open(VERSION_FILE, "r") as f:
         data = f.read()
         m = re.search(r"__version__ ?= ?\"[\d.]+\"", data)
     res = m.group(0)
@@ -54,20 +59,21 @@ setup(
     author="Ryan Parry-Jones",
     author_email="ryanspj+github@gmail.com",
     description="Framework for hardware test fixtures and automated test environments",
-    package_dir={'': 'src'},
-    packages=find_packages('src'),
+    package_dir={"": "src"},
+    packages=find_packages("src"),
     scripts=[],
     url="http://pyfixate.com/",
     version=get_version(),
-    install_requires=["pyvisa",
-                      "pypubsub",
-                      # "pyqt5", # Required for the QT GUI
-                      "pynput",
-                      "ruamel.yaml",
-                      "pyserial",
-                      "cmd2",       # required for fxconfig
-                      ],
-    python_requires='~=3.4',
+    install_requires=[
+        "pyvisa",
+        "pypubsub",
+        # "pyqt5", # Required for the QT GUI
+        "pynput",
+        "ruamel.yaml",
+        "pyserial",
+        "cmd2",  # required for fxconfig
+    ],
+    python_requires="~=3.4",
     dependency_links=[],
     include_package_data=True,
     zip_safe=False,
@@ -76,7 +82,7 @@ setup(
         "Intended Audience :: Manufacturing",
         "License :: OSI Approved :: MIT License",
         "Operating System :: Microsoft :: Windows",
-        "Programming Language :: Python :: 3 :: Only"
+        "Programming Language :: Python :: 3 :: Only",
     ],
     entry_points="""
         [console_scripts]

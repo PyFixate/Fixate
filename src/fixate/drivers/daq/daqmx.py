@@ -71,9 +71,7 @@ IOLine.__new__.__defaults__ = (0, None)
 
 
 class DaqTask:
-    """
-
-    """
+    """"""
 
     task_state = ""
     task = None
@@ -115,9 +113,7 @@ class DaqTask:
 
 
 class DigitalOut(DaqTask):
-    """
-
-    """
+    """"""
 
     def __init__(self, task_string, io_length):
         self.io_length = io_length
@@ -189,9 +185,7 @@ class DigitalOut(DaqTask):
 
 
 class DigitalIn(DaqTask):
-    """
-
-    """
+    """"""
 
     def __init__(self, task_string, io_length):
         self.io_length = io_length
@@ -226,9 +220,7 @@ class DigitalIn(DaqTask):
 
 
 class BufferedWrite(DaqTask):
-    """
-
-    """
+    """"""
 
     def __init__(self, task_string, io_length, frequency):
         self.task_string = task_string

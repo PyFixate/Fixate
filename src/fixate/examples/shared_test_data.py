@@ -47,7 +47,12 @@ class TestBoth(TestClass):
 
 
 class TestOther(TestClass):
-    def test(self, outer_list: TestListOuter, inner_list: TestListInner, not_run: TestListNotRun):
+    def test(
+        self,
+        outer_list: TestListOuter,
+        inner_list: TestListInner,
+        not_run: TestListNotRun,
+    ):
         user_info(f"Outer.outer: {outer_list.outer}")
         user_info(f"Outer.other: {outer_list.other_data}")
         user_info(f"Inner.inner: {inner_list.inner}")
@@ -59,18 +64,20 @@ test_data = {
     # Should fail as TestListNotRun in not run
     "test_not_run": TestList([TestListOuter([TestListInner([TestOther()])])]),
     # Should fail as TestBoth doesn't have TestListOuter in scope
-    "list_out_of_scope": TestList([TestListOuter([TestOuter()]), TestListInner([TestBoth()])]),
+    "list_out_of_scope": TestList(
+        [TestListOuter([TestOuter()]), TestListInner([TestBoth()])]
+    ),
     # Should use the inner most match to the test list. First TestOuter should print 10, second should print 20
     # Eg. 1.1 Outer.outer: 10, 1.2.1 Outer.outer: 20
-    "used_multi_level": TestList([
-        TestListOuter(
-            [
-                TestOuter(),
-                TestListOuter([
-                    TestOuter()
-                ], outer=20),
-
-            ],
-            outer=10)
-    ])
+    "used_multi_level": TestList(
+        [
+            TestListOuter(
+                [
+                    TestOuter(),
+                    TestListOuter([TestOuter()], outer=20),
+                ],
+                outer=10,
+            )
+        ]
+    ),
 }
