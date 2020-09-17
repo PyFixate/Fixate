@@ -1,9 +1,10 @@
 import sys
 import time
 import re
+import inspect
 from pubsub import pub
 from fixate.core.common import TestList, TestClass
-from fixate.core.exceptions import SequenceAbort, CheckFail
+from fixate.core.exceptions import SequenceAbort, CheckFail, TestError
 from fixate.core.ui import user_retry_abort_fail
 
 STATUS_STATES = ["Idle", "Running", "Paused", "Finished", "Restart", "Aborted"]
@@ -89,6 +90,17 @@ def get_parent_level(level):
     else:
         level = re.sub(r"\.\d+$", "", level)
         return level
+
+
+def get_params_to_inject(f, classes):
+    params = {}
+    sig = inspect.signature(f)
+    for key, param in sig.parameters.items():
+        try:
+            params[key] = classes[param.annotation]
+        except KeyError:
+            raise TestError(f"Missing pre-requisite test list {key}")
+    return params
 
 
 class Sequencer:
@@ -312,10 +324,14 @@ class Sequencer:
                     break
                 self.chk_fail, self.chk_pass = 0, 0
                 # Run the test
+                classes = {}
                 try:
                     for index_context, current_level in enumerate(self.context):
-                        current_level.current().set_up()
-                    active_test.test()
+                        current = current_level.current()
+                        classes[type(current)] = current
+                        current.set_up()
+                    params = get_params_to_inject(active_test.test, classes)
+                    active_test.test(**params)
                 finally:
                     for current_level in self.context[index_context::-1]:
                         current_level.current().tear_down()
