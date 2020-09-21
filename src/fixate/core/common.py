@@ -448,7 +448,7 @@ class TestClass:
         Optionally override this code that is always executed at the end of the test whether it was successful or not
         """
 
-    def test(self):
+    def test(self, **kwargs):
         """
         This method should be overridden with the test code
         This is the test sequence code
