@@ -11,8 +11,8 @@ jobs:
         architecture: 'x64'
 
     - script: |
-        pip install black
-        black --check src test scripts
+        pip install tox
+        tox -e black
 
 - job: 'Test_Windows_x64'
   pool:
