@@ -17,3 +17,5 @@ docs/build/*
 Pipfile
 Pipfile.lock
 venv/
+*.log.*
+*.log
