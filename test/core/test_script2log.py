@@ -2,6 +2,7 @@ import pytest
 import subprocess
 import os.path
 import csv
+import sys
 
 
 def dict_line(line):
@@ -46,7 +47,7 @@ def test_basicpass(tmpdir):
     log_path = os.path.join(str(tmpdir), "logfile.csv")
     ret = subprocess.call(
         [
-            "python",
+            sys.executable,
             "-m",
             "fixate",
             "-p",
@@ -67,7 +68,7 @@ def test_basicfail(tmpdir):
     log_path = os.path.join(str(tmpdir), "logfile.csv")
     ret = subprocess.call(
         [
-            "python",
+            sys.executable,
             "-m",
             "fixate",
             "-p",
