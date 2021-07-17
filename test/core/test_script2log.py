@@ -137,7 +137,7 @@ def test_basichierachy(tmpdir, fail_flag, raise_flag, xfail, return_code):
 
     ret = subprocess.call(
         [
-            "python",
+            sys.executable,
             "-m",
             "fixate",
             "-p",
