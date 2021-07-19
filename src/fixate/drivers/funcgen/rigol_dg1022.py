@@ -43,7 +43,7 @@ class RigolDG1022(FuncGen):
         The self.__ values are the sanitised values used internally in the system to parse between functions
 
         Limitations:
-        The function generator switches internal relays at certain thresholds. 
+        The function generator switches internal relays at certain thresholds.
         Try to avoid these ranges in design if the function generator is loaded with a relatively low impedance
         Table of ranges on the same relay arrangement
         Min mVpp    Max mVpp

@@ -381,10 +381,10 @@ def visa_id_query(visa_resource_name):
 
 
 def serial_id_query(port, baudrate):
-    """	
-    The only serial type instrument we use is the BK Precision 178x. So we just going to hard code	
-    calling the identity method on that class.	
-    :return:	
+    """
+    The only serial type instrument we use is the BK Precision 178x. So we just going to hard code
+    calling the identity method on that class.
+    :return:
     """
     pps = BK178X(port)
     pps.baud_rate = baudrate  # baud_rate property implementation has the side effect of opening the port.
@@ -392,10 +392,10 @@ def serial_id_query(port, baudrate):
 
 
 def backup_file(file_path):
-    """	
-    Create a backup of `file_path` in the same directory. Appends ".bak" to the file name.	
-    :param file_path:	
-    :return: Pathlib.Path object which is the path of the new file	
+    """
+    Create a backup of `file_path` in the same directory. Appends ".bak" to the file name.
+    :param file_path:
+    :return: Pathlib.Path object which is the path of the new file
     """
     backup_path = Path(file_path).with_suffix(".json.bak")
     file_path = Path(file_path)

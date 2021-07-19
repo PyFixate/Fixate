@@ -305,8 +305,8 @@ class LinearAbsoluteControl:
 
     def update(self, measured_value):
         """
-            If it is first time run than assume that the error scalar should be 1
-            If it is past the first time then the error scalar needs to be updated based on the measured results
+        If it is first time run than assume that the error scalar should be 1
+        If it is past the first time then the error scalar needs to be updated based on the measured results
         """
         if self._error_scalar:
             self._error_scalar *= (

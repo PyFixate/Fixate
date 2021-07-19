@@ -111,7 +111,7 @@ class TestClassImp(TestClass):
 
 
 class CSVWriter:
-    def __init__(self,):
+    def __init__(self):
         self.csv_queue = Queue()
         self.csv_writer = None
         # data = fixate.config.get_config_dict()
