@@ -150,7 +150,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.worker_thread.start()
 
     def closeEvent(self, event):
-        """ This function overrides closeEvent from the MainWindow class, called in case of unusual termination"""
+        """This function overrides closeEvent from the MainWindow class, called in case of unusual termination"""
 
         event.ignore()
         self.hide()
@@ -601,7 +601,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
     def _completion_code(self, code):
         """This function is the first one called when the sequencer completes normally.
-           Set the exit code, and signal the main thread."""
+        Set the exit code, and signal the main thread."""
         self.status_code = code
         self.sig_finish.emit()
 

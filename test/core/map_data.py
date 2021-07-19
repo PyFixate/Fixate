@@ -64,9 +64,7 @@ MuxDmmInputHi_signal_map = [
 
 # RPJ version
 class MuxDmmInputHi(VirtualMux):
-    """
-
-    """
+    """ """
 
     # LSB(index 0) to MSB(index -1)
     pin_list = [

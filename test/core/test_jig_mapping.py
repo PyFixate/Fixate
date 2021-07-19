@@ -22,9 +22,7 @@ except ImportError:
 
 
 class TestVirtualAddressMap(TestCase):
-    """
-
-    """
+    """ """
 
     def setUp(self):
         self.v_map = VirtualAddressMap()
@@ -189,9 +187,7 @@ class TestVirtualAddressMap(TestCase):
 
 
 class TestAddressHandler(TestCase):
-    """
-
-    """
+    """ """
 
     def setUp(self):
         self.address_handler = MagicMock(spec=AddressHandler)
@@ -208,9 +204,7 @@ class MockedMux(VirtualMux):
 
 
 class TestVirtualMux(TestCase):
-    """
-
-    """
+    """ """
 
     def setUp(self):
         MockedMux.pin_list = ["{}".format(x) for x in range(16)]

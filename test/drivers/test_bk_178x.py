@@ -42,8 +42,7 @@ class PacketFormedCorrectly(TestCase):
         )
 
     def test_checksum(self):
-        """Return the sum of the bytes in cmd modulo 256.
-        """
+        """Return the sum of the bytes in cmd modulo 256."""
         max_voltage_5_command = bytearray(26)
         max_voltage_5_command[0:5] = [0xAA, 0x00, 0x22, 0x88, 0x13]
         max_voltage_5_command[-1] = 0x67
@@ -197,8 +196,7 @@ class BKPS178xInterface(TestCase):
         return "".join(chr(i) for i in iterable).encode()
 
     def _command_properly_formed(self, cmd):
-        """Return 1 if a command is properly formed; otherwise, return 0.
-        """
+        """Return 1 if a command is properly formed; otherwise, return 0."""
         commands = (
             0x20,
             0x21,
@@ -246,8 +244,7 @@ class BKPS178xInterface(TestCase):
         return 1
 
     def _calculate_checksum(self, cmd):
-        """Return the sum of the bytes in cmd modulo 256.
-        """
+        """Return the sum of the bytes in cmd modulo 256."""
         assert (len(cmd) == self.length_packet - 1) or (len(cmd) == self.length_packet)
         return sum(cmd[:-1]) % 256
 
@@ -382,9 +379,9 @@ class InstrumentInterface:
 
     def DumpCommand(self, bytes):
         """Print out the contents of a 26 byte command.  Example:
-            aa .. 20 01 ..   .. .. .. .. ..
-            .. .. .. .. ..   .. .. .. .. ..
-            .. .. .. .. ..   cb
+        aa .. 20 01 ..   .. .. .. .. ..
+        .. .. .. .. ..   .. .. .. .. ..
+        .. .. .. .. ..   cb
         """
         assert len(bytes) == self.length_packet
         header = " " * 3
@@ -406,8 +403,7 @@ class InstrumentInterface:
         out(nl)
 
     def CommandProperlyFormed(self, cmd):
-        """Return 1 if a command is properly formed; otherwise, return 0.
-        """
+        """Return 1 if a command is properly formed; otherwise, return 0."""
         commands = (
             0x20,
             0x21,
@@ -461,8 +457,7 @@ class InstrumentInterface:
         return 1
 
     def CalculateChecksum(self, cmd):
-        """Return the sum of the bytes in cmd modulo 256.
-        """
+        """Return the sum of the bytes in cmd modulo 256."""
         assert (len(cmd) == self.length_packet - 1) or (len(cmd) == self.length_packet)
         checksum = 0
         for i in range(self.length_packet - 1):
@@ -536,8 +531,7 @@ class InstrumentInterface:
         return chr(0) * num
 
     def PrintCommandAndResponse(self, cmd, response, cmd_name):
-        """Print the command and its response if debugging is on.
-        """
+        """Print the command and its response if debugging is on."""
         assert cmd_name
         if self.debug:
             out(cmd_name + " command:" + nl)
@@ -560,8 +554,7 @@ class InstrumentInterface:
         return cmd
 
     def GetData(self, data, num_bytes=4):
-        """Extract the little endian integer from the data and return it.
-        """
+        """Extract the little endian integer from the data and return it."""
         assert len(data) == self.length_packet
         if num_bytes == 1:
             return ord(data[3])
