@@ -117,7 +117,7 @@ class AgilentU1732C(LCR):
         rng = unit_scale(str(val))
         if not rng == round(rng, -int(floor(log10(rng)))):
             raise ParameterError()
-        if str(rng)[0] is not "2":
+        if str(rng)[0] != "2":
             raise ParameterError()
         if not 2000e-9 <= rng <= 200e6:
             raise ParameterError()

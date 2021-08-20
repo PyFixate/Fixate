@@ -271,7 +271,7 @@ class VirtualMux:
         Converts a desired signal into an address to parse to the VirtualAddressMap
         Updates the virtual address map with the values
         """
-        if signal_output is "":
+        if signal_output == "":
             virtual_address = 0
         else:
             try:
