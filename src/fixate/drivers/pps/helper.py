@@ -1,22 +1,11 @@
 import inspect
 from abc import ABCMeta
 
-from fixate.core.discover import open_instrument
 from fixate.core.exceptions import InstrumentFeatureUnavailable
 
-try:
-    import typing
+import typing
 
-    number = typing.Union[float, int]
-except ImportError:
-    number = float
-
-
-def open():
-    """
-    :return:
-    """
-    return open_instrument("PPS")
+number = typing.Union[float, int]
 
 
 class Groups:

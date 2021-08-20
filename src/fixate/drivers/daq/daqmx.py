@@ -2,18 +2,18 @@ from collections import namedtuple
 from fixate.core.common import ExcThread
 from queue import Queue, Empty
 
+from ctypes import byref, c_char_p
+import numpy
+
 
 # Basic Functions
 from PyDAQmx import (
-    byref,
     DAQmxResetDevice,
     TaskHandle,
-    numpy,
     int32,
     uInt8,
     float64,
     uInt64,
-    c_char_p,
     uInt32,
 )
 
@@ -428,7 +428,7 @@ class ThreadError(Exception):
     pass
 
 
-class DaqMx(DAQ):
+class DaqMx:
     """
     Implements the digital input and output functions of the National Instruments DAQ
     usage:

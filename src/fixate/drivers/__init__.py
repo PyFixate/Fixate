@@ -1,5 +1,43 @@
-from inspect import isfunction
-from functools import wraps, partial
+try:
+    from typing import Protocol
+except ImportError:
+    # Protocol added in python 3.8
+    from typing_extensions import Protocol
+
+import pubsub
+
+
+class InstrumentNotFoundError(Exception):
+    pass
+
+
+class DriverProtocol(Protocol):
+    REGEX_ID: str
+
+    def get_identity(self) -> str:
+        """Query the instrument for it identity.
+
+        For visa instruments, this is generally the results of the idn? command.
+        For other drivers, it can be any meaningful id. Where possible it should
+        include a unique identifier like a serial number.
+        """
+        ...
+
+
+def log_instrument_open(instrument: DriverProtocol) -> None:
+    """"""
+    instrument_name = type(instrument).__name__
+    pubsub.pub.sendMessage(
+        "driver_open",
+        instr_type=instrument_name,
+        identity=instrument.get_identity(),
+    )
+
+
+#######################################################################################
+# Pretty sure that nothing below here is actually used...
+from inspect import isfunction  # noqa
+from functools import wraps, partial  # noqa
 
 
 def _ensure_connected(f):

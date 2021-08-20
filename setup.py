@@ -65,7 +65,11 @@ setup(
                       "pynput",
                       "ruamel.yaml",
                       "pyserial",
-                      "cmd2",       # required for fxconfig
+                      "cmd2>0.9.13",  # required for fxconfig
+                      "numpy",
+                      "PyDAQmx==1.3",
+                      # for typing.protocol
+                      "typing_extensions;python_version<'3.8'",
                       ],
     python_requires='~=3.4',
     dependency_links=[],

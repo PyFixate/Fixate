@@ -4,42 +4,29 @@ All available configuration is loaded into the module
 Drivers are hard coded into the config to prevent issues arising from auto discovery
 Must ensure driver imports are infallible to prevent program crash on start
 """
-import importlib
+import sys
+
 from fixate.config.helper import (
     load_dict_config,
-    load_json_config,
     load_yaml_config,
     get_plugin_data,
     get_plugins,
     get_config_dict,
     render_template,
 )
+import os.path
+import json
+import dataclasses
+from typing import Dict, List, Optional
+import enum
+import re
 
-# TODO review all these values to determine if they should exist in this module
-DRIVER_LIST = {
-    "DMM": {"dmm.fluke_8846a.Fluke8846A"},
-    "FUNC_GEN": {
-        "funcgen.rigol_dg1022.RigolDG1022",
-        "funcgen.keysight_33500b.Keysight33500B",
-    },
-    "DAQ": {"daq.daqmx.DaqMx"},
-    "LCR": {"lcr.agilent_u1732c.AgilentU1732C"},
-    "PROGRESSION": {"progression.Progression"},
-    "PPS": {"pps.bk_178x.BK178X", "pps.siglent_spd_3303X.SPD3303X"},
-    "DSO": {"dso.agilent_mso_x.MSO_X_3000"},
-    "FTDI": {"ftdi.FTDI2xx"},
-}
-CONFIG_LOADED = False
+LOCAL_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "local_config.json")
 
-# INSTRUMENTS gets populated when fixate.config.load_json_config is called.
-# load_json_config store config directly into the __dict__ of the config module
-INSTRUMENTS = {}
-DUT = None
+INSTRUMENTS = []
 RESOURCES = {}
-DRIVERS = {}
-ASYNC_TASKS = []
+
 DEBUG = False
-importer = None
 # Begin default "plugins"
 # Use plg_ prefix with dictionary of values to indicate to fixate to install this at startup
 # Default settings for csv reporting. Can be configured via yaml either removing or overriding with plg_csv
@@ -59,23 +46,115 @@ plg_csv = {
         "index_string={index}",
     ],
 }
-index = None
-# TODO Remove this and do this as part of the plugin initialisation routine
-# Import the drivers from the DRIVER_LIST
-for key, value in DRIVER_LIST.items():
-    for drv in value:
-        imp_path = ".".join(drv.split(".")[:-1])
-        cls = drv.split(".")[-1]
 
-        if DRIVERS.get(key, None) is None:
-            DRIVERS[key] = []
-        try:
-            DRIVERS[key].append(
-                (
-                    cls,
-                    getattr(importlib.import_module("fixate.drivers." + imp_path), cls),
-                )
+
+index = None
+
+
+class InstrumentType(enum.Enum):
+    SERIAL = "serial"
+    VISA = "visa"
+
+
+@dataclasses.dataclass()
+class InstrumentConfig:
+    id: str
+    address: str
+    instrument_type: InstrumentType
+    parameters: Dict[str, str]
+
+
+def load_local_config(local_config_path: str) -> List[InstrumentConfig]:
+    """read local_config.json and return the instrument config.
+
+    local_config.json should have this shape:
+    {
+        "INSTRUMENTS": {
+            "serial": {
+                "COM37": [
+                    "address: 0,checksum: 28,command: 49,model: 6823,serial_number: 3697210019,software_version: 29440,start: 170,",
+                    9600
+                ]
+            },
+            "visa": [
+                [
+                    "RIGOL TECHNOLOGIES,DG1022 ,DG1D144904270,,00.03.00.09.00.02.11\n",
+                    "USB0::0x09C4::0x0400::DG1D144904270::INSTR"
+                ],
+                [
+                    "FLUKE,8846A,3821015,08/02/10-11:53\r\n",
+                    "ASRL38::INSTR"
+                ],
+                [
+                    "AGILENT TECHNOLOGIES,MSO-X 3014A,MY52160892,02.41.2015102200",
+                    "USB0::0x0957::0x17A8::MY52160892::INSTR"
+                ]
+            ]
+        }
+    }
+    """
+    local_config_data = {}
+    if os.path.isfile(local_config_path):
+        with open(local_config_path, "r") as f:
+            local_config_data = json.load(f)
+    instruments = local_config_data.get("INSTRUMENTS", {})
+    serial_instruments = instruments.get(InstrumentType.SERIAL.value, {})
+    visa_instruments = instruments.get(InstrumentType.VISA.value, [])
+
+    instrument_configs = []
+    for serial_port, parameters in serial_instruments.items():
+        identity, baud_rate = parameters
+        instrument_configs.append(
+            InstrumentConfig(
+                id=identity,
+                address=serial_port,
+                instrument_type=InstrumentType.SERIAL,
+                parameters={"baud_rate": baud_rate},
             )
-        except Exception as e:
-            # print(repr(e))
-            pass
+        )
+
+    for identity, visa_address in visa_instruments:
+        instrument_configs.append(
+            InstrumentConfig(
+                id=identity,
+                address=visa_address,
+                instrument_type=InstrumentType.VISA,
+                parameters={},
+            )
+        )
+    return instrument_configs
+
+
+def load_config(config_files: Optional[List[str]] = None):
+    """
+    Call to initialise various config at startup.
+
+    By default will load the fixate.yml which mostly is used for logging options.
+    It also loads the local_config.json, which is used to configure instruments
+    which are connected to the test station.
+
+    config_files is a list of yaml files. Each will be loaded. Any values
+    passed in those files will override the default fixate.yml.
+    """
+    # Load python environment fixate config
+    env_config = os.path.join(sys.prefix, "fixate.yml")
+    if os.path.exists(env_config):
+        load_yaml_config(env_config)
+
+    # Load a list of config files
+    if config_files is not None:
+        for config_file in config_files:
+            load_yaml_config(config_file)
+
+    INSTRUMENTS.extend(load_local_config(LOCAL_CONFIG_PATH))
+
+
+def find_instrument_by_id(regex_id) -> Optional[InstrumentConfig]:
+    """Search for instruments whose id matches the regex passed in.
+
+    This should probably live over in drivers module?
+    """
+    for instrument_config in INSTRUMENTS:
+        if re.search(regex_id, instrument_config.id):
+            return instrument_config
+    return None
