@@ -22,7 +22,7 @@ output_ch2
 output_ch3
 output_ch4
 """
-import visa
+import pyvisa
 import fixate.drivers
 from fixate.config import find_instrument_by_id
 
@@ -42,7 +42,7 @@ def open() -> FuncGen:
         instrument = find_instrument_by_id(driver_class.REGEX_ID)
         if instrument is not None:
             # we've found a connected instrument so open and return it
-            rm = visa.ResourceManager()
+            rm = pyvisa.ResourceManager()
             # open_resource could raise visa.VisaIOError?
             driver = driver_class(rm.open_resource(instrument.address))
             fixate.drivers.log_instrument_open(driver)

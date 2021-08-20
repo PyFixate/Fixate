@@ -1,5 +1,5 @@
 import struct
-import visa
+import pyvisa
 from fixate.core.exceptions import InstrumentError
 from fixate.drivers.dso.helper import DSO
 import time
@@ -779,18 +779,18 @@ class MSO_X_3000(DSO):
     def _trigger_event(self, timeout):
         try:
             self.instrument.wait_on_event(
-                visa.constants.EventType.service_request, timeout * 1000
+                pyvisa.constants.EventType.service_request, timeout * 1000
             )
             self._triggers_read += 1
-        except visa.VisaIOError:
+        except pyvisa.VisaIOError:
             self.instrument.clear()
             raise
         finally:
             self.instrument.disable_event(
-                visa.constants.EventType.service_request, visa.constants.VI_QUEUE
+                pyvisa.constants.EventType.service_request, pyvisa.constants.VI_QUEUE
             )
             self.instrument.discard_events(
-                visa.constants.EventType.service_request, visa.constants.VI_QUEUE
+                pyvisa.constants.EventType.service_request, pyvisa.constants.VI_QUEUE
             )
 
     def _trigger_poll(self, timeout):
