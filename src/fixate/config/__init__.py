@@ -146,7 +146,7 @@ def load_config(config_files: Optional[List[str]] = None):
         for config_file in config_files:
             load_yaml_config(config_file)
 
-    INSTRUMENTS.extend(load_local_config(LOCAL_CONFIG_PATH))
+    INSTRUMENTS[:] = list(load_local_config(LOCAL_CONFIG_PATH))
 
 
 def find_instrument_by_id(regex_id) -> Optional[InstrumentConfig]:
