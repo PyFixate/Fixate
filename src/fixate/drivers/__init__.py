@@ -4,7 +4,7 @@ except ImportError:
     # Protocol added in python 3.8
     from typing_extensions import Protocol
 
-import pubsub
+import pubsub.pub
 
 
 class InstrumentNotFoundError(Exception):
