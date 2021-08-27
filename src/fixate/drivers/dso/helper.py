@@ -1,27 +1,11 @@
 import inspect
 from abc import ABCMeta, abstractmethod
 from functools import update_wrapper
-from fixate.core.discover import open_instrument
 from fixate.core.exceptions import InstrumentFeatureUnavailable
 
-try:
-    import typing
+import typing
 
-    number = typing.Union[float, int]
-except ImportError:
-    number = float
-
-
-def open():
-    """Open is the public api for the dmm driver for discovering and opening a connection
-    to a valid Digital Multimeter.
-    At the moment opens the first dmm connected
-    :param restrictions:
-    A dictionary containing the technical specifications of the required equipment
-    :return:
-    A instantiated class connected to a valid dmm
-    """
-    return open_instrument("DSO")
+number = typing.Union[float, int]
 
 
 class CallableNoArgs:

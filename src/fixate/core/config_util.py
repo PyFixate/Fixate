@@ -1,6 +1,6 @@
 import cmd2
 import argparse
-import visa
+import pyvisa
 import json
 import copy
 from shutil import copy2
@@ -120,7 +120,7 @@ class FxConfigCmd(cmd2.Cmd):
             )
 
     def _do_add_usb(self, args):
-        rm = visa.ResourceManager()
+        rm = pyvisa.ResourceManager()
         resource_list = [x for x in rm.list_resources() if x.startswith("USB")]
         if len(resource_list) > 0:
             for i, resource_name in enumerate(resource_list):
@@ -163,7 +163,7 @@ class FxConfigCmd(cmd2.Cmd):
 
         elif args.type == "visa":
             self.poutput("Resources detected by VISA")
-            for resource_name in visa.ResourceManager().list_resources():
+            for resource_name in pyvisa.ResourceManager().list_resources():
                 self.poutput(resource_name)
         else:
             raise Exception("we shouldn't have gotten here")
@@ -177,7 +177,7 @@ class FxConfigCmd(cmd2.Cmd):
             self._test_config_dict(self.updated_config_dict)
 
         elif args.type == "visa":
-            for visa_resource_name in visa.ResourceManager().list_resources():
+            for visa_resource_name in pyvisa.ResourceManager().list_resources():
                 try:
                     new_idn = visa_id_query(visa_resource_name)
                 except (VisaIOError, FxConfigError):
@@ -354,7 +354,7 @@ def visa_id_query(visa_resource_name):
     :param visa_resource_name:
     :return:
     """
-    instr = visa.ResourceManager().open_resource(visa_resource_name, query_delay=0.1)
+    instr = pyvisa.ResourceManager().open_resource(visa_resource_name, query_delay=0.1)
     # 1 s timeout is overly conservative. But if we call clear() that can take a while for some instruments
     instr.timeout = 1000
     # instr.clear()
