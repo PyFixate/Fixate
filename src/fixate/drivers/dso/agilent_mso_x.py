@@ -78,6 +78,7 @@ class MSO_X_3000(DSO):
             ("trigger.coupling.ac", self.write, "TRIG:COUP AC"),
             ("trigger.coupling.dc", self.write, "TRIG:COUP DC"),
             ("trigger.coupling.lf_reject", self.write, "TRIG:COUP LFR"),
+            ("trigger.hf_reject", self.write, "TRIG:HFR {value}"),
             ("acquire.normal", self.write, "ACQ:TYPE NORM"),
             ("acquire.peak_detect", self.write, "ACQ:TYPE PEAK"),
             ("acquire.averaging", self.write, "ACQ:TYPE AVER;:ACQ:COUN {value}"),
@@ -122,6 +123,7 @@ class MSO_X_3000(DSO):
             ("measure.counter.ch1", self.query_after_acquire, "MEAS:COUN? CHAN1"),
             ("measure.duty.ch1", self.query_after_acquire, "MEAS:DUTY? CHAN1"),
             ("measure.fall_time.ch1", self.query_after_acquire, "MEAS:FALL? CHAN1"),
+            ("measure.rise_time.ch1", self.query_after_acquire, "MEAS:RIS? CHAN1"),
             ("measure.frequency.ch1", self.query_after_acquire, "MEAS:FREQ? CHAN1"),
             (
                 "measure.cnt_edge_rising.ch1",
@@ -157,6 +159,7 @@ class MSO_X_3000(DSO):
                 "MEAS:VAV? DISP,CHAN1",
             ),
             ("measure.vbase.ch1", self.query_after_acquire, "MEAS:VBAS? CHAN1"),
+            ("measure.vtop.ch1", self.query_after_acquire, "MEAS:VTOP? CHAN1"),
             ("measure.vmax.ch1", self.query_after_acquire, "MEAS:VMAX? CHAN1"),
             ("measure.vmin.ch1", self.query_after_acquire, "MEAS:VMIN? CHAN1"),
             ("measure.vpp.ch1", self.query_after_acquire, "MEAS:VPP? CHAN1"),
@@ -185,6 +188,7 @@ class MSO_X_3000(DSO):
             # Ch2 Measure
             ("measure.counter.ch2", self.query_after_acquire, "MEAS:COUN? CHAN2"),
             ("measure.duty.ch2", self.query_after_acquire, "MEAS:DUTY? CHAN2"),
+            ("measure.rise_time.ch2", self.query_after_acquire, "MEAS:RIS? CHAN2"),
             ("measure.fall_time.ch2", self.query_after_acquire, "MEAS:FALL? CHAN2"),
             ("measure.frequency.ch2", self.query_after_acquire, "MEAS:FREQ? CHAN2"),
             (
@@ -221,6 +225,7 @@ class MSO_X_3000(DSO):
                 "MEAS:VAV? DISP,CHAN2",
             ),
             ("measure.vbase.ch2", self.query_after_acquire, "MEAS:VBAS? CHAN2"),
+            ("measure.vtop.ch2", self.query_after_acquire, "MEAS:VTOP? CHAN2"),
             ("measure.vmax.ch2", self.query_after_acquire, "MEAS:VMAX? CHAN2"),
             ("measure.vmin.ch2", self.query_after_acquire, "MEAS:VMIN? CHAN2"),
             ("measure.vpp.ch2", self.query_after_acquire, "MEAS:VPP? CHAN2"),
@@ -250,6 +255,7 @@ class MSO_X_3000(DSO):
             ("measure.counter.ch3", self.query_after_acquire, "MEAS:COUN? CHAN3"),
             ("measure.duty.ch3", self.query_after_acquire, "MEAS:DUTY? CHAN3"),
             ("measure.fall_time.ch3", self.query_after_acquire, "MEAS:FALL? CHAN3"),
+            ("measure.rise_time.ch3", self.query_after_acquire, "MEAS:RIS? CHAN3"),
             ("measure.frequency.ch3", self.query_after_acquire, "MEAS:FREQ? CHAN3"),
             (
                 "measure.cnt_edge_rising.ch3",
@@ -285,6 +291,7 @@ class MSO_X_3000(DSO):
                 "MEAS:VAV? DISP,CHAN3",
             ),
             ("measure.vbase.ch3", self.query_after_acquire, "MEAS:VBAS? CHAN3"),
+            ("measure.vtop.ch3", self.query_after_acquire, "MEAS:VTOP? CHAN3"),
             ("measure.vmax.ch3", self.query_after_acquire, "MEAS:VMAX? CHAN3"),
             ("measure.vmin.ch3", self.query_after_acquire, "MEAS:VMIN? CHAN3"),
             ("measure.vpp.ch3", self.query_after_acquire, "MEAS:VPP? CHAN3"),
@@ -314,6 +321,7 @@ class MSO_X_3000(DSO):
             ("measure.counter.ch4", self.query_after_acquire, "MEAS:COUN? CHAN4"),
             ("measure.duty.ch4", self.query_after_acquire, "MEAS:DUTY? CHAN4"),
             ("measure.fall_time.ch4", self.query_after_acquire, "MEAS:FALL? CHAN4"),
+            ("measure.rise_time.ch4", self.query_after_acquire, "MEAS:RIS? CHAN4"),
             ("measure.frequency.ch4", self.query_after_acquire, "MEAS:FREQ? CHAN4"),
             (
                 "measure.cnt_edge_rising.ch4",
@@ -349,6 +357,7 @@ class MSO_X_3000(DSO):
                 "MEAS:VAV? DISP,CHAN4",
             ),
             ("measure.vbase.ch4", self.query_after_acquire, "MEAS:VBAS? CHAN4"),
+            ("measure.vtop.ch4", self.query_after_acquire, "MEAS:VTOP? CHAN4"),
             ("measure.vmax.ch4", self.query_after_acquire, "MEAS:VMAX? CHAN4"),
             ("measure.vmin.ch4", self.query_after_acquire, "MEAS:VMIN? CHAN4"),
             ("measure.vpp.ch4", self.query_after_acquire, "MEAS:VPP? CHAN4"),
@@ -377,6 +386,7 @@ class MSO_X_3000(DSO):
             # Function Measure
             ("measure.duty.function", self.query_after_acquire, "MEAS:DUTY? FUNC"),
             ("measure.fall_time.function", self.query_after_acquire, "MEAS:FALL? FUNC"),
+            ("measure.rise_time.function", self.query_after_acquire, "MEAS:RIS? FUNC"),
             ("measure.frequency.function", self.query_after_acquire, "MEAS:FREQ? FUNC"),
             (
                 "measure.cnt_edge_rising.function",
@@ -420,6 +430,7 @@ class MSO_X_3000(DSO):
                 "MEAS:VAV? DISP,FUNC",
             ),
             ("measure.vbase.function", self.query_after_acquire, "MEAS:VBAS? FUNC"),
+            ("measure.vtop.function", self.query_after_acquire, "MEAS:VTOP? FUNC"),
             ("measure.vmax.function", self.query_after_acquire, "MEAS:VMAX? FUNC"),
             ("measure.vmin.function", self.query_after_acquire, "MEAS:VMIN? FUNC"),
             ("measure.vpp.function", self.query_after_acquire, "MEAS:VPP? FUNC"),
@@ -448,6 +459,7 @@ class MSO_X_3000(DSO):
             # MATH,Measure
             ("measure.duty.math", self.query_after_acquire, "MEAS:DUTY? MATH"),
             ("measure.fall_time.math", self.query_after_acquire, "MEAS:FALL? MATH"),
+            ("measure.rise_time.math", self.query_after_acquire, "MEAS:RIS? MATH"),
             ("measure.frequency.math", self.query_after_acquire, "MEAS:FREQ? MATH"),
             (
                 "measure.cnt_edge_rising.math",
@@ -483,6 +495,7 @@ class MSO_X_3000(DSO):
                 "MEAS:VAV? DISP,MATH",
             ),
             ("measure.vbase.math", self.query_after_acquire, "MEAS:VBAS? MATH"),
+            ("measure.vtop.math", self.query_after_acquire, "MEAS:VTOP? MATH"),
             ("measure.vmax.math", self.query_after_acquire, "MEAS:VMAX? MATH"),
             ("measure.vmin.math", self.query_after_acquire, "MEAS:VMIN? MATH"),
             ("measure.vpp.math", self.query_after_acquire, "MEAS:VPP? MATH"),
