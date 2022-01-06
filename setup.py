@@ -71,7 +71,7 @@ setup(
                       # for typing.protocol
                       "typing_extensions;python_version<'3.8'",
                       ],
-    python_requires='~=3.4',
+    python_requires='~=3.7',
     dependency_links=[],
     include_package_data=True,
     zip_safe=False,
