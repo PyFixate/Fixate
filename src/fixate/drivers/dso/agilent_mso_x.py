@@ -6,7 +6,7 @@ import time
 
 
 class MSO_X_3000(DSO):
-    REGEX_ID = "KEYSIGHT TECHNOLOGIES,[DM]SO-X|AGILENT TECHNOLOGIES,[DM]SO-X"
+    REGEX_ID = "(KEYSIGHT|AGILENT) TECHNOLOGIES,[DM]SO-?X"
     INSTR_TYPE = "VISA"
     retrys_on_timeout = 1
 
