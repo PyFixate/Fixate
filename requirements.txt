@@ -1,8 +1,0 @@
-pyvisa
-pypubsub
-pyqt5
-pynput
-ruamel.yaml
-pyserial
-cmd2>0.9.13
-PyDAQmx==1.3
