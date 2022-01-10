@@ -2,6 +2,24 @@
 Release Notes
 ==================================
 *************
+Version 0.5.5
+*************
+Release Date xx/xx/xxxx
+
+New Features
+############
+- Add some extra measurement fuctions to the scope driver.
+- Dependencies for use of the GUI are now declared as an extra so it is
+  possible to install using "pip install fixate[gui]"
+
+Improvements
+############
+- Switch to github actions for CI.
+- Fix broken tests & update the build system.
+- Change how driver imports work.
+- Remove some unused functions from fixate.core.control.
+
+*************
 Version 0.5.4
 *************
 Release Date 20/08/2020
