@@ -1,4 +1,4 @@
-"""
+r"""
 NI IO Trace can be used to troubleshoot & debug the setup. It should be installed
 when the NI-DAQmx driver is installed.
 
@@ -305,9 +305,6 @@ class BufferedWrite(DaqTask):
 
 
 class TwoEdgeSeparation(DaqTask):
-    """
-    """
-
     _data = float64()
     _trigger_thread = None
 
