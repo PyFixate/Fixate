@@ -1,19 +1,36 @@
+r"""
+NI IO Trace can be used to troubleshoot & debug the setup. It should be installed
+when the NI-DAQmx driver is installed.
+
+PyDAQmx parses the NIDAQmx.h header to build ctypes wrappers for all function,
+constants, etc. It also wraps the functions which return errors codes to raise
+exceptions (and warnings) based on the return value.
+
+https://www.ni.com/en-au/support/downloads/drivers/download.ni-daqmx.html#409845
+
+API Reference manual:
+https://zone.ni.com/reference/en-XX/help/370471AM-01/
+
+C:\Program Files (x86)\National Instruments\NI-DAQ\DAQmx ANSI C Dev\include\NIDAQmx.h
+C:\Program Files\National Instruments\NI-DAQ\DAQmx ANSI C Dev\include\NIDAQmx.h
+
+"""
 from collections import namedtuple
 from fixate.core.common import ExcThread
 from queue import Queue, Empty
 
+from ctypes import byref, c_char_p
+import numpy
+
 
 # Basic Functions
 from PyDAQmx import (
-    byref,
     DAQmxResetDevice,
     TaskHandle,
-    numpy,
     int32,
     uInt8,
     float64,
     uInt64,
-    c_char_p,
     uInt32,
 )
 
@@ -61,7 +78,6 @@ from PyDAQmx import (
 )
 
 from fixate.core.exceptions import InstrumentError, ParameterError
-from fixate.drivers.daq.helper import DAQ
 
 IORange = namedtuple("IORange", ["port", "range_start", "range_end"])
 IORange.__new__.__defaults__ = (0, None, None)
@@ -289,13 +305,6 @@ class BufferedWrite(DaqTask):
 
 
 class TwoEdgeSeparation(DaqTask):
-    """
-    DAQmxGetCITwoEdgeSepFirstTerm and DAQmxGetCITwoEdgeSepSecondTerm currently have a bug where if they are called
-    there is no way to create a new task unless the process is destroyed. Therefore there is no error checking on the
-    encoding of the terminal for the source and destination terminal. A validate terminals parameter has been added
-    but it should only be used once and as a debugging tool as it will prevent any future tasks being created
-    """
-
     _data = float64()
     _trigger_thread = None
 
@@ -309,7 +318,6 @@ class TwoEdgeSeparation(DaqTask):
         second_edge_type,
         source_terminal,
         destination_terminal,
-        validate_terminals=False,
     ):
         self.device_name = device_name
         self.counter_chan = counter_chan
@@ -319,7 +327,6 @@ class TwoEdgeSeparation(DaqTask):
         self.second_edge_type = second_edge_type
         self.source_terminal = source_terminal
         self.destination_terminal = destination_terminal
-        self.validate_terminals = validate_terminals
         self._error_queue = Queue()
         self._thread_timeout = 10
 
@@ -345,22 +352,6 @@ class TwoEdgeSeparation(DaqTask):
                     "{}/{}".format(self.device_name, self.counter_chan).encode(),
                     tmp_data,
                 )
-                if self.validate_terminals:
-                    tmp_data = c_char_p("".encode())
-                    DAQmxGetCITwoEdgeSepFirstTerm(
-                        self.task,
-                        "{}/{}".format(self.device_name, self.counter_chan).encode(),
-                        tmp_data,
-                        uInt32(16),
-                    )
-                    if self.destination_terminal not in tmp_data.value.decode("utf-8"):
-                        raise InstrumentError(
-                            "Destination terminal is set to {}, should be /{}/{}".format(
-                                tmp_data.value.decode("utf-8"),
-                                self.device_name,
-                                self.destination_terminal,
-                            )
-                        )
 
             if self.destination_terminal:
                 tmp_data = c_char_p(self.destination_terminal.encode())
@@ -369,22 +360,6 @@ class TwoEdgeSeparation(DaqTask):
                     "{}/{}".format(self.device_name, self.counter_chan).encode(),
                     tmp_data,
                 )
-                if self.validate_terminals:
-                    tmp_data = c_char_p("".encode())
-                    DAQmxGetCITwoEdgeSepSecondTerm(
-                        self.task,
-                        "{}/{}".format(self.device_name, self.counter_chan).encode(),
-                        tmp_data,
-                        uInt32(16),
-                    )
-                    if self.destination_terminal not in tmp_data.value.decode("utf-8"):
-                        raise InstrumentError(
-                            "Destination terminal is set to {}, should be /{}/{}".format(
-                                tmp_data.value.decode("utf-8"),
-                                self.device_name,
-                                self.destination_terminal,
-                            )
-                        )
             self.task_state = "init"
 
     def read(self):
@@ -398,6 +373,8 @@ class TwoEdgeSeparation(DaqTask):
             pass
         else:
             raise err
+        # TODO: consider making this return self._data.value. We should return a python
+        # float object, not a ctypes.c_double
         return self._data
 
     def _read(self):
@@ -428,7 +405,7 @@ class ThreadError(Exception):
     pass
 
 
-class DaqMx(DAQ):
+class DaqMx:
     """
     Implements the digital input and output functions of the National Instruments DAQ
     usage:

@@ -1,9 +1,9 @@
 import unittest
-from fixate.core.discover import open_instrument
+import fixate.drivers.funcgen
 
 
 def get_funcgen():
-    return open_instrument("FUNC_GEN")
+    return fixate.drivers.funcgen.open()
 
 
 class BaseSetup:

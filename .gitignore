@@ -20,3 +20,5 @@ Pipfile.lock
 venv/
 *.log.*
 *.log
+venv
+venv37

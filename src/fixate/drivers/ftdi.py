@@ -4,20 +4,12 @@ import time
 import os
 from fixate.core.common import bits
 from fixate.core.exceptions import InstrumentNotConnected
-import fixate.config
-import fixate.core.discover
 
 
 def open(ftdi_description=""):
-    """Open is the public api for the bit bang driver for discovering and opening a connection
-    to a valid bit bang device
-    :param restrictions:
-    A dictionary containing the extents of the required equipment
-    :return:
-    A instantiated class connected to a valid bit_bang class
-    """
-    devices = fixate.core.discover.discover_ftdi()
-    for dev in devices:
+    create_device_info_list()
+
+    for dev in get_device_info_list():
         if ftdi_description.encode() == dev.Description or ftdi_description == "":
             return FTDI2xx(dev.Description)
     raise InstrumentNotConnected(

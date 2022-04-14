@@ -1,25 +1,10 @@
 from abc import ABCMeta, abstractmethod
 from fixate.core.exceptions import InstrumentFeatureUnavailable
-from fixate.core.discover import open_instrument
 import inspect
 
-try:
-    import typing
+import typing
 
-    number = typing.Union[float, int]
-except ImportError:
-    number = float
-
-
-def open():
-    """Open is the public api for the dmm driver for discovering and opening a connection
-    to a valid Digital Multimeter
-    :param restrictions:
-    A dictionary containing the extents of the required equipment
-    :return:
-    A instantiated class connected to a valid funcgen
-    """
-    return open_instrument("FUNC_GEN")
+number = typing.Union[float, int]
 
 
 class Waveform:
@@ -154,34 +139,6 @@ class Sync:
         self._call(output)
 
 
-# class TriggerSource:
-#     def immediate(self):
-#         raise InstrumentFeatureUnavailable(
-#             "{} not available on this device".format(inspect.currentframe().f_code.co_name))
-#
-#     def external(self):
-#         raise InstrumentFeatureUnavailable(
-#             "{} not available on this device".format(inspect.currentframe().f_code.co_name))
-#
-#     def manual(self):
-#         raise InstrumentFeatureUnavailable(
-#             "{} not available on this device".format(inspect.currentframe().f_code.co_name))
-#
-#     def timer(self):
-#         raise InstrumentFeatureUnavailable(
-#             "{} not available on this device".format(inspect.currentframe().f_code.co_name))
-
-
-# class TriggerEdge:
-#     def rising(self):
-#         raise InstrumentFeatureUnavailable(
-#             "{} not available on this device".format(inspect.currentframe().f_code.co_name))
-#
-#     def falling(self):
-#         raise InstrumentFeatureUnavailable(
-#             "{} not available on this device".format(inspect.currentframe().f_code.co_name))
-
-
 class TriggerOut:
     def __call__(self):
         self._call()
@@ -234,14 +191,6 @@ class Trigger:
                 inspect.currentframe().f_code.co_name
             )
         )
-
-    # def external(self):  # Turn into class
-    #     raise InstrumentFeatureUnavailable(
-    #         "{} not available on this device".format(inspect.currentframe().f_code.co_name))
-    #
-    # def manual(self):  # Turn into class
-    #     raise InstrumentFeatureUnavailable(
-    #         "{} not available on this device".format(inspect.currentframe().f_code.co_name))
 
     def timer(self, seconds: number):
         raise InstrumentFeatureUnavailable(
@@ -416,10 +365,6 @@ class ModulateFM:
                 inspect.currentframe().f_code.co_name
             )
         )
-
-        # def frequency(self, value: number):
-        #     raise InstrumentFeatureUnavailable(
-        #         "{} not available on this device".format(inspect.currentframe().f_code.co_name))
 
 
 class ModulatePM:
@@ -640,10 +585,6 @@ class ChannelBase:
                 inspect.currentframe().f_code.co_name
             )
         )
-
-        # def output(self, value: bool):
-        #     raise InstrumentFeatureUnavailable(
-        #         "{} not available on this device".format(inspect.currentframe().f_code.co_name))
 
 
 class Load:

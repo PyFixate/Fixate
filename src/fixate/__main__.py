@@ -8,11 +8,11 @@ from importlib.machinery import SourceFileLoader
 from zipimport import zipimporter
 from pubsub import pub
 import fixate.config
-from fixate.config import RESOURCES
 from fixate.core.exceptions import SequenceAbort
 from fixate.core.ui import user_serial, user_ok
 from fixate.reporting import register_csv, unregister_csv
 from fixate.ui_cmdline import register_cmd_line, unregister_cmd_line
+import fixate.sequencer
 
 parser = ArgumentParser(
     description="""
@@ -163,7 +163,8 @@ class FixateSupervisor:
         # General setup
         self.test_script_path = test_script_path
         self.args = args
-        self.sequencer = RESOURCES["SEQUENCER"]
+        self.sequencer = fixate.sequencer.Sequencer()
+        fixate.config.RESOURCES["SEQUENCER"] = self.sequencer
 
         # Environment specific setup
         # TODO remove this to plugin architecture
@@ -371,23 +372,10 @@ def run_main_program(test_script_path=None):
         root_logger.addHandler(handler)
         root_logger.setLevel(logging.DEBUG)
 
-    load_config(args.config)
+    fixate.config.load_config(args.config)
     fixate.config.load_dict_config({"log_file": args.log_file})
     supervisor = FixateSupervisor(test_script_path, args)
     exit(supervisor.run_fixate())
-
-
-def load_config(config: list = None):
-    # Load python environment fixate config
-    env_config = os.path.join(sys.prefix, "fixate.yml")
-    if os.path.exists(env_config):
-        fixate.config.load_yaml_config(env_config)
-    # TODO Load script config
-
-    # Load a list of config files
-    if config is not None:
-        for conf in config:
-            fixate.config.load_yaml_config(conf)
 
 
 # Setup configuration

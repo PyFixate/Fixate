@@ -1,18 +1,3 @@
-from fixate.core.discover import open_instrument
-
-
-def open():
-    """Open is the public api for the dmm driver for discovering and opening a connection
-    to a valid Digital Multimeter.
-    At the moment opens the first dmm connected
-    :param restrictions:
-    A dictionary containing the technical specifications of the required equipment
-    :return:
-    A instantiated class connected to a valid dmm
-    """
-    return open_instrument("DMM")
-
-
 class DMM:
     REGEX_ID = "DMM"
     is_connected = False
