@@ -346,19 +346,17 @@ class TwoEdgeSeparation(DaqTask):
                 b"",
             )
             if self.source_terminal:
-                tmp_data = c_char_p(self.source_terminal.encode())
                 DAQmxSetCITwoEdgeSepFirstTerm(
                     self.task,
                     "{}/{}".format(self.device_name, self.counter_chan).encode(),
-                    tmp_data,
+                    self.source_terminal.encode(),
                 )
 
             if self.destination_terminal:
-                tmp_data = c_char_p(self.destination_terminal.encode())
                 DAQmxSetCITwoEdgeSepSecondTerm(
                     self.task,
                     "{}/{}".format(self.device_name, self.counter_chan).encode(),
-                    tmp_data,
+                    self.destination_terminal.encode(),
                 )
             self.task_state = "init"
 
