@@ -4,11 +4,11 @@ Release Notes
 *************
 Version 0.5.5
 *************
-Release Date xx/xx/xxxx
+Release Date 18/05/2022
 
 New Features
 ############
-- Add some extra measurement fuctions to the scope driver.
+- Add some extra measurement functions to the scope driver.
 - Dependencies for use of the GUI are now declared as an extra so it is
   possible to install using "pip install fixate[gui]"
 
