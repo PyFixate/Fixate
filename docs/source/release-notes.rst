@@ -2,6 +2,13 @@
 Release Notes
 ==================================
 *************
+Version 0.5.6
+*************
+Release Date 18/05/2022
+
+Minor packaging changes only
+
+*************
 Version 0.5.5
 *************
 Release Date 18/05/2022
