@@ -21,17 +21,23 @@ UNITS = {
     "%",
     "Hertz",
     "Volts",
+    "Amps",
+    "A",
     "Percent",
     "PC",
-    "deg",
     "Deg",
     "C",
     "H",
+    "F",
+    "Ohm",
+    "Ohms",
 }
 UNIT_SCALE = {
-    "m": 10**-3,
-    "u": 10**-6,
+    "p": 10**-12,
     "n": 10**-9,
+    "u": 10**-6,
+    "m": 10**-3,
+    "": 1,
     "k": 10**3,
     "M": 10**6,
     "G": 10**9,
@@ -134,7 +140,7 @@ def mode_builder(search_dict, repl_kwargs, *args, **kwargs):
     return ret_string
 
 
-def unit_convert(value, min_primary_number, max_primary_number, as_int=False):
+def unit_convert(value:int or float, min_primary_number:int or float, max_primary_number=None, as_int=False) -> str:
     """
     :param value:
     An int or float to convert into a scaled unit
@@ -151,21 +157,36 @@ def unit_convert(value, min_primary_number, max_primary_number, as_int=False):
     >>>unit_convert(100e6, 1, 999, as_int=True)
     '100M'
     """
+    # Previous implementation had lots of holes:
+    #   i.e. unit_convert(99.9e6, 0.1, 99) would fall through
+    # NOTE: since we are using eng.notation - hardcode range as 1e3
+    max_primary_number = min_primary_number*1e3
+    # TODO: should we enforce min_primary_number in (1e-3, 1), 
+    # otherwise can get some odd display issues
+
     for unit, scale in UNIT_SCALE.items():
-        if min_primary_number * scale <= value <= max_primary_number * scale:
+        if min_primary_number * scale <= value < max_primary_number * scale:
             new_val = value / scale
             if as_int:
                 new_val = int(new_val)
-            return "{}{}".format(new_val, unit)
+            return f"{new_val:.3g}{unit}"
+
+    # Should only get here now if there doesn't exist appropriate UNIT_SCALE entry?
+    # Best to return the entry rather than throw exception?
+    return f"{value}"
 
 
-def unit_scale(str_value, accepted_units=UNITS):
+
+def unit_scale(str_value, accepted_units=UNITS) -> int or float:
     """
     :param str_value:
         A Value to search for a number and the acceptable units to then scale the original number
     :param accepted_units:
         Restricts the units to this sequence or if not parsed will use defaults specified in the UNITS set
     :return:
+        Value of input with embedded unit converted to respectivescaling
+    :raises:
+        InvalidScalarQuantityError - unable to process input string
     """
     # If type is a number, no scaling required
     if type(str_value) in [int, float]:
@@ -182,12 +203,12 @@ def unit_scale(str_value, accepted_units=UNITS):
             )
         )
     # Match Decimal and Integer Values
-    p = re.compile("\d+(\.\d+)?")
+    p = re.compile("-?\d+(\.\d+)?")
     num_match = p.search(str_value)
     if num_match:
         num = float(num_match.group())
 
-        comp = "^ ?({unit_scale})(?=($|{units}))".format(
+        comp = "^ *({unit_scale}) ?(?i)(?=($|{units}))".format(
             units="|".join(accepted_units), unit_scale="|".join(UNIT_SCALE.keys())
         )
         p = re.compile(comp)
