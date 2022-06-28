@@ -21,3 +21,4 @@ venv/
 *.log
 venv
 venv37
+.venv

@@ -1,5 +1,5 @@
 from threading import Lock
-from visa import constants
+from pyvisa import constants
 from fixate.core.exceptions import InstrumentError, ParameterError
 from fixate.core.common import mode_builder, deprecated
 from fixate.drivers.dmm.helper import DMM
