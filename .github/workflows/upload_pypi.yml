@@ -1,4 +1,4 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# This workflow will build the package and publish to TestPyPi
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
 name: Build and publish to PyPi
@@ -11,12 +11,12 @@ on:
 
 jobs:
   build-n-publish:
-    name: Build and publish to TestPyPi
+    name: Build and Publish to TestPyPi
     runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Setyp Python
+    - name: Setup Python
       uses: actions/setup-python@v2
       with:
         python-version: "3.8"
@@ -24,14 +24,17 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install build --user
-    - name: Testing
-      run: echo 'Hello'
-    # - name: Build the package
-    #   run: |
-    #     python -m build --sdist --wheel --outdir dist/
-    # - name: Publish distribution to Test PyPI
-    #   uses: pypa/gh-action-pypi-publish@release/v1
+    - name: Build the package
+      run: |
+        python -m build --sdist --wheel --outdir dist/ .
+    - name: Publish distribution to Test PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        repository_url: https://test.pypi.org/legacy/
+    # - name: Publish distribution to PyPI
+    #   if: startsWith(github.ref, 'refs/tags')
+    #   uses: pypa/gh-action-pypi-publish@master
     #   with:
-    #     user: __token__
-    #     password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-    #     repository_url: https://test.pypi.org/legacy/
+    #     password: ${{ secrets.PYPI_API_TOKEN }}
