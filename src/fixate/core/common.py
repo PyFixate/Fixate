@@ -1,8 +1,6 @@
 import re
 import sys
 import threading
-import inspect
-import ctypes
 import logging
 import warnings
 from functools import wraps
@@ -162,10 +160,10 @@ def unit_convert(value:int or float, min_primary_number:int or float, max_primar
     # NOTE: since we are using eng.notation - hardcode range as 1e3
     max_primary_number = min_primary_number*1e3
     # TODO: should we enforce min_primary_number in (1e-3, 1), 
-    # otherwise can get some odd display issues
+    #   otherwise can get some odd display issues
 
     for unit, scale in UNIT_SCALE.items():
-        if min_primary_number * scale <= value < max_primary_number * scale:
+        if min_primary_number * scale <= abs(value) < max_primary_number * scale:
             new_val = value / scale
             if as_int:
                 new_val = int(new_val)
