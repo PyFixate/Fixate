@@ -61,6 +61,18 @@ class TestUnitScale(unittest.TestCase):
     def test_negative_no_units(self):
         self.assertAlmostEqual(unit_scale("-10m", UNITS), -10e-3)
 
+    def test_space_before_units(self):
+        self.assertAlmostEqual(unit_scale("-10 mHz", UNITS), -10e-3)
+
+    def test_multiple_spaces_before_units(self):
+        self.assertAlmostEqual(unit_scale("-10  mV", UNITS), -10e-3)
+
+    def test_space_between_units(self):
+        self.assertAlmostEqual(unit_scale("-10 k V", UNITS), -10e3)
+
+    def test_leading_spaces(self):
+        self.assertAlmostEqual(unit_scale(" -10 mV ", UNITS), -10e-3)
+
     def test_number_invalid_suffix(self):
         with self.assertRaises(InvalidScalarQuantityError):
             self.assertEqual(unit_scale("10 abcd", ["V"]), 10e0)

@@ -170,7 +170,7 @@ def unit_convert(value:int or float, min_primary_number:int or float, max_primar
             return f"{new_val:.3g}{unit}"
 
     # Should only get here now if there doesn't exist appropriate UNIT_SCALE entry?
-    # Best to return the entry rather than throw exception?
+    # Best to return the entry rather than throw exception or create warning?
     return f"{value}"
 
 
