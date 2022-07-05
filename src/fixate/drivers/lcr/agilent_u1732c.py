@@ -3,7 +3,7 @@ from math import log10, floor
 import time
 from contextlib import contextmanager
 
-from visa import VisaIOError
+from pyvisa import VisaIOError
 from pyvisa.errors import VI_ERROR_TMO
 
 from fixate.core.exceptions import InstrumentError, ParameterError, InstrumentTimeOut
