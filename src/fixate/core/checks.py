@@ -22,14 +22,14 @@ class CheckClass:
         self.__dict__.update(**kwargs)
 
 
-def _message_parse(target, **kwargs):
+def _message_parse(target:callable, **kwargs):
     chk = CheckClass(**kwargs)
     chk.target = target
     result = target(chk)
     return fixate.global_sequencer.check(chk, result)
 
 
-def _passes(chk):
+def _passes(chk:CheckClass):
     return True
 
 
@@ -37,7 +37,7 @@ def chk_passes(description=""):
     return _message_parse(target=_passes, description=description)
 
 
-def _fails(chk):
+def _fails(chk:CheckClass):
     return False
 
 
@@ -45,7 +45,7 @@ def chk_fails(description=""):
     return _message_parse(target=_fails, description=description)
 
 
-def _log_value(chk):
+def _log_value(chk:CheckClass):
     return True
 
 
@@ -53,7 +53,7 @@ def chk_log_value(test_val, description=""):
     return _message_parse(test_val=test_val, target=_log_value, description=description)
 
 
-def _in_range(chk):
+def _in_range(chk:CheckClass):
     return chk._min < chk.test_val < chk._max
 
 
@@ -67,7 +67,7 @@ def chk_in_range(test_val, _min, _max, description=""):
     )
 
 
-def _in_tolerance(chk):
+def _in_tolerance(chk:CheckClass):
     if chk.nominal >= 0:
         return (
             chk.nominal * (1 - chk.tol / 100)
@@ -92,7 +92,7 @@ def chk_in_tolerance(test_val, nominal, tol, description=""):
     )
 
 
-def _in_range_equal(chk):
+def _in_range_equal(chk:CheckClass):
     return chk._min <= chk.test_val <= chk._max
 
 
@@ -106,7 +106,7 @@ def chk_in_range_equal(test_val, _min, _max, description=""):
     )
 
 
-def _in_range_equal_min(chk):
+def _in_range_equal_min(chk:CheckClass):
     return chk._min <= chk.test_val < chk._max
 
 
@@ -120,7 +120,7 @@ def chk_in_range_equal_min(test_val, _min, _max, description=""):
     )
 
 
-def _in_range_equal_max(chk):
+def _in_range_equal_max(chk:CheckClass):
     return chk._min < chk.test_val <= chk._max
 
 
@@ -134,7 +134,7 @@ def chk_in_range_equal_max(test_val, _min, _max, description=""):
     )
 
 
-def _outside_range(chk):
+def _outside_range(chk:CheckClass):
     return chk.test_val < chk._min or chk.test_val > chk._max
 
 
@@ -148,7 +148,7 @@ def chk_outside_range(test_val, _min, _max, description=""):
     )
 
 
-def _outside_range_equal(chk):
+def _outside_range_equal(chk:CheckClass):
     return chk.test_val <= chk._min or chk.test_val >= chk._max
 
 
@@ -162,7 +162,7 @@ def chk_outside_range_equal(test_val, _min, _max, description=""):
     )
 
 
-def _outside_range_equal_min(chk):
+def _outside_range_equal_min(chk:CheckClass):
     return chk.test_val <= chk._min or chk.test_val > chk._max
 
 
@@ -176,7 +176,7 @@ def chk_outside_range_equal_min(test_val, _min, _max, description=""):
     )
 
 
-def _outside_range_equal_max(chk):
+def _outside_range_equal_max(chk:CheckClass):
     return chk.test_val < chk._min or chk.test_val >= chk._max
 
 
@@ -190,7 +190,7 @@ def chk_outside_range_equal_max(test_val, _min, _max, description=""):
     )
 
 
-def _smaller_or_equal(chk):
+def _smaller_or_equal(chk:CheckClass):
     return chk.test_val <= chk.nominal
 
 
@@ -203,7 +203,7 @@ def chk_smaller_or_equal(test_val, nominal, description=""):
     )
 
 
-def _greater_or_equal(chk):
+def _greater_or_equal(chk:CheckClass):
     return chk.test_val >= chk.nominal
 
 
@@ -216,7 +216,7 @@ def chk_greater_or_equal(test_val, nominal, description=""):
     )
 
 
-def _smaller(chk):
+def _smaller(chk:CheckClass):
     return chk.test_val < chk.nominal
 
 
@@ -226,7 +226,7 @@ def chk_smaller(test_val, nominal, description=""):
     )
 
 
-def _greater(chk):
+def _greater(chk:CheckClass):
     return chk.test_val > chk.nominal
 
 
@@ -236,7 +236,7 @@ def chk_greater(test_val, nominal, description=""):
     )
 
 
-def _equal(chk):
+def _equal(chk:CheckClass):
     return chk.test_val == chk.nominal
 
 
@@ -246,7 +246,7 @@ def chk_equal(test_val, nominal, description=""):
     )
 
 
-def _true(chk):
+def _true(chk:CheckClass):
     return chk.test_val is True
 
 
@@ -254,7 +254,7 @@ def chk_true(test_val, description=""):
     return _message_parse(test_val=test_val, target=_true, description=description)
 
 
-def _false(chk):
+def _false(chk:CheckClass):
     return chk.test_val is False
 
 
@@ -262,7 +262,7 @@ def chk_false(test_val, description=""):
     return _message_parse(test_val=test_val, target=_false, description=description)
 
 
-def _in_tolerance_equal(chk):
+def _in_tolerance_equal(chk:CheckClass):
     return (
         chk.nominal * (1 - chk.tol / 100)
         <= chk.test_val
