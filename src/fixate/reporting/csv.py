@@ -96,6 +96,7 @@ from pubsub import pub
 from queue import Queue
 from fixate.core.common import TestClass
 from fixate.core.common import ExcThread
+from fixate.core.checks import CheckClass
 import fixate
 import fixate.config
 
@@ -168,7 +169,7 @@ class CsvReporting:
                 datetime.datetime.now()
             )
             self.test_module = sys.modules["module.loaded_tests"]
-            if fixate.config.log_file:
+            if fixate.config.log_file:  # TODO: make log_file a given variable that defaults to None?
                 self.csv_path = fixate.config.log_file
             else:
                 self.csv_path = os.path.join(
@@ -255,7 +256,7 @@ class CsvReporting:
         ]  # Remove trailing comma for exception for python < 3.7
         self._write_line_to_csv(exc_line)
 
-    def test_comparison(self, passes, chk, chk_cnt, context):
+    def test_comparison(self, passes:bool, chk:CheckClass, chk_cnt:int, context:str):
         # pub.sendMessage("Check", passes=result, chk=chk, context=self.get_context())
         if passes:
             status = "PASS"
@@ -267,13 +268,13 @@ class CsvReporting:
             "{:.2f}".format(time.perf_counter() - self.start_time),
             "Test {}".format(context),
             "check{}".format(chk_cnt),
-            chk.target.__name__[1:].replace("check_", "").replace("_", " "),
+            chk.target_name,
             chk.description,
             status,
             chk.test_val,
         ]
         chk_line.extend(
-            [x for x in [chk.nominal, chk._min, chk._max, chk.tol] if x is not None]
+            [x for x in [chk.nominal, chk.min, chk.max, chk.tol] if x is not None]
         )
 
         self._write_line_to_csv(chk_line)

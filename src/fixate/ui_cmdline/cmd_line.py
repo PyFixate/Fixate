@@ -7,6 +7,7 @@ from fixate.ui_cmdline.kbhit import KBHit
 from queue import Queue
 from fixate.core.exceptions import UserInputError
 from fixate.core.common import ExcThread
+from fixate.core.checks import CheckClass
 import fixate
 import fixate.config
 
@@ -331,91 +332,47 @@ def _print_errors(exception, test_index):
         traceback.print_tb(exception.__traceback__, file=sys.stderr)
 
 
-def round_to_3_sig_figures(chk):
+def round_to_3_sig_figures(chk:CheckClass):
     """
     Tries to round elements to 3 significant figures for formatting
     :param chk:
     :return:
     """
     ret_dict = {}
-    for element in ["_min", "_max", "test_val", "nominal", "tol"]:
+    for element in ["min", "max", "test_val", "nominal", "tol"]:
         ret_dict[element] = getattr(chk, element, None)
         try:
             ret_dict[element] = "{:.3g}".format(ret_dict[element])
-        except:
+        except Exception:
             pass
     return ret_dict
 
 
-def _print_comparisons(passes, chk, chk_cnt, context):
+def _print_comparisons(passes:bool, chk:CheckClass, chk_cnt:int, context:str):
     if passes:
         status = "PASS"
     else:
         status = "FAIL"
     format_dict = round_to_3_sig_figures(chk)
-    if chk._min is not None and chk._max is not None:
-        print(
-            reformat_text(
-                "\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {_min} - {_max} : "
-                "{description}".format(
-                    status=status,
-                    comparison=chk.target.__name__[1:].replace("_", " "),
-                    chk_cnt=chk_cnt,
-                    description=chk.description,
-                    **format_dict
-                )
-            )
-        )
+    msg = f"\nCheck {chk_cnt}: {status}"
+    if chk.min is not None and chk.max is not None:
+        msg += f" when comparing {chk.test_val} {chk.target_name} "\
+            f"{chk.min} - {chk.max} : {chk.description}"
     elif chk.nominal is not None and chk.tol is not None:
-        print(
-            reformat_text(
-                "\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {nominal} +- {tol}% : "
-                "{description}".format(
-                    status=status,
-                    comparison=chk.target.__name__[1:].replace("_", " "),
-                    chk_cnt=chk_cnt,
-                    description=chk.description,
-                    **format_dict
-                )
-            )
-        )
-    elif chk._min is not None or chk._max is not None or chk.nominal is not None:
+        msg += f" when comparing {chk.test_val} {chk.target_name} "\
+            f"{chk.nominal} +- {chk.tol}% : {chk.description}"
+    elif chk.min is not None or chk.max is not None or chk.nominal is not None:
         # Grabs the first value that isn't none. Nominal takes priority
         comp_val = next(
             format_dict[item]
-            for item in ["nominal", "_min", "_max"]
+            for item in ["nominal", "min", "max"]
             if format_dict[item] is not None
         )
-        print(
-            reformat_text(
-                "\nCheck {chk_cnt}: {status} when comparing {test_val} {comparison} {comp_val} : "
-                "{description}".format(
-                    status=status,
-                    comparison=chk.target.__name__[1:].replace("_", " "),
-                    comp_val=comp_val,
-                    chk_cnt=chk_cnt,
-                    description=chk.description,
-                    **format_dict
-                )
-            )
-        )
+        msg += f" when comparing {chk.test_val} {chk.target_name} "\
+            f"{comp_val} : {chk.description}"
+    elif chk.test_val is not None:
+        msg += f": {chk.test_val} : {chk.description}"
     else:
-        if chk.test_val is not None:
-            print(
-                reformat_text(
-                    "\nCheck {chk_cnt}: {status}: {test_val} : {description}".format(
-                        chk_cnt=chk_cnt,
-                        description=chk.description,
-                        status=status,
-                        **format_dict
-                    )
-                )
-            )
-        else:
-            print(
-                reformat_text(
-                    "\nCheck {chk_cnt} : {status}: {description}".format(
-                        description=chk.description, chk_cnt=chk_cnt, status=status
-                    )
-                )
-            )
+        msg += f": {chk.description}"
+
+    print(reformat_text(msg))
