@@ -7,7 +7,7 @@ from fixate.ui_cmdline.kbhit import KBHit
 from queue import Queue
 from fixate.core.exceptions import UserInputError
 from fixate.core.common import ExcThread
-from fixate.config import RESOURCES
+import fixate
 import fixate.config
 
 wrapper = textwrap.TextWrapper(width=75)
@@ -262,7 +262,7 @@ def _print_sequence_end(status, passed, failed, error, skipped, sequence_status)
     print("#" * wrapper.width)
     print(reformat_text("Sequence {}".format(sequence_status)))
     # print("Sequence {}".format(sequence_status))
-    post_sequence_info = RESOURCES["SEQUENCER"].context_data.get(
+    post_sequence_info = fixate.global_sequencer.context_data.get(
         "_post_sequence_info", {}
     )
     if post_sequence_info:
@@ -291,7 +291,7 @@ def _print_test_start(data, test_index):
 
 
 def _print_test_complete(data, test_index, status):
-    sequencer = RESOURCES["SEQUENCER"]
+    sequencer = fixate.global_sequencer
     print("-" * wrapper.width)
     print(
         reformat_text(

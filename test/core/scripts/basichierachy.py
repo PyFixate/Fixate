@@ -1,6 +1,6 @@
 from fixate.core.common import TestClass, TestList
 from fixate.core.checks import chk_true
-from fixate.config import RESOURCES
+import fixate
 
 __version__ = "1"
 
@@ -69,7 +69,7 @@ class Lst(TestList):
 #   - "list_enter"
 #   - "list_exit"
 
-context_data = RESOURCES["SEQUENCER"].context_data
+context_data = fixate.global_sequencer.context_data
 
 TEST_SEQUENCE = [
     Lst(

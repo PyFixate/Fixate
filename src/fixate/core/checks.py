@@ -2,7 +2,7 @@
 This module is used to allow for tests to test values against criteria.
 It should implement necessary logging functions and report success or failure.
 """
-import fixate.config
+import fixate
 
 
 class CheckClass:
@@ -26,7 +26,7 @@ def _message_parse(target, **kwargs):
     chk = CheckClass(**kwargs)
     chk.target = target
     result = target(chk)
-    return fixate.config.RESOURCES["SEQUENCER"].check(chk, result)
+    return fixate.global_sequencer.check(chk, result)
 
 
 def _passes(chk):

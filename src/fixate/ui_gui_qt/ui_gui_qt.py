@@ -10,7 +10,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 from pubsub import pub
 import fixate.config
-from fixate.config import RESOURCES
+import fixate
 from fixate.core.exceptions import UserInputError, SequenceAbort
 from . import layout
 
@@ -779,7 +779,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             return
 
         self.sig_history_update.emit("#" * wrapper.width)
-        post_sequence_info = RESOURCES["SEQUENCER"].context_data.get(
+        post_sequence_info = fixate.global_sequencer.context_data.get(
             "_post_sequence_info", {}
         )
         if post_sequence_info:
@@ -827,7 +827,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.closing:
             return
 
-        sequencer = RESOURCES["SEQUENCER"]
+        sequencer = fixate.global_sequencer
         self.sig_history_update.emit("-" * wrapper.width)
         self.sig_history_update.emit(
             self.reformat_text(

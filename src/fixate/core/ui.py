@@ -4,7 +4,7 @@ This module details user input api
 import time
 from queue import Queue, Empty
 from pubsub import pub
-from fixate.config import RESOURCES
+import fixate
 from collections import OrderedDict
 
 USER_YES_NO = ("YES", "NO")
@@ -219,9 +219,9 @@ def user_post_sequence_info_pass(msg):
     :param msg: String as it should be displayed
     :return:
     """
-    if "_post_sequence_info" not in RESOURCES["SEQUENCER"].context_data:
-        RESOURCES["SEQUENCER"].context_data["_post_sequence_info"] = OrderedDict()
-    RESOURCES["SEQUENCER"].context_data["_post_sequence_info"][msg] = "PASSED"
+    if "_post_sequence_info" not in fixate.global_sequencer.context_data:
+        fixate.global_sequencer.context_data["_post_sequence_info"] = OrderedDict()
+    fixate.global_sequencer.context_data["_post_sequence_info"][msg] = "PASSED"
 
 
 def user_post_sequence_info_fail(msg):
@@ -231,9 +231,9 @@ def user_post_sequence_info_fail(msg):
     :param msg: String as it should be displayed
     :return:
     """
-    if "_post_sequence_info" not in RESOURCES["SEQUENCER"].context_data:
-        RESOURCES["SEQUENCER"].context_data["_post_sequence_info"] = OrderedDict()
-    RESOURCES["SEQUENCER"].context_data["_post_sequence_info"][msg] = "FAILED"
+    if "_post_sequence_info" not in fixate.global_sequencer.context_data:
+        fixate.global_sequencer.context_data["_post_sequence_info"] = OrderedDict()
+    fixate.global_sequencer.context_data["_post_sequence_info"][msg] = "FAILED"
 
 
 def user_post_sequence_info(msg):
@@ -243,6 +243,6 @@ def user_post_sequence_info(msg):
     :param msg: String as it should be displayed
     :return:
     """
-    if "_post_sequence_info" not in RESOURCES["SEQUENCER"].context_data:
-        RESOURCES["SEQUENCER"].context_data["_post_sequence_info"] = OrderedDict()
-    RESOURCES["SEQUENCER"].context_data["_post_sequence_info"][msg] = "ALL"
+    if "_post_sequence_info" not in fixate.global_sequencer.context_data:
+        fixate.global_sequencer.context_data["_post_sequence_info"] = OrderedDict()
+    fixate.global_sequencer.context_data["_post_sequence_info"][msg] = "ALL"

@@ -8,6 +8,7 @@ from importlib.machinery import SourceFileLoader
 from zipimport import zipimporter
 from pubsub import pub
 import fixate.config
+import fixate
 from fixate.core.exceptions import SequenceAbort
 from fixate.core.ui import user_serial, user_ok
 from fixate.reporting import register_csv, unregister_csv
@@ -163,8 +164,7 @@ class FixateSupervisor:
         # General setup
         self.test_script_path = test_script_path
         self.args = args
-        self.sequencer = fixate.sequencer.Sequencer()
-        fixate.config.RESOURCES["SEQUENCER"] = self.sequencer
+        self.sequencer = fixate.global_sequencer
 
         # Environment specific setup
         # TODO remove this to plugin architecture
@@ -212,7 +212,7 @@ class FixateSupervisor:
 
 
 class FixateWorker:
-    def __init__(self, sequencer, test_script_path, args):
+    def __init__(self, sequencer: fixate.sequencer.Sequencer, test_script_path, args):
         self.sequencer = sequencer
         self.test_script_path = test_script_path
         self.args = args

@@ -161,7 +161,7 @@ class CsvReporting:
     def sequence_update(self, status):
         # Do Start Sequence Reporting
         if status in ["Running"]:
-            sequencer = fixate.config.RESOURCES["SEQUENCER"]
+            sequencer = fixate.global_sequencer
             self.data.update(sequencer.context_data)
             # Create new csv path
             self.data["start_date_time"] = self.data["tpl_time_stamp"].format(
@@ -282,7 +282,7 @@ class CsvReporting:
     def test_complete(self, data, test_index, status):
         self.current_test = test_index
         try:
-            sequencer = fixate.config.RESOURCES["SEQUENCER"]
+            sequencer = fixate.global_sequencer
             passed = sequencer.chk_pass
             failed = sequencer.chk_fail
 
