@@ -5,7 +5,7 @@ from pubsub import pub
 from fixate.core.common import TestList, TestClass
 from fixate.core.exceptions import SequenceAbort, CheckFail
 from fixate.core.ui import user_retry_abort_fail
-from fixate.core.checks import CheckClass
+from fixate.core.checks import CheckResult
 
 STATUS_STATES = ["Idle", "Running", "Paused", "Finished", "Restart", "Aborted"]
 
@@ -388,19 +388,19 @@ class Sequencer:
         self.ABORT = True
         self.test_running = False
 
-    def check(self, chk:CheckClass, result:bool):
-        """ Update current pass/fail counts and send check criteria to subscribers"""
-        if result:
+    def check(self, chk: CheckResult):
+        """Update current pass/fail counts and send check criteria to subscribers"""
+        if chk.result:
             self.chk_pass += 1
         else:
             self.chk_fail += 1
         pub.sendMessage(
             "Check",
-            passes=result,
+            passes=chk.result,
             chk=chk,
             chk_cnt=self.chk_pass + self.chk_fail,
             context=self.levels(),
         )
-        if not result:
+        if not chk.result:
             raise CheckFail("Check function returned failure, aborting test")
-        return result
+        return chk.result
