@@ -62,6 +62,7 @@ i'm a subclass
 : list exit
 """
 
+
 class Test(TestClass):
     """
     Dummy Test Class
@@ -93,7 +94,9 @@ class FailTest(TestClass):
         print("{}: teardown {}".format(global_sequencer.levels(), self.num))
 
     def test(self):
-        raise Exception("Purpose fail {}: test {}".format(global_sequencer.levels(), self.num))
+        raise Exception(
+            "Purpose fail {}: test {}".format(global_sequencer.levels(), self.num)
+        )
         # print("{}: test {}".format(seq.levels(), self.num))
 
     def __init__(self, num):
@@ -135,7 +138,9 @@ class FailSetup(TestList):
 
     def set_up(self):
         print("{}: list setup".format(global_sequencer.levels()))
-        raise Exception("Raise exception in {}: list setup".format(global_sequencer.levels()))
+        raise Exception(
+            "Raise exception in {}: list setup".format(global_sequencer.levels())
+        )
 
     def tear_down(self):
         print("{}: list teardown".format(global_sequencer.levels()))
