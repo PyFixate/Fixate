@@ -68,7 +68,9 @@ class _CheckClass:
         check_string = self._generate_check_string()
         # NOTE: stash used params for csv reporting (probably a better way)
         check_params = [
-            x for x in [self.nominal, self._min, self._max, self.tol, self.deviation] if x is not None
+            x
+            for x in [self.nominal, self._min, self._max, self.tol, self.deviation]
+            if x is not None
         ]
         return CheckResult(
             result,
