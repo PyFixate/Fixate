@@ -2,7 +2,7 @@
 This module is used to allow for tests to test values against criteria.
 It should implement necessary logging functions and report success or failure.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable
 import logging
 
@@ -11,7 +11,7 @@ import fixate
 _logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True)
 class CheckResult:
     """Check Class Results to publish to subscribers
     Is a subset of CheckClass attrs
@@ -26,23 +26,21 @@ class CheckResult:
     check_params: Iterable = None  # Store for csv logging
 
 
+@dataclass
 class _CheckClass:
     """Loads check parameters and evaluates check"""
 
-    test_val = None
-    target: Callable = None
-    target_name: str = None
-    _min = None
-    _max = None
-    nominal = None
-    tol = None
-    deviation = None
-    description: str = ""
-    fmt: str = None
-    formatter: Callable = None
-
-    def __init__(self, **kwargs):
-        self.__dict__.update(**kwargs)
+    target: Callable
+    test_val: Any = field(default=None)
+    target_name: str = field(default=None)
+    _min: Any = field(default=None)
+    _max: Any = field(default=None)
+    nominal: Any = field(default=None)
+    tol: Any = field(default=None)
+    deviation: Any = field(default=None)
+    description: str = field(default="")
+    fmt: str = field(default=None)
+    formatter: Callable = field(default=None)
 
     def _generate_check_string(self) -> str:
         self.target_name = self.target.__name__[1:].replace("_", " ")
@@ -58,7 +56,7 @@ class _CheckClass:
             check_string = self.formatter(self)
         return check_string
 
-    def get_result(self):
+    def get_result(self) -> CheckResult:
         """Return check result as a dataclass
 
         With necessary information to log and display on UI
@@ -83,8 +81,8 @@ class _CheckClass:
         )
 
 
-def _message_parse(**kwargs):
-    chk = _CheckClass(**kwargs)
+def _message_parse(*, target: Callable, **kwargs) -> bool:
+    chk = _CheckClass(target=target, **kwargs)
     chkresult = chk.get_result()
     return fixate.global_sequencer.check(chkresult)
 
@@ -130,31 +128,31 @@ def _format_novalue(chk: _CheckClass) -> str:
     return f"{chk.status}: {chk.description}"
 
 
-def _passes(chk: _CheckClass):
+def _passes(chk: _CheckClass) -> bool:
     return True
 
 
-def chk_passes(description=""):
-    """True"""
+def chk_passes(description="") -> bool:
+    """Pass Test"""
     return _message_parse(target=_passes, description=description)
     # _format_novalue
 
 
-def _fails(chk: _CheckClass):
+def _fails(chk: _CheckClass) -> bool:
     return False
 
 
-def chk_fails(description=""):
-    """False"""
+def chk_fails(description="") -> bool:
+    """Fail Test"""
     return _message_parse(target=_fails, description=description)
     # _format_novalue
 
 
-def _log_value(chk: _CheckClass):
+def _log_value(chk: _CheckClass) -> bool:
     return True
 
 
-def chk_log_value(test_val, description="", fmt=None):
+def chk_log_value(test_val, description="", fmt=None) -> bool:
     """Log test_val"""
     return _message_parse(
         test_val=test_val,
@@ -165,11 +163,11 @@ def chk_log_value(test_val, description="", fmt=None):
     )
 
 
-def _in_range(chk: _CheckClass):
+def _in_range(chk: _CheckClass) -> bool:
     return chk._min < chk.test_val < chk._max
 
 
-def chk_in_range(test_val, _min, _max, description="", fmt=None):
+def chk_in_range(test_val, _min, _max, description="", fmt=None) -> bool:
     """Check: _min < test_val < _max"""
     return _message_parse(
         test_val=test_val,
@@ -182,7 +180,7 @@ def chk_in_range(test_val, _min, _max, description="", fmt=None):
     )
 
 
-def _in_tolerance(chk: _CheckClass):
+def _in_tolerance(chk: _CheckClass) -> bool:
     if chk.nominal >= 0:
         return (
             chk.nominal * (1 - chk.tol / 100)
@@ -197,7 +195,7 @@ def _in_tolerance(chk: _CheckClass):
         )
 
 
-def chk_in_tolerance(test_val, nominal, tol, description="", fmt=None):
+def chk_in_tolerance(test_val, nominal, tol, description="", fmt=None) -> bool:
     """Check: nominal - tol% < test_val < nominal + tol%"""
     return _message_parse(
         test_val=test_val,
@@ -210,11 +208,11 @@ def chk_in_tolerance(test_val, nominal, tol, description="", fmt=None):
     )
 
 
-def _in_range_equal(chk: _CheckClass):
+def _in_range_equal(chk: _CheckClass) -> bool:
     return chk._min <= chk.test_val <= chk._max
 
 
-def chk_in_range_equal(test_val, _min, _max, description="", fmt=None):
+def chk_in_range_equal(test_val, _min, _max, description="", fmt=None) -> bool:
     """Check: _min <= test_val <= _max"""
     return _message_parse(
         test_val=test_val,
@@ -227,11 +225,11 @@ def chk_in_range_equal(test_val, _min, _max, description="", fmt=None):
     )
 
 
-def _in_range_equal_min(chk: _CheckClass):
+def _in_range_equal_min(chk: _CheckClass) -> bool:
     return chk._min <= chk.test_val < chk._max
 
 
-def chk_in_range_equal_min(test_val, _min, _max, description="", fmt=None):
+def chk_in_range_equal_min(test_val, _min, _max, description="", fmt=None) -> bool:
     """Check: _min <= test_val < _max"""
     return _message_parse(
         test_val=test_val,
@@ -244,11 +242,11 @@ def chk_in_range_equal_min(test_val, _min, _max, description="", fmt=None):
     )
 
 
-def _in_range_equal_max(chk: _CheckClass):
+def _in_range_equal_max(chk: _CheckClass) -> bool:
     return chk._min < chk.test_val <= chk._max
 
 
-def chk_in_range_equal_max(test_val, _min, _max, description="", fmt=None):
+def chk_in_range_equal_max(test_val, _min, _max, description="", fmt=None) -> bool:
     """Check: _min < test_val <= _max"""
     return _message_parse(
         test_val=test_val,
@@ -261,11 +259,11 @@ def chk_in_range_equal_max(test_val, _min, _max, description="", fmt=None):
     )
 
 
-def _outside_range(chk: _CheckClass):
+def _outside_range(chk: _CheckClass) -> bool:
     return chk.test_val < chk._min or chk.test_val > chk._max
 
 
-def chk_outside_range(test_val, _min, _max, description="", fmt=None):
+def chk_outside_range(test_val, _min, _max, description="", fmt=None) -> bool:
     """Check: test_val > _max or < _min"""
     return _message_parse(
         test_val=test_val,
@@ -278,11 +276,11 @@ def chk_outside_range(test_val, _min, _max, description="", fmt=None):
     )
 
 
-def _outside_range_equal(chk: _CheckClass):
+def _outside_range_equal(chk: _CheckClass) -> bool:
     return chk.test_val <= chk._min or chk.test_val >= chk._max
 
 
-def chk_outside_range_equal(test_val, _min, _max, description="", fmt=None):
+def chk_outside_range_equal(test_val, _min, _max, description="", fmt=None) -> bool:
     """Check: test_val >= _max or <= _min"""
     return _message_parse(
         test_val=test_val,
@@ -295,11 +293,11 @@ def chk_outside_range_equal(test_val, _min, _max, description="", fmt=None):
     )
 
 
-def _outside_range_equal_min(chk: _CheckClass):
+def _outside_range_equal_min(chk: _CheckClass) -> bool:
     return chk.test_val <= chk._min or chk.test_val > chk._max
 
 
-def chk_outside_range_equal_min(test_val, _min, _max, description="", fmt=None):
+def chk_outside_range_equal_min(test_val, _min, _max, description="", fmt=None) -> bool:
     """Check: test_val > _max or <= _min"""
     return _message_parse(
         test_val=test_val,
@@ -312,11 +310,11 @@ def chk_outside_range_equal_min(test_val, _min, _max, description="", fmt=None):
     )
 
 
-def _outside_range_equal_max(chk: _CheckClass):
+def _outside_range_equal_max(chk: _CheckClass) -> bool:
     return chk.test_val < chk._min or chk.test_val >= chk._max
 
 
-def chk_outside_range_equal_max(test_val, _min, _max, description="", fmt=None):
+def chk_outside_range_equal_max(test_val, _min, _max, description="", fmt=None) -> bool:
     """Check: test_val >= _max or < _min"""
     return _message_parse(
         test_val=test_val,
@@ -329,11 +327,11 @@ def chk_outside_range_equal_max(test_val, _min, _max, description="", fmt=None):
     )
 
 
-def _smaller_or_equal(chk: _CheckClass):
+def _smaller_or_equal(chk: _CheckClass) -> bool:
     return chk.test_val <= chk.nominal
 
 
-def chk_smaller_or_equal(test_val, nominal, description="", fmt=None):
+def chk_smaller_or_equal(test_val, nominal, description="", fmt=None) -> bool:
     """Check: test_val <= nominal"""
     return _message_parse(
         test_val=test_val,
@@ -345,11 +343,11 @@ def chk_smaller_or_equal(test_val, nominal, description="", fmt=None):
     )
 
 
-def _greater_or_equal(chk: _CheckClass):
+def _greater_or_equal(chk: _CheckClass) -> bool:
     return chk.test_val >= chk.nominal
 
 
-def chk_greater_or_equal(test_val, nominal, description="", fmt=None):
+def chk_greater_or_equal(test_val, nominal, description="", fmt=None) -> bool:
     """Check: test_val >= nominal"""
     return _message_parse(
         test_val=test_val,
@@ -361,11 +359,11 @@ def chk_greater_or_equal(test_val, nominal, description="", fmt=None):
     )
 
 
-def _smaller(chk: _CheckClass):
+def _smaller(chk: _CheckClass) -> bool:
     return chk.test_val < chk.nominal
 
 
-def chk_smaller(test_val, nominal, description="", fmt=None):
+def chk_smaller(test_val, nominal, description="", fmt=None) -> bool:
     """Check: test_val < nominal"""
     return _message_parse(
         test_val=test_val,
@@ -377,11 +375,11 @@ def chk_smaller(test_val, nominal, description="", fmt=None):
     )
 
 
-def _greater(chk: _CheckClass):
+def _greater(chk: _CheckClass) -> bool:
     return chk.test_val > chk.nominal
 
 
-def chk_greater(test_val, nominal, description="", fmt=None):
+def chk_greater(test_val, nominal, description="", fmt=None) -> bool:
     """Check: test_val > nominal"""
     return _message_parse(
         test_val=test_val,
@@ -393,11 +391,11 @@ def chk_greater(test_val, nominal, description="", fmt=None):
     )
 
 
-def _equal(chk: _CheckClass):
+def _equal(chk: _CheckClass) -> bool:
     return chk.test_val == chk.nominal
 
 
-def chk_equal(test_val, nominal, description="", fmt=None):
+def chk_equal(test_val, nominal, description="", fmt=None) -> bool:
     """Check: test_val == nominal"""
     return _message_parse(
         test_val=test_val,
@@ -409,11 +407,11 @@ def chk_equal(test_val, nominal, description="", fmt=None):
     )
 
 
-def _true(chk: _CheckClass):
+def _true(chk: _CheckClass) -> bool:
     return chk.test_val is True
 
 
-def chk_true(test_val, description="", fmt=""):
+def chk_true(test_val, description="", fmt="") -> bool:
     """Check: test_val is True"""
     return _message_parse(
         test_val=test_val,
@@ -424,11 +422,11 @@ def chk_true(test_val, description="", fmt=""):
     )
 
 
-def _false(chk: _CheckClass):
+def _false(chk: _CheckClass) -> bool:
     return chk.test_val is False
 
 
-def chk_false(test_val, description="", fmt=""):
+def chk_false(test_val, description="", fmt="") -> bool:
     """Check: test_val is False"""
     return _message_parse(
         test_val=test_val,
@@ -439,7 +437,7 @@ def chk_false(test_val, description="", fmt=""):
     )
 
 
-def _in_tolerance_equal(chk: _CheckClass):
+def _in_tolerance_equal(chk: _CheckClass) -> bool:
     return (
         chk.nominal * (1 - chk.tol / 100)
         <= chk.test_val
@@ -447,7 +445,7 @@ def _in_tolerance_equal(chk: _CheckClass):
     )
 
 
-def chk_in_tolerance_equal(test_val, nominal, tol, description="", fmt=None):
+def chk_in_tolerance_equal(test_val, nominal, tol, description="", fmt=None) -> bool:
     """Check: nominal - tol% <= test_val <= nominal + tol%"""
     return _message_parse(
         test_val=test_val,
@@ -460,11 +458,13 @@ def chk_in_tolerance_equal(test_val, nominal, tol, description="", fmt=None):
     )
 
 
-def _in_deviation_equal(chk: _CheckClass):
+def _in_deviation_equal(chk: _CheckClass) -> bool:
     return chk.nominal - chk.deviation <= chk.test_val <= chk.nominal + chk.deviation
 
 
-def chk_in_deviation_equal(test_val, nominal, deviation, description="", fmt=None):
+def chk_in_deviation_equal(
+    test_val, nominal, deviation, description="", fmt=None
+) -> bool:
     """Check: nominal - deviation <= test_val <= nominal + deviation"""
     return _message_parse(
         test_val=test_val,

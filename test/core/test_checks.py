@@ -1,4 +1,9 @@
+import subprocess
+import os.path
+import sys
+
 import pytest
+
 from fixate.core.checks import *
 from fixate.core.exceptions import CheckFail
 import fixate.sequencer
@@ -9,6 +14,7 @@ chk_pass_data = [
     (chk_log_value, [123], {"fmt": ".2f"}),
     (chk_in_range, [10, 1, 100], {}),
     (chk_in_tolerance, [10.1, 10, 2], {}),
+    (chk_in_tolerance, [-5.2, -5, 10], {}),
     (chk_in_range_equal, [13, 10, 15], {}),
     (chk_in_range_equal, [10.12, 10.12, 15], {}),
     (chk_in_range_equal, [15.1, 10, 15.1], {}),
@@ -37,7 +43,7 @@ chk_pass_data = [
     (chk_equal, [1e5, 1e5], {}),
     (chk_equal, [[1, 2, 3, 4], [1, 2, 3, 4]], {}),
     (chk_equal, [(1, 2, 3, 4), (1, 2, 3, 4)], {}),
-    (chk_equal, [{"a": 1, "b": 2}, {"a": 1, "b": 2}], {}),
+    (chk_equal, [{"a": 1, "b": 2}, {"b": 2, "a": 1}], {}),
     (chk_equal, [2 + 1j, 2 + 1j], {}),
     # TODO: find more types that are equated?
 ]
@@ -101,7 +107,7 @@ def mock_check_string(monkeypatch):
     monkeypatch.setattr(fixate.sequencer.Sequencer, "check", mock_check)
 
 
-chk_log_data = [
+chk_ui_string = [
     (chk_passes, [], {"description": "test"}, "PASS: test"),
     (
         chk_log_value,
@@ -126,7 +132,7 @@ chk_log_data = [
 ]
 
 
-@pytest.mark.parametrize(("check", "args", "kwargs", "check_string"), chk_log_data)
+@pytest.mark.parametrize(("check", "args", "kwargs", "check_string"), chk_ui_string)
 def test_checks_formatting(
     mock_check_string, check: Callable, args, kwargs, check_string
 ):
@@ -140,9 +146,56 @@ def test_checks_logging():
     pass
 
 
-def test_checks_raise():
-    """TODO: other tests that raise exceptions
-    e.g. wrong args etc.
+test_raise_data = [
+    # Missing args - probably overkill
+    (chk_in_range, [], {}, TypeError),
+    (chk_in_tolerance, [], {}, TypeError),
+    (chk_in_range_equal, [], {}, TypeError),
+    (chk_outside_range, [], {}, TypeError),
+    (chk_outside_range_equal, [], {}, TypeError),
+    (chk_outside_range_equal_min, [], {}, TypeError),
+    (chk_outside_range_equal_max, [], {}, TypeError),
+    (chk_smaller_or_equal, [], {}, TypeError),
+    (chk_greater_or_equal, [], {}, TypeError),
+    (chk_smaller, [], {}, TypeError),
+    (chk_greater, [], {}, TypeError),
+    (chk_true, [], {}, TypeError),
+    (chk_false, [], {}, TypeError),
+    (chk_in_tolerance_equal, [], {}, TypeError),
+    (chk_in_deviation_equal, [], {}, TypeError),
+    (chk_equal, [], {}, TypeError),
+    # Invalid args
+    (chk_greater, [1, "test"], {}, TypeError),
+    # Format exceptions are swallowed so hard to test
+]
 
-    """
-    pass
+
+@pytest.mark.parametrize(("check", "args", "kwargs", "exception"), test_raise_data)
+def test_checks_raise(check: Callable, args, kwargs, exception: Exception):
+    """Test other exceptions raised"""
+    with pytest.raises(exception):
+        check(*args, **kwargs)
+
+
+script_dir = os.path.join(os.path.dirname(__file__), "scripts")
+
+
+def test_basiccheckcoverage(tmp_path):
+    """Run each check through standard fixate process"""
+    script_path = os.path.join(script_dir, "basiccheckcoverage.py")
+    log_path = os.path.join(str(tmp_path), "logfile.csv")
+    ret = subprocess.call(
+        [
+            sys.executable,
+            "-m",
+            "fixate",
+            "-p",
+            script_path,
+            "--serial-number",
+            "0123456789",
+            "--log-file",
+            log_path,
+            "--non-interactive",
+        ]
+    )
+    assert ret == 5

@@ -264,15 +264,19 @@ class CsvReporting:
         # Test <test_index>, check<number>, <check type>, <status>, <test_val>, <expected>
         # If exception <test_index>, check<number>, <exception details>
         chk_line = [
-            "{:.2f}".format(time.perf_counter() - self.start_time),
-            "Test {}".format(context),
-            "check{}".format(chk_cnt),
+            f"{(time.perf_counter() - self.start_time):.2f}",
+            f"Test {context}",
+            f"check{chk_cnt}",
             chk.target_name,
             chk.description,
             chk.status,
             chk.test_val,
         ]
         chk_line.extend(chk.check_params)
+        # TODO: might be clearer to make check_params a dict and then each
+        # parameter entry as "key = value" (e.g "nominal = 55")
+        # Easier to debug without referring to scripts or checks.py?
+        # e.g. chk_line.extend([f"{k} = {v}" for k,v in chk.check_params.items()])
 
         self._write_line_to_csv(chk_line)
         self.chk_cnt += 1
