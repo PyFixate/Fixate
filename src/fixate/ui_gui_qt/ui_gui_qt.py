@@ -7,7 +7,7 @@ from collections import OrderedDict
 import os.path
 from queue import Queue
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
+from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt, QRectF
 from pubsub import pub
 import fixate.config
 from fixate.config import RESOURCES
@@ -55,7 +55,7 @@ def get_status_colours(status):
 
 class SequencerThread(QObject):
     def __init__(self, worker, completion_callback):
-        super(QObject, self).__init__()
+        super().__init__()
         self.worker = worker
         self.completion_callback = completion_callback
 
@@ -266,9 +266,27 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             # message dialog so the user knows the image didn't load
             self.file_not_found(path)
         else:
-            image = QtGui.QPixmap()
-            image.loadFromData(image_data)
-            self.image_scene.addPixmap(image)
+            _, ext = os.path.splitext(path)
+            # Default to normal image if not a gif
+            if ext != ".gif":
+                image = QtGui.QPixmap()
+                image.loadFromData(image_data)
+                self.image_scene.addPixmap(image)
+            else:
+                # NOTE: full overlay features not available with .gif
+                #   due to forcing the scene dimensions to the movie frame
+                if len(self.image_scene.items())>0:
+                    logger.error("Unsupported behaviour when overlaying .gifs")
+                animation = QtWidgets.QLabel()
+                movie = QtGui.QMovie(path)
+                if movie.isValid():
+                    animation.setMovie(movie)
+                    self.image_scene.addWidget(animation)
+                    movie.start()
+                    self.image_scene.setSceneRect(QRectF(movie.frameRect()))
+                else:
+                    logger.error("Unable to load animation: %s", path)
+
             self.ImageView.fitInView(
                 0,
                 0,
@@ -281,7 +299,11 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_image_clear.emit()
 
     def on_image_clear(self):
-        self.image_scene.clear()
+        """ Create a fresh graphics scene """
+        # NOTE image_scene.clear() does not remove all properties as desired
+        self.image_scene = QtWidgets.QGraphicsScene()
+        self.ImageView.set_scene(self.image_scene)
+        self.ImageView.setScene(self.image_scene)
 
     def file_not_found(self, path):
         """
