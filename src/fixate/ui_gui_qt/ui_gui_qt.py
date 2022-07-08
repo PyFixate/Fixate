@@ -275,7 +275,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             else:
                 # NOTE: full overlay features not available with .gif
                 #   due to forcing the scene dimensions to the movie frame
-                if len(self.image_scene.items())>0:
+                if len(self.image_scene.items()) > 0:
                     logger.error("Unsupported behaviour when overlaying .gifs")
                 animation = QtWidgets.QLabel()
                 movie = QtGui.QMovie(path)
@@ -299,7 +299,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_image_clear.emit()
 
     def on_image_clear(self):
-        """ Create a fresh graphics scene """
+        """Create a fresh graphics scene"""
         # NOTE image_scene.clear() does not remove all properties as desired
         self.image_scene = QtWidgets.QGraphicsScene()
         self.ImageView.set_scene(self.image_scene)
