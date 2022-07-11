@@ -173,9 +173,12 @@ def unit_convert(
             if as_int:
                 new_val = int(new_val)
             return f"{new_val:.3g}{unit}"
+            # TODO - thinking I should change this to .6g?
+            # Just need to prevent displaying whole float
 
+    logger.error("Could not convert to units: %f", value)
     # Should only get here now if there doesn't exist appropriate UNIT_SCALE entry?
-    # Best to return the entry rather than throw exception or create warning?
+    # Best to return the entry rather than throw exception?
     return f"{value}"
 
 
