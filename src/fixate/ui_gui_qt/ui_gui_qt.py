@@ -268,7 +268,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         else:
             _, ext = os.path.splitext(path)
             # Default to normal image if not a gif
-            if ext != ".gif":
+            if ext.lower() != ".gif":
                 image = QtGui.QPixmap()
                 image.loadFromData(image_data)
                 self.image_scene.addPixmap(image)
