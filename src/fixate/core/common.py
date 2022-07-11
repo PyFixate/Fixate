@@ -138,7 +138,12 @@ def mode_builder(search_dict, repl_kwargs, *args, **kwargs):
     return ret_string
 
 
-def unit_convert(value:int or float, min_primary_number:int or float, max_primary_number=None, as_int=False) -> str:
+def unit_convert(
+    value: int or float,
+    min_primary_number: int or float,
+    max_primary_number=None,
+    as_int=False,
+) -> str:
     """
     :param value:
     An int or float to convert into a scaled unit
@@ -158,8 +163,8 @@ def unit_convert(value:int or float, min_primary_number:int or float, max_primar
     # Previous implementation had lots of holes:
     #   i.e. unit_convert(99.9e6, 0.1, 99) would fall through
     # NOTE: since we are using eng.notation - hardcode range as 1e3
-    max_primary_number = min_primary_number*1e3
-    # TODO: should we enforce min_primary_number in (1e-3, 1), 
+    max_primary_number = min_primary_number * 1e3
+    # TODO: should we enforce min_primary_number in (1e-3, 1)
     #   otherwise can get some odd display issues
 
     for unit, scale in UNIT_SCALE.items():
@@ -172,7 +177,6 @@ def unit_convert(value:int or float, min_primary_number:int or float, max_primar
     # Should only get here now if there doesn't exist appropriate UNIT_SCALE entry?
     # Best to return the entry rather than throw exception or create warning?
     return f"{value}"
-
 
 
 def unit_scale(str_value, accepted_units=UNITS) -> int or float:
