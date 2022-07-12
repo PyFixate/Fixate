@@ -4,7 +4,7 @@ Release Notes
 *************
 Version 0.5.7
 *************
-Release Date xx/xx/2022
+Release Date 12/07/2022
 
 Fix to pyvisa imports
 
