@@ -12,12 +12,7 @@ on:
 jobs:
   run-workflow-tests:
     name: Run Workflow Tests
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Run tests
-      uses: ./.github/workflows/test
-
+    uses: ./.github/workflows/test.yml
 
   build-n-publish:
     name: Build and Publish to TestPyPi
