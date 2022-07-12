@@ -15,7 +15,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Run tests
-    - uses: ./.github/workflows/test
+      uses: ./.github/workflows/test
 
 
   build-n-publish:
