@@ -3,6 +3,7 @@ import os.path
 import sys
 
 import pytest
+from typing import Type
 
 from fixate.core.checks import *
 from fixate.core.exceptions import CheckFail
@@ -171,7 +172,7 @@ test_raise_data = [
 
 
 @pytest.mark.parametrize(("check", "args", "kwargs", "exception"), test_raise_data)
-def test_checks_raise(check: Callable, args, kwargs, exception: Exception):
+def test_checks_raise(check: Callable, args, kwargs, exception: Type[Exception]):
     """Test other exceptions raised"""
     with pytest.raises(exception):
         check(*args, **kwargs)
