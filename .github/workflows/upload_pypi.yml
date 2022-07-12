@@ -10,14 +10,20 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-n-publish:
-    name: Build and Publish to TestPyPi
-    runs-on: ubuntu-latest
-
+  run-workflow-tests:
+    name: Run Workflow Tests
+    runs-on: windows-latest
     steps:
     - name: Run tests
     - uses: ./.github/workflows/test
 
+
+  build-n-publish:
+    name: Build and Publish to TestPyPi
+    runs-on: ubuntu-latest
+    needs: [run-workflow-tests]
+
+    steps:
     - uses: actions/checkout@v2
     - name: Setup Python
       uses: actions/setup-python@v2
