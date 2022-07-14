@@ -91,6 +91,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     sig_history_update = pyqtSignal(str)
     # Image Window
     sig_image_update = pyqtSignal(str)
+    sig_gif_update = pyqtSignal(str)
     sig_image_clear = pyqtSignal()
 
     # Progress Signals
@@ -177,6 +178,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_error_clear.connect(self.on_error_clear)
         self.sig_history_update.connect(self.on_history_update)
         self.sig_image_update.connect(self.on_image_update)
+        self.sig_gif_update.connect(self.on_gif_update)
         self.sig_image_clear.connect(self.on_image_clear)
         self.sig_button_reset.connect(self.on_button_reset)
         self.sig_progress_set_max.connect(self.on_progress_set_max)
@@ -195,6 +197,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         # Image Window
         pub.subscribe(self._topic_UI_image, "UI_image")
+        pub.subscribe(self._topic_UI_gif, "UI_gif")
         pub.subscribe(self._topic_UI_image_clear, "UI_image_clear")
 
         pub.subscribe(self._topic_Test_Start, "Test_Start")
@@ -251,6 +254,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     def _topic_UI_image(self, path):
         self.sig_image_update.emit(path)
 
+    def _topic_UI_gif(self, path):
+        self.sig_gif_update.emit(path)
+
     def on_image_update(self, path):
         """
         Adds an image to the image viewer. These images can be stacked with transparent layers to form overlays
@@ -266,26 +272,67 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             # message dialog so the user knows the image didn't load
             self.file_not_found(path)
         else:
-            _, ext = os.path.splitext(path)
-            # Default to normal image if not a gif
-            if ext.lower() != ".gif":
-                image = QtGui.QPixmap()
-                image.loadFromData(image_data)
-                self.image_scene.addPixmap(image)
+            image = QtGui.QPixmap()
+            image.loadFromData(image_data)
+            self.image_scene.addPixmap(image)
+
+            if any(
+                [
+                    isinstance(x, QtWidgets.QGraphicsProxyWidget)
+                    for x in self.image_scene.items()
+                ]
+            ):
+                # If any gifs -  need to reset the window to allow auto adjust
+                self.image_scene.setSceneRect(QRectF())
+
+            self.ImageView.fitInView(
+                0,
+                0,
+                self.image_scene.width(),
+                self.image_scene.height(),
+                QtCore.Qt.KeepAspectRatio,
+            )
+
+    def on_gif_update(self, path):
+        """
+        Adds a gif to the image scene and start playing.
+        :param path: Relative path to gif within the test scripts package
+        :return: None
+        """
+        try:
+            image_data = pkgutil.get_data("module.loaded_tests", path)
+        except (FileNotFoundError, OSError):
+            # When running direct from the file system, if an image isn't found we
+            # get FileNotFoundError. When running from a zip file, we get OSError
+            logger.exception("Image path specific in the test script was invalid")
+            # message dialog so the user knows the image didn't load
+            self.file_not_found(path)
+        else:
+            # Remove any images/gifs from image scene
+            if self.image_scene.items():
+                logger.error("Unsupported behaviour when overlaying .gifs")
+                self.image_scene.clear()  # clear the scene
+
+            animation = QtWidgets.QLabel()
+            image_qbytes = QtCore.QByteArray(image_data)
+            gif_buffer = QtCore.QBuffer(image_qbytes)
+            gif_buffer.open(QtCore.QIODevice.OpenModeFlag.ReadOnly)
+            movie = QtGui.QMovie(gif_buffer, QtCore.QByteArray(b"gif"))
+            movie.setCacheMode(QtGui.QMovie.CacheMode.CacheAll)
+
+            if movie.isValid():
+                animation.setMovie(movie)
+                self.image_scene.addWidget(animation)
+                # Random fix to force proper caching:
+                # https://stackoverflow.com/questions/71072485/qmovie-from-qbuffer-from-qbytearray-not-displaying-gif
+                movie.jumpToFrame(movie.frameCount() - 1)
+                movie.start()
+                # Need to force the window size as doesn't detect movie inside label
+                self.image_scene.setSceneRect(QRectF(movie.frameRect()))
             else:
-                # NOTE: full overlay features not available with .gif
-                #   due to forcing the scene dimensions to the movie frame
-                if len(self.image_scene.items()) > 0:
-                    logger.error("Unsupported behaviour when overlaying .gifs")
-                animation = QtWidgets.QLabel()
-                movie = QtGui.QMovie(path)
-                if movie.isValid():
-                    animation.setMovie(movie)
-                    self.image_scene.addWidget(animation)
-                    movie.start()
-                    self.image_scene.setSceneRect(QRectF(movie.frameRect()))
-                else:
-                    logger.error("Unable to load animation: %s", path)
+                logger.error("Unable to load animation: %s", path)
+                # Let the user know that animation is missing
+                self.warning_box("Unable to load animation!")
 
             self.ImageView.fitInView(
                 0,
@@ -315,6 +362,21 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.dialog = QtWidgets.QMessageBox()
         self.dialog.setText("Warning: Image not Found")
         self.dialog.setInformativeText("Filename: {}".format(path))
+        self.dialog.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        self.dialog.setDefaultButton(QtWidgets.QMessageBox.Ok)
+        self.dialog.setIcon(QtWidgets.QMessageBox.Warning)
+        self.dialog.exec()
+
+    def warning_box(self, msg: str):
+        """
+        Display warning box with message
+        :param msg: message to display
+        :return:
+        """
+
+        self.dialog = QtWidgets.QMessageBox()
+        self.dialog.setText("Warning!")
+        self.dialog.setInformativeText(msg)
         self.dialog.setStandardButtons(QtWidgets.QMessageBox.Ok)
         self.dialog.setDefaultButton(QtWidgets.QMessageBox.Ok)
         self.dialog.setIcon(QtWidgets.QMessageBox.Warning)
