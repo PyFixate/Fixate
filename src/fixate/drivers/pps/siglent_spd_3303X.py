@@ -220,8 +220,7 @@ class SPD3303X(PPS):
                 return [(code, msg)]
             else:
                 raise InstrumentError(
-                    "Error Returned from PPS\n"
-                    + f"Code: {code}\nMessage: {msg}"
+                    f"Error Returned from PPS\nCode: {code}\nMessage: {msg}"
                 )
 
     def init_api(self):
