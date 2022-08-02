@@ -78,7 +78,6 @@ class SPD3303X(PPS):
             ("address.mask", self.write, "MASKaddr {value}"),
             ("address.gate", self.write, "GATEaddr {value}"),
             ("address.dhcp", self.write, "DHCP {value}"),
-            ("idn", self.query_value, "*IDN?"),
             # Channel 1 Measuring
             ("channel1.measure.current", self.query_value, "MEAS:CURRent? CH1"),
             ("channel1.measure.voltage", self.query_value, "MEAS:VOLTage? CH1"),
@@ -206,11 +205,10 @@ class SPD3303X(PPS):
 
     def _check_errors(self):
         resp = self.instrument.query("SYST:ERR?")
-        comp = re.compile(r"(\d+) {1,2}([\w ]+)", re.UNICODE)
+        comp = re.compile(r"([+-]?\d+)\,? {1,2}([\w ]+)", re.UNICODE)
         resp = comp.match(resp)
         code = resp[1]
         msg = resp[2]
-        # code, msg = resp.strip('\n').split(',')
         code = int(code)
         msg = msg.strip('"')
         return code, msg
@@ -223,7 +221,7 @@ class SPD3303X(PPS):
             else:
                 raise InstrumentError(
                     "Error Returned from PPS\n"
-                    + "Code: {}\nMessage:{}".format(code, msg)
+                    + f"Code: {code}\nMessage: {msg}"
                 )
 
     def init_api(self):
