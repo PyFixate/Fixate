@@ -252,6 +252,7 @@ class FixateWorker:
     def ui_run(self):
 
         serial_number = None
+        serial_response = None
         test_selector = None
         self.start = True
 
