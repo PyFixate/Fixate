@@ -740,8 +740,12 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                 q.put(("Result", ret_val))
                 return
         q.put(
-            "Exception",
-            UserInputError("Maximum number of attempts {} reached".format(attempts)),
+            (
+                "Exception",
+                UserInputError(f"Maximum number of attempts {attempts} reached"),
+                # Might be helpful to print a message about the target ^
+                # i.e. target.__name__?
+            )
         )
 
     def _topic_UI_display(self, msg):
@@ -924,7 +928,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                     comparison=chk.target.__name__[1:].replace("_", " "),
                     chk_cnt=chk_cnt,
                     description=chk.description,
-                    **format_dict
+                    **format_dict,
                 )
             )
             self.sig_history_update.emit(msg)
@@ -938,7 +942,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                     comparison=chk.target.__name__[1:].replace("_", " "),
                     chk_cnt=chk_cnt,
                     description=chk.description,
-                    **format_dict
+                    **format_dict,
                 )
             )
             self.sig_history_update.emit(msg)
@@ -959,7 +963,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                     comp_val=comp_val,
                     chk_cnt=chk_cnt,
                     description=chk.description,
-                    **format_dict
+                    **format_dict,
                 )
             )
             self.sig_history_update.emit(msg)
@@ -972,7 +976,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                         chk_cnt=chk_cnt,
                         description=chk.description,
                         status=status,
-                        **format_dict
+                        **format_dict,
                     )
                 )
                 self.sig_history_update.emit(msg)
