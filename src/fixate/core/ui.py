@@ -183,6 +183,10 @@ def user_image_clear():
     pub.sendMessage("UI_image_clear")
 
 
+def user_gif(path):
+    pub.sendMessage("UI_gif", path=path)
+
+
 # TODO: This is used by the sequencer. Should make internal. Doesn't makes
 # sense that a test script would call this.
 def user_retry_abort_fail(msg):
