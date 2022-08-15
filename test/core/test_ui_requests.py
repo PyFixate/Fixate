@@ -1,34 +1,65 @@
 import unittest
 from unittest.mock import MagicMock
 from pubsub import pub
-from fixate.core.ui import _user_req_input
+from fixate.core.ui import _user_req_input, _float_validate, user_serial
 
 
 class MockUserDriver(MagicMock):
     def execute_target(self, msg, q, target=None, attempts=5, kwargs=None):
         if target:
             try:
-                ret_val = target(**kwargs)
+                if self.ret_value is None:
+                    ret_val = target(**kwargs)
+                else:
+                    ret_val = target(self.ret_value, **kwargs)
                 q.put(("Result", ret_val))
             except Exception as e:
                 q.put(("Exception", e))
         else:
-            q.put(("Result", self.return_value))
+            q.put(("Result", self.ret_value))
 
 
-@unittest.skip("process hangs. Probably waiting for a message to get sent?")
 class TestUserRequest(unittest.TestCase):
     def setUp(self):
         self.test_method = _user_req_input
         self.mock = MockUserDriver()
-        pub.subscribe(self.mock.execute_target, "UI_req")
+        pub.subscribe(self.mock.execute_target, "UI_req_input")
+
+    def tearDown(self):
+        pub.unsubscribe(self.mock.execute_target, "UI_req_input")
 
     def test_read_from_queue(self):
-        self.mock.return_value = "World"
-        self.assertEqual(self.test_method("HI"), ("Result", "World"))
+        self.mock.ret_value = "World"
+        self.assertEqual(self.test_method("message"), ("Result", "World"))
 
     def test_target_check(self):
         self.mock.test.return_value = "World"
         self.assertEqual(
             self.test_method("HI", target=self.mock.test), ("Result", "World")
         )
+
+    def test_target_float(self):
+        self.mock.ret_value = "1.23"
+        resp = self.test_method("message", target=_float_validate)
+        self.assertAlmostEqual(float(resp[1]), 1.23)
+
+    def test_target_float_fails(self):
+        self.mock.ret_value = "abc"
+        resp = self.test_method("message", target=_float_validate)
+        self.assertFalse(resp[1])
+
+    def test_user_serial(self):
+        self.mock.ret_value = "1234567890"
+        resp = user_serial("message")
+        self.assertEqual(resp[1], int(self.mock.ret_value))
+
+    def test_user_serial_fail(self):
+        self.mock.ret_value = "123456789"  # < 10 digits
+        resp = user_serial("message")
+        self.assertFalse(resp[1])
+
+    def test_user_serial_no_target(self):
+        # Not really meaningful test?
+        self.mock.ret_value = 123
+        resp = user_serial("message", None)
+        self.assertEqual(resp[1], self.mock.ret_value)
