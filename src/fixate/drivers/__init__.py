@@ -4,11 +4,23 @@ except ImportError:
     # Protocol added in python 3.8
     from typing_extensions import Protocol
 
+import re
+import pyvisa
 import pubsub.pub
+import logging
+from typing import Optional, Union
+from pyvisa.resources import Resource as VisaResource
+
+from fixate.config import INSTRUMENTS, InstrumentConfig, InstrumentType
+
+logger = logging.getLogger(__name__)
 
 
 class InstrumentNotFoundError(Exception):
     pass
+
+
+resource_manager = None
 
 
 class DriverProtocol(Protocol):
@@ -179,6 +191,38 @@ class DriverManager:
         if driver is None:
             return self.__getattribute__(attr)  # Should Raise Attribute Error
         return driver
+
+
+def find_instrument_by_id(regex_id) -> Optional[Union[InstrumentConfig, VisaResource]]:
+    """Search for instruments whose id matches the regex passed in."""
+    for instrument_config in INSTRUMENTS:
+        if re.search(regex_id, instrument_config.id):
+            if instrument_config.instrument_type == InstrumentType.VISA:
+                instrument = load_visa_instrument(instrument_config.address)
+                if instrument is not None:
+                    return instrument
+            else:
+                # Leave default behaviour for serial instruments
+                return instrument_config
+    return None
+
+
+def load_visa_instrument(visa_address: str) -> Optional[VisaResource]:
+    """load visa resource from visa address"""
+    global resource_manager
+
+    if resource_manager is None:
+        # Don't keep creating multiple resource managers
+        resource_manager = pyvisa.ResourceManager()
+    try:
+        # Try opening the visa resource
+        instrument = resource_manager.open_resource(visa_address)
+    except pyvisa.VisaIOError:
+        logger.debug(f"Failed to open: {visa_address} from local_config")
+    else:
+        logger.debug(f"Successfully opened {visa_address}")
+        return instrument
+    return None
 
 
 if __name__ == "__main__":

@@ -23,7 +23,6 @@ import re
 
 LOCAL_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "local_config.json")
 
-INSTRUMENTS = []
 RESOURCES = {}
 
 DEBUG = False
@@ -62,6 +61,9 @@ class InstrumentConfig:
     address: str
     instrument_type: InstrumentType
     parameters: Dict[str, str]
+
+
+INSTRUMENTS: List[InstrumentConfig] = []
 
 
 def load_local_config(local_config_path: str) -> List[InstrumentConfig]:
@@ -149,6 +151,8 @@ def load_config(config_files: Optional[List[str]] = None):
     INSTRUMENTS[:] = list(load_local_config(LOCAL_CONFIG_PATH))
 
 
+# Issues with this - it only loads the first match in the config
+# therefore unable to have multiple dmm's stored on same computer
 def find_instrument_by_id(regex_id) -> Optional[InstrumentConfig]:
     """Search for instruments whose id matches the regex passed in.
 
@@ -156,5 +160,7 @@ def find_instrument_by_id(regex_id) -> Optional[InstrumentConfig]:
     """
     for instrument_config in INSTRUMENTS:
         if re.search(regex_id, instrument_config.id):
+            # Alternatively could test opening here?
+            # But if test opening, might as well open???
             return instrument_config
     return None
