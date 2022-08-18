@@ -8,10 +8,10 @@ import re
 import pyvisa
 import pubsub.pub
 import logging
-from typing import Optional, Union
+from typing import Optional, List
 from pyvisa.resources import Resource as VisaResource
 
-from fixate.config import INSTRUMENTS, InstrumentConfig, InstrumentType
+from fixate.config import INSTRUMENTS, InstrumentConfig
 
 logger = logging.getLogger(__name__)
 
@@ -193,17 +193,23 @@ class DriverManager:
         return driver
 
 
-def find_instrument_by_id(regex_id) -> Optional[Union[InstrumentConfig, VisaResource]]:
+def find_instruments_by_id(regex_id) -> Optional[List[InstrumentConfig]]:
     """Search for instruments whose id matches the regex passed in."""
+    matching_instruments: List[InstrumentConfig] = []
     for instrument_config in INSTRUMENTS:
         if re.search(regex_id, instrument_config.id):
-            if instrument_config.instrument_type == InstrumentType.VISA:
-                instrument = load_visa_instrument(instrument_config.address)
-                if instrument is not None:
-                    return instrument
-            else:
-                # Leave default behaviour for serial instruments
-                return instrument_config
+            matching_instruments.append(instrument_config)
+    return matching_instruments
+
+
+def filter_connected_visa(instr_list: List[InstrumentConfig]) -> Optional[VisaResource]:
+    """Search for a connected visa instrument in list of configs and return the first one"""
+    if instr_list:
+        # Iterate through instrument configs and try to open them
+        for instrument_config in instr_list:
+            instrument = load_visa_instrument(instrument_config.address)
+            if instrument is not None:
+                return instrument
     return None
 
 
