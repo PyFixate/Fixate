@@ -16,6 +16,7 @@ class SPD3303X(PPS):
         super().__init__(instrument)
         self.instrument = instrument
         self.instrument.timeout = 1000
+        # 100ms query delay recommended - some forum discussion says 300ms more robust
         self.instrument.query_delay = 0.1
         self.instrument.read_termination = self.read_termination
         self.instrument.write_termination = self.write_termination
@@ -78,7 +79,6 @@ class SPD3303X(PPS):
             ("address.mask", self.write, "MASKaddr {value}"),
             ("address.gate", self.write, "GATEaddr {value}"),
             ("address.dhcp", self.write, "DHCP {value}"),
-            ("idn", self.query_value, "*IDN?"),
             # Channel 1 Measuring
             ("channel1.measure.current", self.query_value, "MEAS:CURRent? CH1"),
             ("channel1.measure.voltage", self.query_value, "MEAS:VOLTage? CH1"),
@@ -198,33 +198,38 @@ class SPD3303X(PPS):
         they write. By allowing 166uS delay for each byte of data then the Funcgen doesn't choke on the next call. A
         flat 20ms is added to allow processing time.
         This is especially important for commands that write large amounts of data such as user arbitrary forms.
+        # NOTE: SPD programming tips recommends 10-100ms between write commands
         """
         for cmd in data.split(";"):
             self.instrument.write(cmd)
             time.sleep(0.02 + len(cmd) / 6000)
         self._is_error()
 
-    def _check_errors(self):
-        resp = self.instrument.query("SYST:ERR?")
-        comp = re.compile(r"(\d+) {1,2}([\w ]+)", re.UNICODE)
-        resp = comp.match(resp)
-        code = resp[1]
-        msg = resp[2]
-        # code, msg = resp.strip('\n').split(',')
-        code = int(code)
-        msg = msg.strip('"')
+    @staticmethod
+    def _parse_errors(error_response):
+        """Parse error string for error code and message
+        Has different form depending on F/W version:
+            '<code> <message>'      (2017)
+            '±<code>, <message>'    (2021)
+        """
+        comp = re.compile(r"([+-]?\d+)\,? *(.*)", re.UNICODE)
+        match = comp.match(error_response)
+        code = int(match[1])
+        msg = match[2].strip('"')
         return code, msg
 
-    def _is_error(self, silent=False):
-        code, msg = self._check_errors()
-        if code != 0:
-            if silent:
-                return [(code, msg)]
-            else:
+    def _is_error(self):
+        resp = self.instrument.query("SYST:ERR?")
+        if resp:
+            code, msg = self._parse_errors(resp)
+            if code != 0:
                 raise InstrumentError(
-                    "Error Returned from PPS\n"
-                    + "Code: {}\nMessage:{}".format(code, msg)
+                    f"Error Returned from PPS\nCode: {code}\nMessage: {msg}"
                 )
+        else:
+            # NOTE: old F/W returns empty string to an incorrect query
+            # On occasion the new F/W also does the first time after clearing an error
+            raise InstrumentError("PPS Failed to respond to system query")
 
     def init_api(self):
         for func_str, handler, base_str in self.api:

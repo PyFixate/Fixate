@@ -10,6 +10,7 @@ src/fixate.egg-info/
 .pytest_cache
 .tox/
 src/fixate/config/local_config.json
+src/fixate/config/local_config.json.bak
 .coverage
 coverage.xml
 junit/*
@@ -22,3 +23,4 @@ venv/
 *.log
 venv
 venv37
+.venv
