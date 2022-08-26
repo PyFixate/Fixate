@@ -8,6 +8,7 @@ build/*
 dist/*
 src/fixate.egg-info/
 .pytest_cache
+.mypy_cache
 .tox/
 src/fixate/config/local_config.json
 src/fixate/config/local_config.json.bak
