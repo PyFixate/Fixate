@@ -3,14 +3,16 @@ import argparse
 import pyvisa
 import json
 import copy
+import platformdirs
 from shutil import copy2
 from pathlib import Path
 from cmd2.ansi import style, Fg
 from fixate.drivers.pps.bk_178x import BK178X
-import fixate.config
 from pyvisa.errors import VisaIOError
 
-DEFAULT_CONFIG_FILE = Path(fixate.config.__path__[0]) / "local_config.json"
+INSTRUMENT_CONFIG_FILE = (
+    Path(platformdirs.site_config_dir("Fixate", False)) / "instruments.json"
+)
 
 """
 fxconfig is a configuration utility that helps find connected instruments and add them to fixate's driver
@@ -224,7 +226,7 @@ class FxConfigCmd(cmd2.Cmd):
         if line:
             config_file_path = line
         else:
-            config_file_path = DEFAULT_CONFIG_FILE
+            config_file_path = INSTRUMENT_CONFIG_FILE
 
         self._load_config_into_dict(config_file_path)
 
@@ -250,7 +252,7 @@ class FxConfigCmd(cmd2.Cmd):
         if line:
             config_file_path = Path(line)
         else:
-            config_file_path = DEFAULT_CONFIG_FILE
+            config_file_path = INSTRUMENT_CONFIG_FILE
 
         if config_file_path.exists():
             raise Exception("Path '{}' already exists".format(config_file_path))
