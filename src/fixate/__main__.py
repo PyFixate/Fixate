@@ -365,7 +365,7 @@ def run_main_program(test_script_path=None):
     args, unknown = parser.parse_known_args()
     if not args.disable_logs:
         handler = RotateEachInstanceHandler(
-            fixate.config.CONFIG_DIRECTORY / "fixate.log", backupCount=10
+            fixate.config.LOG_DIRECTORY / "fixate.log", backupCount=10
         )
         handler.setFormatter(
             logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
