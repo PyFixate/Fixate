@@ -145,7 +145,6 @@ def load_config(config_files: Optional[List[str]] = None):
     config_files is a list of yaml files. Each will be loaded. Any values
     passed in those files will override the default fixate.yml.
     """
-    CONFIG_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
     # Load python environment fixate config
     env_config = CONFIG_DIRECTORY / "fixate.yml"
