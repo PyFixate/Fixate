@@ -364,6 +364,8 @@ def run_main_program(test_script_path=None):
 
     args, unknown = parser.parse_known_args()
     if not args.disable_logs:
+        fixate.config.LOG_DIRECTORY.mkdir(parents=True, exist_ok=True)
+
         handler = RotateEachInstanceHandler(
             fixate.config.LOG_DIRECTORY / "fixate.log", backupCount=10
         )

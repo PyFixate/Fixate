@@ -28,12 +28,6 @@ CONFIG_DIRECTORY = Path(platformdirs.site_config_dir("Fixate", False))
 LOG_DIRECTORY = Path(platformdirs.user_log_dir("Fixate", False))
 INSTRUMENT_CONFIG_FILE = CONFIG_DIRECTORY / "instruments.json"
 
-if not CONFIG_DIRECTORY.exists():
-    # Create directory if it doesn't already exist
-    CONFIG_DIRECTORY.mkdir(parents=True, exist_ok=True)
-
-if not LOG_DIRECTORY.exists():
-    LOG_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
 INSTRUMENTS = []
 RESOURCES = {}
@@ -151,6 +145,8 @@ def load_config(config_files: Optional[List[str]] = None):
     config_files is a list of yaml files. Each will be loaded. Any values
     passed in those files will override the default fixate.yml.
     """
+    CONFIG_DIRECTORY.mkdir(parents=True, exist_ok=True)
+
     # Load python environment fixate config
     env_config = CONFIG_DIRECTORY / "fixate.yml"
     if os.path.exists(env_config):
