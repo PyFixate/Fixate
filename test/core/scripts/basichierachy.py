@@ -2,8 +2,6 @@ from fixate.core.common import TestClass, TestList
 from fixate.core.checks import chk_true
 import fixate
 
-__version__ = "1"
-
 
 class Test(TestClass):
     """

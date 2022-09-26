@@ -122,14 +122,6 @@ chk_ui_string = [
         {"description": "test float", "fmt": ".2f"},
         f"PASS: {123.456:.2f} : test float",
     ),
-    # (chk_log_value, [123.456], {"fmt": ".2f"}, ""),
-    # (chk_log_value, [123], {"fmt": ".2f"}, ""),
-    # (chk_equal, ["string", "string"], {}),
-    # (chk_equal, [1e5, 1e5], {}),
-    # (chk_equal, [[1,2,3,4], [1,2,3,4]], {}),
-    # (chk_equal, [(1,2,3,4), (1,2,3,4)], {}),
-    # (chk_equal, [{"a":1, "b":2}, {"a":1, "b":2}], {}),
-    # (chk_equal, [2+1j, 2+1j], {}),
 ]
 
 
