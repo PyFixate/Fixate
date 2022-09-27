@@ -1,8 +1,6 @@
 from fixate.core.ui import user_info
 from fixate.core.common import TestClass, TestList
-from fixate import global_sequencer
-
-__version__ = "2"
+from fixate.config import RESOURCES
 
 # Standard expected output
 """
@@ -69,13 +67,16 @@ class Test(TestClass):
     """
 
     def set_up(self):
-        print("{}: setup {}".format(global_sequencer.levels(), self.num))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: setup {}".format(seq.levels(), self.num))
 
     def tear_down(self):
-        print("{}: teardown {}".format(global_sequencer.levels(), self.num))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: teardown {}".format(seq.levels(), self.num))
 
     def test(self):
-        print("{}: test {}".format(global_sequencer.levels(), self.num))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: test {}".format(seq.levels(), self.num))
 
     def __init__(self, num):
         super().__init__()
@@ -88,15 +89,16 @@ class FailTest(TestClass):
     """
 
     def set_up(self):
-        print("{}: setup {}".format(global_sequencer.levels(), self.num))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: setup {}".format(seq.levels(), self.num))
 
     def tear_down(self):
-        print("{}: teardown {}".format(global_sequencer.levels(), self.num))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: teardown {}".format(seq.levels(), self.num))
 
     def test(self):
-        raise Exception(
-            "Purpose fail {}: test {}".format(global_sequencer.levels(), self.num)
-        )
+        seq = RESOURCES["SEQUENCER"]
+        raise Exception("Purpose fail {}: test {}".format(seq.levels(), self.num))
         # print("{}: test {}".format(seq.levels(), self.num))
 
     def __init__(self, num):
@@ -119,16 +121,20 @@ class Lst(TestList):
     """
 
     def set_up(self):
-        print("{}: list setup".format(global_sequencer.levels()))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: list setup".format(seq.levels()))
 
     def tear_down(self):
-        print("{}: list teardown".format(global_sequencer.levels()))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: list teardown".format(seq.levels()))
 
     def enter(self):
-        print("{}: list enter".format(global_sequencer.levels()))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: list enter".format(seq.levels()))
 
     def exit(self):
-        print("{}: list exit".format(global_sequencer.levels()))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: list exit".format(seq.levels()))
 
 
 class FailSetup(TestList):
@@ -137,19 +143,21 @@ class FailSetup(TestList):
     """
 
     def set_up(self):
-        print("{}: list setup".format(global_sequencer.levels()))
-        raise Exception(
-            "Raise exception in {}: list setup".format(global_sequencer.levels())
-        )
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: list setup".format(seq.levels()))
+        raise Exception("Raise exception in {}: list setup".format(seq.levels()))
 
     def tear_down(self):
-        print("{}: list teardown".format(global_sequencer.levels()))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: list teardown".format(seq.levels()))
 
     def enter(self):
-        print("{}: list enter".format(global_sequencer.levels()))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: list enter".format(seq.levels()))
 
     def exit(self):
-        print("{}: list exit".format(global_sequencer.levels()))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: list exit".format(seq.levels()))
 
 
 class FailEnter(TestList):
@@ -158,17 +166,21 @@ class FailEnter(TestList):
     """
 
     def set_up(self):
-        print("{}: list setup".format(global_sequencer.levels()))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: list setup".format(seq.levels()))
 
     def tear_down(self):
-        print("{}: list teardown".format(global_sequencer.levels()))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: list teardown".format(seq.levels()))
 
     def enter(self):
-        print("{}: list enter".format(global_sequencer.levels()))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: list enter".format(seq.levels()))
         raise Exception("Raise exception in Enter")
 
     def exit(self):
-        print("{}: list exit".format(global_sequencer.levels()))
+        seq = RESOURCES["SEQUENCER"]
+        print("{}: list exit".format(seq.levels()))
 
 
 class Foo(TestClass):

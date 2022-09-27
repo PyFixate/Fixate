@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable
 import logging
 
-import fixate
+import fixate.config
 
 _logger = logging.getLogger(__name__)
 
@@ -41,6 +41,7 @@ class _CheckClass:
     description: str = field(default="")
     fmt: str = field(default=None)
     formatter: Callable = field(default=None)
+    status: str = field(default=None)
 
     def _generate_check_string(self) -> str:
         self.target_name = self.target.__name__[1:].replace("_", " ")
@@ -84,7 +85,7 @@ class _CheckClass:
 def _message_parse(*, target: Callable[[_CheckClass], bool], **kwargs) -> bool:
     chk = _CheckClass(target=target, **kwargs)
     chkresult = chk.get_result()
-    return fixate.global_sequencer.check(chkresult)
+    return fixate.config.RESOURCES["SEQUENCER"].check(chkresult)
 
 
 def _format_range(chk: _CheckClass) -> str:

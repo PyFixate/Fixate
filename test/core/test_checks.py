@@ -7,8 +7,10 @@ from typing import Type
 
 from fixate.core.checks import *
 from fixate.core.exceptions import CheckFail
+import fixate.config
 import fixate.sequencer
 
+fixate.config.RESOURCES["SEQUENCER"] = fixate.sequencer.Sequencer()
 
 chk_pass_data = [
     (chk_passes, [], {"description": "test abc description"}),
