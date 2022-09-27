@@ -3,7 +3,7 @@ This module is used to allow for tests to test values against criteria.
 It should implement necessary logging functions and report success or failure.
 """
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Optional
 import logging
 
 import fixate.config
@@ -33,14 +33,14 @@ class _CheckClass:
     target: Callable
     test_val: Any = field(default=None)
     target_name: str = field(default=None)
-    _min: Any = field(default=None)
-    _max: Any = field(default=None)
-    nominal: Any = field(default=None)
-    tol: Any = field(default=None)
-    deviation: Any = field(default=None)
+    _min: Optional[Any] = field(default=None)
+    _max: Optional[Any] = field(default=None)
+    nominal: Optional[Any] = field(default=None)
+    tol: Optional[Any] = field(default=None)
+    deviation: Optional[Any] = field(default=None)
     description: str = field(default="")
-    fmt: str = field(default=None)
-    formatter: Callable = field(default=None)
+    fmt: Optional[str] = field(default=None)
+    formatter: Optional[Callable] = field(default=None)
     status: str = field(default=None)
 
     def _generate_check_string(self) -> str:
