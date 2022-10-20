@@ -2,6 +2,28 @@
 Release Notes
 ==================================
 *************
+Version 0.6.0
+*************
+Release Date 21/10/2022
+
+Major Changes
+################
+Relocation of configuration files:
+
+- Logs now located in platformdirs.user_log_dir("Fixate")
+- Instrument config file renamed from local_config.json -> instruments.json and located in platformdirs.site_config_dir("Fixate")
+- fixate.yml also moved to platformdirs.site_config_dir("Fixate")
+
+New Features
+############
+- Added gif support for the gui. Try user_gif("<path to .gif>")
+- Clearing the gui image scene will now create a new instance to reset auto-scaling.
+
+Improvements
+############
+- Updated siglent PPS driver to support parsing of error strings in the latest firmware
+
+*************
 Version 0.5.7
 *************
 Release Date 12/07/2022
