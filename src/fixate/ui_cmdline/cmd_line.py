@@ -229,10 +229,10 @@ def _user_input(msg, q, target=None, attempts=5, kwargs=None):
         if ret_val:
             q.put(("Result", ret_val))
             return
-    q.put(
-        "Exception",
-        UserInputError("Maximum number of attempts {} reached".format(attempts)),
-    )
+    # Display failure of target and send exception
+    error_str = f"Maximum number of attempts {attempts} reached. {target.__doc__}"
+    _user_display(error_str)
+    q.put(("Exception", UserInputError(error_str)))
 
 
 def _user_display(msg):
@@ -362,7 +362,7 @@ def _print_comparisons(passes, chk, chk_cnt, context):
                     comparison=chk.target.__name__[1:].replace("_", " "),
                     chk_cnt=chk_cnt,
                     description=chk.description,
-                    **format_dict
+                    **format_dict,
                 )
             )
         )
@@ -375,7 +375,7 @@ def _print_comparisons(passes, chk, chk_cnt, context):
                     comparison=chk.target.__name__[1:].replace("_", " "),
                     chk_cnt=chk_cnt,
                     description=chk.description,
-                    **format_dict
+                    **format_dict,
                 )
             )
         )
@@ -395,7 +395,7 @@ def _print_comparisons(passes, chk, chk_cnt, context):
                     comp_val=comp_val,
                     chk_cnt=chk_cnt,
                     description=chk.description,
-                    **format_dict
+                    **format_dict,
                 )
             )
         )
@@ -407,7 +407,7 @@ def _print_comparisons(passes, chk, chk_cnt, context):
                         chk_cnt=chk_cnt,
                         description=chk.description,
                         status=status,
-                        **format_dict
+                        **format_dict,
                     )
                 )
             )

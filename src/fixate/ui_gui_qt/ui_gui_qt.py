@@ -823,10 +823,10 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             if ret_val:
                 q.put(("Result", ret_val))
                 return
-        q.put(
-            "Exception",
-            UserInputError("Maximum number of attempts {} reached".format(attempts)),
-        )
+        # Display failure of target and send exception
+        error_str = f"Maximum number of attempts {attempts} reached. {target.__doc__}"
+        self._topic_UI_display(error_str)
+        q.put(("Exception", UserInputError(error_str)))
 
     def _topic_UI_display(self, msg):
         """
@@ -1008,7 +1008,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                     comparison=chk.target.__name__[1:].replace("_", " "),
                     chk_cnt=chk_cnt,
                     description=chk.description,
-                    **format_dict
+                    **format_dict,
                 )
             )
             self.sig_history_update.emit(msg)
@@ -1022,7 +1022,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                     comparison=chk.target.__name__[1:].replace("_", " "),
                     chk_cnt=chk_cnt,
                     description=chk.description,
-                    **format_dict
+                    **format_dict,
                 )
             )
             self.sig_history_update.emit(msg)
@@ -1043,7 +1043,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                     comp_val=comp_val,
                     chk_cnt=chk_cnt,
                     description=chk.description,
-                    **format_dict
+                    **format_dict,
                 )
             )
             self.sig_history_update.emit(msg)
@@ -1056,7 +1056,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                         chk_cnt=chk_cnt,
                         description=chk.description,
                         status=status,
-                        **format_dict
+                        **format_dict,
                     )
                 )
                 self.sig_history_update.emit(msg)

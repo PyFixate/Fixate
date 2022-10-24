@@ -89,6 +89,7 @@ def user_input(msg):
 
 
 def _float_validate(entry):
+    """Requires float entry"""
     try:
         return float(entry)
     except ValueError:
@@ -208,6 +209,7 @@ def _user_choices(response, choices):
 
 
 def _ten_digit_serial(response):
+    """Requires 10-digit integer"""
     return (len(response) == 10) and int(response)
 
 
