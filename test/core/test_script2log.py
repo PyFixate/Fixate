@@ -34,12 +34,13 @@ def compare_logs(test_log, expected_log):
         dict_line(expected_first),
         filter_keys={"started", "fixate-version"},
     )
-    # CHeck last line
+    # Check last line
     compare_dicts(dict_line(test_last), dict_line(expected_last), filter_keys={"ended"})
 
 
 log_dir = os.path.join(os.path.dirname(__file__), "expect-logs")
 script_dir = os.path.join(os.path.dirname(__file__), "scripts")
+local_config = os.path.join(log_dir, "fixate.yml")
 
 
 def test_basicpass(tmpdir):
@@ -52,6 +53,8 @@ def test_basicpass(tmpdir):
             "fixate",
             "-p",
             script_path,
+            "-c",
+            local_config,
             "--serial-number",
             "0123456789",
             "--log-file",
@@ -73,6 +76,8 @@ def test_basicfail(tmpdir):
             "fixate",
             "-p",
             script_path,
+            "-c",
+            local_config,
             "--serial-number",
             "0123456789",
             "--log-file",
@@ -142,6 +147,8 @@ def test_basichierachy(tmpdir, fail_flag, raise_flag, xfail, return_code):
             "fixate",
             "-p",
             script_path,
+            "-c",
+            local_config,
             "--serial-number",
             "0123456789",
             "--log-file",
