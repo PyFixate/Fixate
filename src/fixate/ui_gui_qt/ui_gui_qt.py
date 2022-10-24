@@ -739,14 +739,10 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             if ret_val:
                 q.put(("Result", ret_val))
                 return
-        q.put(
-            (
-                "Exception",
-                UserInputError(f"Maximum number of attempts {attempts} reached"),
-                # Might be helpful to print a message about the target ^
-                # i.e. target.__name__?
-            )
-        )
+        # Display failure of target and send exception
+        error_str = f"Maximum number of attempts {attempts} reached. {target.__doc__}"
+        self._topic_UI_display(error_str)
+        q.put(("Exception", UserInputError(error_str)))
 
     def _topic_UI_display(self, msg):
         """
