@@ -2,6 +2,13 @@
 Release Notes
 ==================================
 *************
+Version 0.6.1
+*************
+Release Date xx/xx/xxxx
+
+- Fix initial serial number check to properly raise exception on incorrect entry.
+
+*************
 Version 0.6.0
 *************
 Release Date 21/10/2022
