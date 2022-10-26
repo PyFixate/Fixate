@@ -60,6 +60,7 @@ def test_basicpass(tmpdir):
             "--log-file",
             log_path,
             "--non-interactive",
+            "--disable-logs",
         ]
     )
     assert ret == 5
@@ -83,6 +84,7 @@ def test_basicfail(tmpdir):
             "--log-file",
             log_path,
             "--non-interactive",
+            "--disable-logs",
         ]
     )
     assert ret == 10
@@ -158,6 +160,7 @@ def test_basichierachy(tmpdir, fail_flag, raise_flag, xfail, return_code):
             "fail_flag=" + fail_flag,
             "--script-params",
             "raise_flag=" + raise_flag,
+            "--disable-logs",
         ]
     )
 
