@@ -2,6 +2,13 @@
 Release Notes
 ==================================
 *************
+Version X.X.X
+*************
+Release Date xx/xx/xxxx
+
+- Failure to open a drivers pyvisa resource will now raise a more informative InstrumentOpenError exception from the pyvisa error
+
+*************
 Version 0.6.0
 *************
 Release Date 21/10/2022

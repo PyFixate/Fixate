@@ -1,8 +1,10 @@
 import pyvisa
+
 import fixate.drivers
-from fixate.drivers.dso.helper import DSO
-from fixate.drivers.dso.agilent_mso_x import MSO_X_3000
 from fixate.config import find_instrument_by_id
+from fixate.drivers import InstrumentNotFoundError, InstrumentOpenError
+from fixate.drivers.dso.agilent_mso_x import MSO_X_3000
+from fixate.drivers.dso.helper import DSO
 
 
 def open() -> DSO:
@@ -10,8 +12,13 @@ def open() -> DSO:
     if instrument is not None:
         # we've found a connected instrument so open and return it
         rm = pyvisa.ResourceManager()
-        # open_resource could raise visa.VisaIOError?
-        driver = MSO_X_3000(rm.open_resource(instrument.address))
+        try:
+            resource = rm.open_resource(instrument.address)
+        except pyvisa.VisaIOError as e:
+            raise InstrumentOpenError(
+                f"Unable to open DSO: {instrument.address}"
+            ) from e
+        driver = MSO_X_3000(resource)
         fixate.drivers.log_instrument_open(driver)
         return driver
-    raise fixate.drivers.InstrumentNotFoundError
+    raise InstrumentNotFoundError

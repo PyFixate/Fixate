@@ -5,11 +5,13 @@ Use lcr.open to connect to a connected digital multi meter
 Functions are dictacted by the metaclass in helper.py
 
 """
-from fixate.drivers.lcr.helper import LCR, TestResult
 import pyvisa
+
 import fixate.drivers
-from fixate.drivers.lcr.agilent_u1732c import AgilentU1732C
 from fixate.config import find_instrument_by_id
+from fixate.drivers import InstrumentNotFoundError, InstrumentOpenError
+from fixate.drivers.lcr.agilent_u1732c import AgilentU1732C
+from fixate.drivers.lcr.helper import LCR
 
 
 def open() -> LCR:
@@ -17,8 +19,13 @@ def open() -> LCR:
     if instrument is not None:
         # we've found a connected instrument so open and return it
         rm = pyvisa.ResourceManager()
-        # open_resource could raise visa.VisaIOError?
-        driver = AgilentU1732C(rm.open_resource(instrument.address))
+        try:
+            resource = rm.open_resource(instrument.address)
+        except pyvisa.VisaIOError as e:
+            raise InstrumentOpenError(
+                f"Unable to open LCR: {instrument.address}"
+            ) from e
+        driver = AgilentU1732C(resource)
         fixate.drivers.log_instrument_open(driver)
         return driver
-    raise fixate.drivers.InstrumentNotFoundError
+    raise InstrumentNotFoundError

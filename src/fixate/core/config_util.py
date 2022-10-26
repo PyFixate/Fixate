@@ -366,6 +366,7 @@ def visa_id_query(visa_resource_name):
 
     # At least one instrument (Siglent SPD3303X power supply) only responds
     # when the line termination is set to \n
+    # Could the previous un-terminated query be causing issues with pps connectivity?
     instr.read_termination = "\n"
     instr.write_termination = "\n"
 
