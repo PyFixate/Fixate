@@ -5,38 +5,6 @@ from fixate.core.common import mode_builder, deprecated
 from fixate.drivers.dmm.helper import DMM
 import time
 
-MODES = {
-    ":VOLTage": {
-        ":DC": {"[:RATio]": {}, " [{range}]": {", [{resolution}]": {}}},
-        ":AC": {" [{range}]": {", [{resolution}]": {}}},
-    },
-    ":CURRent": {
-        ":DC": {" [{range}]": {", [{resolution}]": {}}},
-        ":AC": {" [{range}]": {", [{resolution}]": {}}},
-    },
-    ":RESistance": {" [{range}]": {", [{resolution}]": {}}},
-    ":FRESistance": {" [{range}]": {", [{resolution}]": {}}},
-    ":FREQuency": {" [{range}]": {", [{resolution}]": {}}},
-    ":PERiod": {" [{range}]": {", [{resolution}]": {}}},
-    ":CAPacitance": {" [{range}]": {", [{resolution}]": {}}},
-    ":TEMPerature": {":FRTD": {" [{RTD_type}]": {}}, ":RTD": {" [{RTD_type}]": {}}},
-    ":CONTinuity": {},
-    ":DIODe": {" [{low_current}]": {", [{high_voltage}]": {}}},
-}
-
-FILTERS = {
-    "[SENSe:VOLTage]": {
-        "[:DC]:FILTer:STATe ON; VOLTage:DC:FILTEr:DIGital:STATe OFF": {},
-        ":AC:BANDwidth 20": {},
-    },
-    "[SENSe:CURRent]": {
-        "[:DC]:FILTer:STATe ON; CURRent:DC:FILTEr:DIGital:STATe OFF": {},
-        ":AC:BANDwidth 20": {},
-    },
-    "[SENSe:RESistance]:FILTer:STATe ON; RESistance:FILTEr:DIGital:STATe OFF": {},
-    "[SENSe:FRESistance]:FILTer:STATe ON; FRESistance:FILTEr:DIGital:STATe OFF": {},
-}
-
 
 class Fluke8846A(DMM):
     REGEX_ID = "FLUKE,8846A"
