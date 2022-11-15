@@ -14,7 +14,7 @@ class Keithley6500(DMM):
         self.instrument = instrument
         instrument.rtscts = 1
         self.lock = Lock()
-        self.display = "on"
+        self._display = "ON100"
         # del self.instrument.timeout
         self.instrument.timeout = 10000
         self.instrument.query_delay = 0
@@ -47,6 +47,18 @@ class Keithley6500(DMM):
 
         self._init_string = ""  # Unchanging
 
+    # Adapter for different DMM behaviour
+    @property
+    def display(self):
+        return self.display
+
+    @display.setter
+    def display(self, val):
+        if val == "off":
+            self._display = "OFF"
+        else:
+            self._display = "ON100"
+
     @property
     def samples(self):
         return self._samples
@@ -54,6 +66,13 @@ class Keithley6500(DMM):
     @samples.setter
     def samples(self, val):
         # Sample number is per mode.
+
+        # Clip values to upper and lower bounds. DMM likes to crash if set out of bounds
+        if val <= 0:
+            val = 1
+        elif val > 1000000:
+            val = 1000000
+
         self._write(["SENS:COUN {}".format(val)])
         self._is_error()
         self._samples = val
@@ -78,7 +97,9 @@ class Keithley6500(DMM):
         """
         with self.lock:
             self._is_error(silent=True)
-            self._write(["*RST; *CLS"])
+            # Reset, clear event logs, set default buffer
+            self._write(["*RST; *CLS; :DISP:BUFF:ACT 'defbuffer1'; :DISP:SCR HOME"])
+            self._write(["DISP:LIGH:STAT {}".format(self._display)])
             self._CLEAN_UP_FLAG = False
             self._is_error()
 
