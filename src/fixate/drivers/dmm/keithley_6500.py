@@ -217,7 +217,7 @@ class Keithley6500(DMM):
         if _range is not None:
             mode_str += "; :SENS:{}:RANGE {}".format(self._modes[self._mode], _range)
         if suffix is not None:
-            mode_str += " {}".format(suffix)
+            mode_str += "; {}".format(suffix)
         self._write(mode_str)
         # Make sure sample count is set for the mode:
         self._write(["SENS:COUN {}".format(self.samples)])
@@ -255,7 +255,11 @@ class Keithley6500(DMM):
 
     def diode(self, low_current=True, high_voltage=False):
         # Cannot set range. 10V fixed range
-        self._set_measurement_mode("diode")
+        if low_current == True:
+            command = ":SENS:DIOD:BIAS:LEV 0.0001"  # 100uA
+        if low_current == False:
+            command = ":SENS:DIOD:BIAS:LEV 0.001"  # 1mA
+        self._set_measurement_mode("diode", suffix=command)
 
     def continuity(self):
         """
