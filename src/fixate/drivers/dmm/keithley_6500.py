@@ -136,9 +136,8 @@ class Keithley6500(DMM):
                ValueError if no values are read
         return: values read from the DMM
         """
-        self._write(
-            ["TRAC:CLE"]
-        )  # Clear the reading buffer for next set of measurements.
+        # Clear the reading buffer for next set of measurements.
+        self._write(["TRAC:CLE"])
         self.instrument.query("READ?")  # Start sampling into debuffer1
         values = self.instrument.query_ascii_values(
             "TRAC:DATA? 1, {}".format(self.samples)
