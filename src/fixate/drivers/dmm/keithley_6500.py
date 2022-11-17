@@ -59,7 +59,7 @@ class Keithley6500(DMM):
         else:
             self._display = "ON100"
 
-        self._write(["DISP:LIGH:STAT {}".format(self._display)])
+        self._write(f"DISP:LIGH:STAT {self._display}")
 
     @property
     def samples(self):
@@ -75,7 +75,7 @@ class Keithley6500(DMM):
         elif val > 1000000:
             val = 1000000
 
-        self._write(["SENS:COUN {}".format(val)])
+        self._write(f":COUN {val}")
         self._is_error()
         self._samples = val
 
@@ -100,7 +100,7 @@ class Keithley6500(DMM):
         with self.lock:
             self._is_error(silent=True)
             # Wait for previous commands to finish, reset, clear event logs
-            self._write(["*WAI; *RST; *CLS"])
+            # self._write("*WAI; *RST; *WAI; *CLS")
             self._CLEAN_UP_FLAG = False
             self._is_error()
 
@@ -131,16 +131,15 @@ class Keithley6500(DMM):
         """
         Attempts to read values from the DMM up until self.retrys_on_timeout amount of times
         After each attempt DMM is checked for errors
-        If errors.VisaIOError during read error_cleanup is called
         raise: VisaIOError if exception on the last attempt
                ValueError if no values are read
         return: values read from the DMM
         """
         # Clear the reading buffer for next set of measurements.
-        self._write(["TRAC:CLE"])
+        self._write("TRAC:CLE")
         self.instrument.query("READ?")  # Start sampling into debuffer1
         values = self.instrument.query_ascii_values(
-            "TRAC:DATA? 1, {}".format(self.samples)
+            f"TRAC:DATA? 1, {self.samples}"
         )  # Read values from the once done.
         if self.legacy_mode:
             self._is_error()
@@ -151,7 +150,7 @@ class Keithley6500(DMM):
         Queries the DMM for errors and splits the resp string into the message and error code
         return: Error code and Error msg
         """
-        resp = self.instrument.query("SYST:ERR?")
+        resp = self.instrument.query("SYST:ERR:NEXT?")
         try:
             code, msg = resp.strip("\n").split(',"')
             code = int(code)
@@ -179,29 +178,13 @@ class Keithley6500(DMM):
             if silent:
                 return errors
             else:
+                self.reset()  # Need to call reset after error to stop DMM crashes
                 raise InstrumentError(
                     "Error(s) Returned from DMM\n"
                     + "\n".join(
-                        [
-                            "Code: {}\nMessage:{}".format(code, msg)
-                            for code, msg in errors
-                        ]
+                        [f"Code: {code}\nMessage:{msg}" for code, msg in errors]
                     )
                 )
-
-    def error_cleanup(self):
-        """
-        When VisaIOError exception caught, DMM interrupt is sent, read buffer is cleared and DMM returned to power up
-        state.  VI read buffer is then flushed.
-        DMM is then returned to previous configuration
-        """
-        self._CLEAN_UP_FLAG = True
-        # Disaster Recovery
-        self.instrument.write("\x03;*RST;*CLS")  # CTRL-C
-        time.sleep(1.1)  # time needed to clear the dmm read buffer
-        self.instrument.flush(constants.VI_READ_BUF_DISCARD)
-        self.instrument.close()
-        self.instrument.open()
 
     def _set_measurement_mode(self, mode, _range=None, suffix=None):
         """
@@ -212,15 +195,13 @@ class Keithley6500(DMM):
         :return:
         """
         self.mode = mode
-        mode_str = "SENS:FUNC '{}'".format(self._modes[self._mode])
+        mode_str = f"SENS:FUNC '{self._modes[self._mode]}'"
         if _range is not None:
-            mode_str += "; :SENS:{}:RANGE {}".format(self._modes[self._mode], _range)
+            mode_str += f"; :SENS:{self._modes[self._mode]}:RANGE {_range}"
         if suffix is not None:
-            mode_str += "; {}".format(suffix)
+            mode_str += f"; {suffix}"
         self._write(mode_str)
-        # Make sure sample count is set for the mode:
-        self._write(["SENS:COUN {}".format(self.samples)])
-
+        self._write(f":COUN {self.samples}")
         self._is_error()
 
     def voltage_ac(self, _range=None):
@@ -242,18 +223,31 @@ class Keithley6500(DMM):
         self._set_measurement_mode("fresistance", _range)
 
     def frequency(self, _range=None):
-        # Cannot set range for frequency measurement
-        self._set_measurement_mode("frequency")
+        """
+        :param _range: The voltage range to perform the measurement.
+        """
+        command = None
+        if _range:
+            # Have to construct an alternative commnad for FREQuency range
+            command = f":SENS:FREQ:THR:RANG:AUTO OFF; :SENS:FREQ:THR:RANG {_range}"
+        self._set_measurement_mode("frequency", suffix=command)
 
     def period(self, _range=None):
-        # Cannot set range for period measurement
-        self._set_measurement_mode("period")
+        """
+        :param _range: The voltage range to perform the measurement.
+        """
+        command = None
+        if _range:
+            # Have to construct an alternative commnad for PERiod range
+            command = f":SENS:PER:THR:RANG:AUTO OFF; :SENS:PER:THR:RANG {_range}"
+        self._set_measurement_mode("period", suffix=command)
 
     def capacitance(self, _range=None):
         self._set_measurement_mode("capacitance", _range)
 
     def diode(self, low_current=True, high_voltage=False):
         # Cannot set range. 10V fixed range
+        command = None
         if low_current == True:
             command = ":SENS:DIOD:BIAS:LEV 0.0001"  # 100uA
         if low_current == False:
@@ -283,11 +277,10 @@ class Keithley6500(DMM):
         param value: The string associated with the mode being set up
         raise: ParameterError if mode trying to be set is not valid
         """
-        self._write("*rst")
+        self._write("*RST")
         time.sleep(0.05)
-        # do we need to set the default filter here?
         if value not in self._modes:
-            raise ParameterError("Unknown mode {} for DMM".format(value))
+            raise ParameterError(f"Unknown mode {value} for DMM")
         self._mode = value
 
     def get_identity(self) -> str:
