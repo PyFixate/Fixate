@@ -357,7 +357,6 @@ def visa_id_query(visa_resource_name):
     instr = pyvisa.ResourceManager().open_resource(visa_resource_name, query_delay=0.1)
     # 1 s timeout is overly conservative. But if we call clear() that can take a while for some instruments
     instr.timeout = 1000
-    # instr.clear()
     resp = instr.query("*IDN?")
 
     if resp:

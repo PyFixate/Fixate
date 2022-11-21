@@ -11,6 +11,10 @@ class InstrumentNotFoundError(Exception):
     pass
 
 
+class InstrumentOpenError(Exception):
+    pass
+
+
 class DriverProtocol(Protocol):
     REGEX_ID: str
 
