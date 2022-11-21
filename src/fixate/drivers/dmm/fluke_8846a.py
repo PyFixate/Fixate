@@ -15,7 +15,6 @@ class Fluke8846A(DMM):
         instrument.rtscts = 1
         self.lock = Lock()
         self.display = "on"
-        # del self.instrument.timeout
         self.instrument.timeout = 10000
         self.instrument.query_delay = 0
         self.instrument.delay = 0

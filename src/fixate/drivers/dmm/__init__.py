@@ -16,13 +16,12 @@ from fixate.config import find_instrument_by_id
 
 
 def open() -> DMM:
-    # for ID in DMM_list:
+
     for DMM in [Fluke8846A, Keithley6500]:
         instrument = find_instrument_by_id(DMM.REGEX_ID)
         if instrument is not None:
-            # we've found a connected instrument so open and return it
+            # Attempt to open instrument in config file
             rm = pyvisa.ResourceManager()
-            # open_resource could raise visa.VisaIOError?
             try:
                 driver = DMM(rm.open_resource(instrument.address))
                 fixate.drivers.log_instrument_open(driver)

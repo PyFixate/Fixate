@@ -47,7 +47,7 @@ class Keithley6500(DMM):
 
         self._init_string = ""  # Unchanging
 
-    # Adapter for different DMM behaviour
+    # Adapted for different DMM behaviour
     @property
     def display(self):
         return self.display
@@ -70,10 +70,10 @@ class Keithley6500(DMM):
         # Sample number is per mode.
 
         # Clip values to upper and lower bounds. DMM likes to crash if set out of bounds
-        if val < 1:
-            val = 1
-        elif val > 1000000:
-            val = 1000000
+        if val < 1 or val > 1000000:
+            raise ParameterError(
+                "Number of samples out of bounds. Must be between 1 and 1000000"
+            )
 
         self._write(f":COUN {val}")
         self._is_error()
