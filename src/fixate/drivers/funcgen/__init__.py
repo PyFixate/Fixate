@@ -41,7 +41,7 @@ def open() -> FuncGen:
     for driver_class in (Keysight33500B, RigolDG1022):
         instrument = find_instrument_by_id(driver_class.REGEX_ID)
         if instrument is not None:
-            # we've found a connected instrument so open and return it
+            # We've found a configured instrument so try to open it
             rm = pyvisa.ResourceManager()
             try:
                 resource = rm.open_resource(instrument.address)
@@ -49,8 +49,8 @@ def open() -> FuncGen:
                 raise InstrumentOpenError(
                     f"Unable to open FuncGen: {instrument.address}"
                 ) from e
+            # Instantiate driver with connected instrument
             driver = driver_class(resource)
             fixate.drivers.log_instrument_open(driver)
             return driver
-
     raise InstrumentNotFoundError

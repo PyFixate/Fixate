@@ -19,7 +19,7 @@ from fixate.drivers.dmm.helper import DMM
 def open() -> DMM:
     instrument = find_instrument_by_id(Fluke8846A.REGEX_ID)
     if instrument is not None:
-        # we've found a connected instrument so open and return it
+        # We've found a configured instrument so try to open it
         rm = pyvisa.ResourceManager()
         try:
             resource = rm.open_resource(instrument.address)
@@ -27,6 +27,7 @@ def open() -> DMM:
             raise InstrumentOpenError(
                 f"Unable to open DMM: {instrument.address}"
             ) from e
+        # Instantiate driver with connected instrument
         driver = Fluke8846A(resource)
         fixate.drivers.log_instrument_open(driver)
         return driver
