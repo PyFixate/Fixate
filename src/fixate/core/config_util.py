@@ -357,7 +357,6 @@ def visa_id_query(visa_resource_name):
     instr = pyvisa.ResourceManager().open_resource(visa_resource_name, query_delay=0.1)
     # 1 s timeout is overly conservative. But if we call clear() that can take a while for some instruments
     instr.timeout = 1000
-    # instr.clear()
     resp = instr.query("*IDN?")
 
     if resp:
@@ -366,7 +365,6 @@ def visa_id_query(visa_resource_name):
 
     # At least one instrument (Siglent SPD3303X power supply) only responds
     # when the line termination is set to \n
-    # Could the previous un-terminated query be causing issues with pps connectivity?
     instr.read_termination = "\n"
     instr.write_termination = "\n"
 
