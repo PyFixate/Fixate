@@ -10,9 +10,9 @@ def get_funcgen():
 
 class BaseSetup:
     def setUp(self):
-        import visa
+        import pyvisa
 
-        rm = visa.ResourceManager()
+        rm = pyvisa.ResourceManager()
         resource = rm.open_resource("USB0::2391::9991::MY52303676::0::INSTR")
         self.testcls = Keysight33500B(instrument=resource)
         self.testcls.reset()

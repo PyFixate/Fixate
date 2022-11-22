@@ -7,6 +7,7 @@ Version 0.6.1
 Release Date xx/xx/xxxx
 
 - Fix initial serial number check to properly raise exception on incorrect entry.
+- Failure to open a drivers pyvisa resource will now raise a more informative InstrumentOpenError exception from the pyvisa error
 
 *************
 Version 0.6.0

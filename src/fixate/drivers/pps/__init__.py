@@ -1,19 +1,24 @@
-from fixate.drivers.pps.helper import PPS
-
 import pyvisa
+
 import fixate.drivers
-from fixate.drivers.pps.bk_178x import BK178X
-from fixate.drivers.pps.siglent_spd_3303X import SPD3303X
 from fixate.config import find_instrument_by_id
+from fixate.drivers import InstrumentNotFoundError, InstrumentOpenError
+from fixate.drivers.pps.bk_178x import BK178X
+from fixate.drivers.pps.helper import PPS
+from fixate.drivers.pps.siglent_spd_3303X import SPD3303X
 
 
 def open() -> PPS:
     siglent = find_instrument_by_id(SPD3303X.REGEX_ID)
     if siglent is not None:
-        # we've found a connected instrument so open and return it
+        # We've found a configured instrument so try to open it
         rm = pyvisa.ResourceManager()
-        # open_resource could raise visa.VisaIOError?
-        driver = SPD3303X(rm.open_resource(siglent.address))
+        try:
+            resource = rm.open_resource(siglent.address)
+        except pyvisa.VisaIOError as e:
+            raise InstrumentOpenError(f"Unable to open PPS: {siglent.address}") from e
+        # Instantiate driver with connected instrument
+        driver = SPD3303X(resource)
         fixate.drivers.log_instrument_open(driver)
         return driver
 
@@ -24,4 +29,4 @@ def open() -> PPS:
         fixate.drivers.log_instrument_open(driver)
         return driver
 
-    raise fixate.drivers.InstrumentNotFoundError
+    raise InstrumentNotFoundError
