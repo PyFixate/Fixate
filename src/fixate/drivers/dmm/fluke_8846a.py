@@ -20,6 +20,7 @@ class Fluke8846A(DMM):
         self.instrument.delay = 0
         self.is_connected = True
         self.reset()
+        self._manual_trigger = False
         self._samples = 1
         self._CLEAN_UP_FLAG = False
         self._ANALOG_FLAG = False
@@ -75,6 +76,22 @@ class Fluke8846A(DMM):
         self._write(["SAMP:COUN {}".format(self.samples)])
         self._is_error()
         self._samples = val
+
+    def local(self):
+        self._write("SYST:LOC")
+
+    def remote(self):
+        self._write("SYST:REM")
+
+    def set_manual_trigger(self, samples=1):
+        self._manual_trigger = True
+        self.samples = samples
+        self._write("TRIG:SOUR BUS")  # set DMM to remote trigger
+        self._write("TRIG:COUN {}".format(samples))  # Set number of samples
+        self._write("INIT")  # Wait for trigger
+
+    def trigger(self):
+        self._write("*TRG")  # Send trigger to instrument
 
     def measurement(self):
         """
@@ -132,7 +149,11 @@ class Fluke8846A(DMM):
                ValueError if no values are read
         return: values read from the DMM
         """
-        values = self.instrument.query_ascii_values("READ?")
+        if self._manual_trigger:
+            values = self.instrument.query_ascii_values("FETCH?")
+        else:
+            values = self.instrument.query_ascii_values("READ?")
+
         if self.legacy_mode:
             self._is_error()
         return values
@@ -203,6 +224,7 @@ class Fluke8846A(DMM):
         :return:
         """
         self.mode = mode
+        self._manual_trigger = False  # Default mode is auto trigger
         mode_str = "{}".format(self._modes[self._mode])
         if _range is not None:
             mode_str += " {}".format(_range)

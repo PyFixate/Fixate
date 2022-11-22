@@ -2,6 +2,32 @@ class DMM:
     REGEX_ID = "DMM"
     is_connected = False
 
+    def remote(self):
+        """
+        Sets instrument to remote mode
+        """
+        raise NotImplementedError
+
+    def local(self):
+        """
+        Sets instrument to local mode
+        Use remote() to restore remote operation.
+        """
+        raise NotImplementedError
+
+    def set_manual_trigger(self, samples=1):
+        """
+        Setup instrument for manual triggering.
+        :param samples: Number of samples to take per trigger event
+        """
+        raise NotImplementedError
+
+    def trigger(self):
+        """
+        Manually trigger measurement and store in instrument buffer.
+        """
+        raise NotImplementedError
+
     def measurement(self):
         raise NotImplementedError
 

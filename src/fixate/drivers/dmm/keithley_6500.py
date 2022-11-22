@@ -21,6 +21,7 @@ class Keithley6500(DMM):
         self.instrument.delay = 0  # Stop DMM crash
         self.is_connected = True
         self.reset()
+        self._manual_trigger = False
         self._samples = 1
         self._CLEAN_UP_FLAG = False
         self._ANALOG_FLAG = False
@@ -79,6 +80,43 @@ class Keithley6500(DMM):
         self._is_error()
         self._samples = val
 
+    def local(self):
+        # Keithley does not have a way to release the DMM from remote mode
+        # So just set up a trigger loop. Requires *TRG to be sent to drop it out of the loop (call to remote()).
+        self.samples = 1
+        self._write("TRIG:LOAD 'EMPTY'")  # Load empty model
+        self._write(f"TRIG:BLOC:MDIG 1, 'defbuffer1', 1")
+        self._write(f"TRIG:BLOC:DEL:CONS 2, 0.1")
+        self._write("TRIG:BLOC:BRAN:EVEN 3, COMM, 5")
+        self._write(f"TRIG:BLOC:BRAN:ALW 4, 1")
+        self._write("TRIG:BLOC:BUFF:CLE 5")
+        self._write("TRAC:CLE")
+        self._write("INIT")
+
+    def remote(self):
+        # Stop trigger loop and return to normal
+        self._write("*TRG")
+
+    def set_manual_trigger(self, samples=1):
+        """
+        Setup instrument for manual triggering
+        :param samples: Number of samples to take per trigger
+
+        Use trigger_measurement() to trigger a measurement.
+        Use measurements() to retrieve measurements.
+        """
+        self._manual_trigger = True
+        self.samples = samples
+        self._write("TRIG:LOAD 'EMPTY'")  # Load empty model
+        self._write(f"TRIG:BLOC:MDIG 1, 'defbuffer1', {samples}")
+        self._write("TRAC:CLE")
+
+    def trigger(self):
+        """
+        Manually trigger a measurement and store in instrument buffer.
+        """
+        self._write("INIT; *WAI")
+
     def measurement(self):
         """
         Sets up DMM triggering, creates list of measurements from the read buffer
@@ -129,20 +167,24 @@ class Keithley6500(DMM):
 
     def _read_measurements(self):
         """
-        Attempts to read values from the DMM up until self.retrys_on_timeout amount of times
+        Attempts to read values from the DMM
         After each attempt DMM is checked for errors
         raise: VisaIOError if exception on the last attempt
                ValueError if no values are read
         return: values read from the DMM
         """
-        # Clear the reading buffer for next set of measurements.
-        self._write("TRAC:CLE")
-        self.instrument.query("READ?")  # Start sampling into debuffer1
+        if not self._manual_trigger:
+            self.instrument.query("READ?; *WAI")  # Start sampling into debuffer1
+
+        # Get number of readings in buffer
+        readings = self.instrument.query_ascii_values("TRAC:ACTual?")
         values = self.instrument.query_ascii_values(
-            f"TRAC:DATA? 1, {self.samples}"
+            f"TRAC:DATA? 1, {readings[0]}"
         )  # Read values from the once done.
         if self.legacy_mode:
             self._is_error()
+
+        self._write("TRAC:CLE")  # Clear buffer on exit for next reading
         return values
 
     def _check_errors(self):
@@ -195,6 +237,7 @@ class Keithley6500(DMM):
         :return:
         """
         self.mode = mode
+        self._manual_trigger = False
         mode_str = f"SENS:FUNC '{self._modes[self._mode]}'"
         if _range is not None:
             mode_str += f"; :SENS:{self._modes[self._mode]}:RANGE {_range}"
