@@ -242,7 +242,7 @@ class Keithley6500(DMM):
         if _range is not None:
             mode_str += f"; :SENS:{self._modes[self._mode]}:RANGE {_range}"
         if suffix is not None:
-            mode_str += f"; {suffix}"
+            mode_str += suffix
         self._write(mode_str)
         self._write(f":COUN {self.samples}")
         self._is_error()
@@ -250,8 +250,13 @@ class Keithley6500(DMM):
     def voltage_ac(self, _range=None):
         self._set_measurement_mode("voltage_ac", _range)
 
-    def voltage_dc(self, _range=None):
-        self._set_measurement_mode("voltage_dc", _range)
+    def voltage_dc(self, _range=None, auto_impedance=False):
+        # Auto impedance OFF is the default mode.
+        if auto_impedance == True:
+            command = "; :SENS:VOLT:DC:INP AUTO"
+        else:
+            command = "; :SENS:VOLT:DC:INP MOHM10"
+        self._set_measurement_mode("voltage_dc", _range, suffix=command)
 
     def current_ac(self, _range=None):
         self._set_measurement_mode("current_ac", _range)
@@ -272,7 +277,7 @@ class Keithley6500(DMM):
         command = None
         if _range:
             # Have to construct an alternative commnad for FREQuency range
-            command = f":SENS:FREQ:THR:RANG:AUTO OFF; :SENS:FREQ:THR:RANG {_range}"
+            command = f"; :SENS:FREQ:THR:RANG:AUTO OFF; :SENS:FREQ:THR:RANG {_range}"
         self._set_measurement_mode("frequency", suffix=command)
 
     def period(self, _range=None):
@@ -282,7 +287,7 @@ class Keithley6500(DMM):
         command = None
         if _range:
             # Have to construct an alternative commnad for PERiod range
-            command = f":SENS:PER:THR:RANG:AUTO OFF; :SENS:PER:THR:RANG {_range}"
+            command = f"; :SENS:PER:THR:RANG:AUTO OFF; :SENS:PER:THR:RANG {_range}"
         self._set_measurement_mode("period", suffix=command)
 
     def capacitance(self, _range=None):
@@ -292,9 +297,9 @@ class Keithley6500(DMM):
         # Cannot set range. 10V fixed range
         command = None
         if low_current == True:
-            command = ":SENS:DIOD:BIAS:LEV 0.0001"  # 100uA
+            command = "; :SENS:DIOD:BIAS:LEV 0.0001"  # 100uA
         if low_current == False:
-            command = ":SENS:DIOD:BIAS:LEV 0.001"  # 1mA
+            command = "; :SENS:DIOD:BIAS:LEV 0.001"  # 1mA
         self._set_measurement_mode("diode", suffix=command)
 
     def continuity(self):

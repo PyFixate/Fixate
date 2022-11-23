@@ -73,7 +73,7 @@ class Fluke8846A(DMM):
 
     @samples.setter
     def samples(self, val):
-        self._write(["SAMP:COUN {}".format(self.samples)])
+        self._write(f"SAMP:COUN {val}")
         self._is_error()
         self._samples = val
 
@@ -84,14 +84,19 @@ class Fluke8846A(DMM):
         self._write("SYST:REM")
 
     def set_manual_trigger(self, samples=1):
+        MAX_TRIGGER_COUNT = 5000
         self._manual_trigger = True
         self.samples = samples
-        self._write("TRIG:SOUR BUS")  # set DMM to remote trigger
-        self._write("TRIG:COUN {}".format(samples))  # Set number of samples
+        # set DMM to remote trigger
+        self._write("TRIG:SOUR BUS")
+        # Set number of samples to maximum:
+        self._write(f"TRIG:COUN {int(MAX_TRIGGER_COUNT/samples)}")
         self._write("INIT")  # Wait for trigger
+        self._is_error()  # Catch possible insufficient memory error (and others)
 
     def trigger(self):
         self._write("*TRG")  # Send trigger to instrument
+        self._is_error()  # Catch errors. This might slow things down
 
     def measurement(self):
         """
@@ -113,7 +118,7 @@ class Fluke8846A(DMM):
         """
         with self.lock:
             self._is_error(silent=True)
-            self._write(["*rst", "SYST:REM", "*cls", "disp {}".format(self.display)])
+            self._write(["*rst", "SYST:REM", "*cls", f"disp {self.display}"])
             self._CLEAN_UP_FLAG = False
             self._is_error()
 
@@ -151,6 +156,9 @@ class Fluke8846A(DMM):
         """
         if self._manual_trigger:
             values = self.instrument.query_ascii_values("FETCH?")
+            # Reset for next set of measurements (clear buffer). 
+            # Fluke does not allow you to manually clear the buffer, so this roundabout way is used instead
+            self.set_manual_trigger(samples=self.samples)
         else:
             values = self.instrument.query_ascii_values("READ?")
 
@@ -194,7 +202,7 @@ class Fluke8846A(DMM):
                     "Error(s) Returned from DMM\n"
                     + "\n".join(
                         [
-                            "Code: {}\nMessage:{}".format(code, msg)
+                            "Code: {code}\nMessage:{msg}"
                             for code, msg in errors
                         ]
                     )
@@ -225,11 +233,11 @@ class Fluke8846A(DMM):
         """
         self.mode = mode
         self._manual_trigger = False  # Default mode is auto trigger
-        mode_str = "{}".format(self._modes[self._mode])
+        mode_str = f"{self._modes[self._mode]}"
         if _range is not None:
-            mode_str += " {}".format(_range)
+            mode_str += f" {_range}"
         if suffix is not None:
-            mode_str += " {}".format(suffix)
+            mode_str += f" {suffix}"
         self._write(mode_str)
         self._write(
             [
@@ -237,7 +245,7 @@ class Fluke8846A(DMM):
                 "TRIG:DEL:AUTO ON",
                 "TRIG:SOUR IMM",
                 "TRIG:COUN 1",
-                "SAMP:COUN {}".format(self.samples),
+                f"SAMP:COUN {self.samples}",
             ]
         )
         self._is_error()
@@ -245,8 +253,13 @@ class Fluke8846A(DMM):
     def voltage_ac(self, _range=None):
         self._set_measurement_mode("voltage_ac", _range)
 
-    def voltage_dc(self, _range=None):
-        self._set_measurement_mode("voltage_dc", _range)
+    def voltage_dc(self, _range=None, auto_impedance=False):
+        # Auto impedance OFF is the default mode.
+        if auto_impedance == True:
+            command = "; :SENS:VOLT:DC:IMP:AUTO ON"
+        else:
+            command = "; :SENS:VOLT:DC:IMP:AUTO OFF"
+        self._set_measurement_mode("voltage_dc", _range, suffix=command)
 
     def current_ac(self, _range=None):
         self._set_measurement_mode("current_ac", _range)
@@ -277,7 +290,7 @@ class Fluke8846A(DMM):
         """
         self._set_measurement_mode(
             "diode",
-            suffix="{}, {}".format(int(bool(low_current)), int(bool(high_voltage))),
+            suffix=f"{int(bool(low_current))}, {int(bool(high_voltage))}",
         )
 
     def continuity(self):
@@ -303,7 +316,7 @@ class Fluke8846A(DMM):
         time.sleep(0.05)
         # do we need to set the default filter here?
         if value not in self._modes:
-            raise ParameterError("Unknown mode {} for DMM".format(value))
+            raise ParameterError(f"Unknown mode {value} for DMM")
         self._mode = value
 
     def digital_filter(self):
@@ -325,7 +338,7 @@ class Fluke8846A(DMM):
             self._bandwidth = bandwidth or 20
             if self._bandwidth not in [3, 20, 200]:
                 raise ValueError("Bandwidth must be 3, 20 or 200")
-            self._write(self._filters[self.mode] + ":BAND {}".format(self._bandwidth))
+            self._write(self._filters[self.mode] + f":BAND {self._bandwidth}")
 
         elif any(x in self._mode for x in ["dc", "res"]):
             self._write(self._filters[self.mode] + ":FILT:STAT ON")

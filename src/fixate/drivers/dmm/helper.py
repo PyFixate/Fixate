@@ -34,7 +34,7 @@ class DMM:
     def voltage_ac(self, _range=None):
         raise NotImplementedError
 
-    def voltage_dc(self, _range=None):
+    def voltage_dc(self, _range=None, auto_impedance=False):
         raise NotImplementedError
 
     def current_ac(self, _range):
