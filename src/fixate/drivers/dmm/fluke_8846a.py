@@ -156,7 +156,7 @@ class Fluke8846A(DMM):
         """
         if self._manual_trigger:
             values = self.instrument.query_ascii_values("FETCH?")
-            # Reset for next set of measurements (clear buffer). 
+            # Reset for next set of measurements (clear buffer).
             # Fluke does not allow you to manually clear the buffer, so this roundabout way is used instead
             self.set_manual_trigger(samples=self.samples)
         else:
@@ -200,12 +200,7 @@ class Fluke8846A(DMM):
             else:
                 raise InstrumentError(
                     "Error(s) Returned from DMM\n"
-                    + "\n".join(
-                        [
-                            "Code: {code}\nMessage:{msg}"
-                            for code, msg in errors
-                        ]
-                    )
+                    + "\n".join(["Code: {code}\nMessage:{msg}" for code, msg in errors])
                 )
 
     def error_cleanup(self):
