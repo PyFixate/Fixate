@@ -388,12 +388,13 @@ def unregister_csv():
     :return:
     """
     global writer
-    pub.unsubscribe(writer.reporting.test_start, "Test_Start")
-    pub.unsubscribe(writer.reporting.test_comparison, "Check")
-    pub.unsubscribe(writer.reporting.test_exception, "Test_Exception")
-    pub.unsubscribe(writer.reporting.test_complete, "Test_Complete")
-    pub.unsubscribe(writer.reporting.sequence_update, "Sequence_Update")
-    pub.unsubscribe(writer.reporting.sequence_complete, "Sequence_Complete")
-    pub.unsubscribe(writer.reporting.user_wait_start, "UI_block_start")
-    pub.unsubscribe(writer.reporting.user_wait_end, "UI_block_end")
-    writer.uninstall()
+    if writer is not None:
+        pub.unsubscribe(writer.reporting.test_start, "Test_Start")
+        pub.unsubscribe(writer.reporting.test_comparison, "Check")
+        pub.unsubscribe(writer.reporting.test_exception, "Test_Exception")
+        pub.unsubscribe(writer.reporting.test_complete, "Test_Complete")
+        pub.unsubscribe(writer.reporting.sequence_update, "Sequence_Update")
+        pub.unsubscribe(writer.reporting.sequence_complete, "Sequence_Complete")
+        pub.unsubscribe(writer.reporting.user_wait_start, "UI_block_start")
+        pub.unsubscribe(writer.reporting.user_wait_end, "UI_block_end")
+        writer.uninstall()

@@ -1,670 +1,493 @@
-import unittest
-from fixate.drivers.funcgen.keysight_33500b import Keysight33500B
+import pytest
+import re
 from fixate.core.exceptions import *
-import fixate.drivers.funcgen
-
-
-def get_funcgen():
-    return fixate.drivers.funcgen.open()
-
-
-class BaseSetup:
-    def setUp(self):
-        import visa
-
-        rm = visa.ResourceManager()
-        resource = rm.open_resource("USB0::2391::9991::MY52303676::0::INSTR")
-        self.testcls = Keysight33500B(instrument=resource)
-        self.testcls.reset()
-
-    def tearDown(self):
-        self.testcls.reset()
-
-
-@unittest.skip("Requires instrument connected to run")
-class Waveforms(unittest.TestCase):
-    def setUp(self):
-        self.testcls = get_funcgen()
-        self.testcls.reset()
-
-    def test_sin(self):
-        self.testcls.channel1.waveform.square()
-        self.testcls.channel1.waveform.sin()
-        self.assertIn("SIN", self.testcls.instrument.query("SOUR1:FUNC?"))
-
-    def test_square(self):
-        self.testcls.channel1.waveform.square()
-        self.assertIn("SQU", self.testcls.instrument.query("SOUR1:FUNC?"))
-
-    def test_ramp(self):
-        self.testcls.channel1.waveform.ramp()
-        self.assertIn("RAMP", self.testcls.instrument.query("SOUR1:FUNC?"))
-
-    def test_pulse(self):
-        self.testcls.channel1.waveform.pulse()
-        self.assertIn("PULS", self.testcls.instrument.query("SOUR1:FUNC?"))
-
-    def test_arb(self):
-        self.testcls.channel1.waveform.arb()
-        self.assertIn("ARB", self.testcls.instrument.query("SOUR1:FUNC?"))
-
-    def test_triangle(self):
-        self.testcls.channel1.waveform.triangle()
-        self.assertIn("TRI", self.testcls.instrument.query("SOUR1:FUNC?"))
-
-    def test_noise(self):
-        self.testcls.channel1.waveform.noise()
-        self.assertIn("NOIS", self.testcls.instrument.query("SOUR1:FUNC?"))
-
-    def test_dc(self):
-        self.testcls.channel1.waveform.dc()
-        self.assertIn("DC", self.testcls.instrument.query("SOUR1:FUNC?"))
-
-    def test_prbs(self):
-        self.testcls.channel1.waveform.prbs()
-        self.assertIn("PRBS", self.testcls.instrument.query("SOUR1:FUNC?"))
-
-
-@unittest.skip("Requires instrument connected to run")
-class ChannelConfig(unittest.TestCase):
-    def setUp(self):
-        self.testcls = get_funcgen()
-        self.testcls.reset()
-
-    def test_vrms(self):
-        self.testcls.channel1.load(50)
-        self.testcls.channel1.vrms(2)
-        # Units
-        self.assertIn("VRMS", self.testcls.instrument.query("SOUR1:VOLT:UNIT?"))
-
-        # Nominal Level
-        self.assertAlmostEqual(2.0, float(self.testcls.instrument.query("SOUR1:VOLT?")))
-
-        # Upper Limits
-        self.testcls.channel1.vrms(3.5)
-        self.assertAlmostEqual(3.5, float(self.testcls.instrument.query("SOUR1:VOLT?")))
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to upper limit",
-            self.testcls.channel1.vrms,
-            3.6,
-        )
-
-        # Lower Limits
-        self.testcls.channel1.vrms(354e-6)
-        self.assertAlmostEqual(
-            354e-6, float(self.testcls.instrument.query("SOUR1:VOLT?"))
-        )
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to lower limit",
-            self.testcls.channel1.vrms,
-            353e-6,
-        )
-
-    def test_vpp(self):
-        # Units
-        self.assertIn("VPP", self.testcls.instrument.query("SOUR1:VOLT:UNIT?"))
-        self.testcls.channel1.load(50)
-        # Nominal Level
-        self.testcls.channel1.vpp(2.1)
-        self.assertAlmostEqual(2.1, float(self.testcls.instrument.query("SOUR1:VOLT?")))
-
-        # Upper Limits
-        self.testcls.channel1.vpp(10)
-        self.assertAlmostEqual(10, float(self.testcls.instrument.query("SOUR1:VOLT?")))
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to upper limit",
-            self.testcls.channel1.vpp,
-            11,
-        )
-
-        # Lower Limits
-        self.testcls.channel1.vpp(0.001)
-        self.assertAlmostEqual(
-            0.001, float(self.testcls.instrument.query("SOUR1:VOLT?"))
-        )
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to lower limit",
-            self.testcls.channel1.vpp,
-            0.0001,
-        )
-
-    def test_dbm(self):
-        self.testcls.channel1.waveform.sin()
-        self.assertIn("SIN", self.testcls.instrument.query("SOUR1:FUNC?"))
-        self.testcls.channel1.load(50)
-        # Nominal Level
-        self.testcls.channel1.dbm(2)
-
-        # Units
-        self.assertIn("DBM", self.testcls.instrument.query("SOUR1:VOLT:UNIT?"))
-        self.assertAlmostEqual(2.0, float(self.testcls.instrument.query("SOUR1:VOLT?")))
-
-        # Upper Limits
-        self.testcls.channel1.dbm(23.97)
-        self.assertAlmostEqual(
-            23.97, float(self.testcls.instrument.query("SOUR1:VOLT?"))
-        )
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to upper limit",
-            self.testcls.channel1.dbm,
-            23.98,
-        )
-
-        # Lower Limits
-        self.testcls.channel1.dbm(-56)
-        self.assertAlmostEqual(-56, float(self.testcls.instrument.query("SOUR1:VOLT?")))
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to lower limit",
-            self.testcls.channel1.dbm,
-            -60,
-        )
-
-    def test_frequency(self):
-        self.testcls.channel1.frequency(5000)
-
-        # Nominal Level
-        self.assertAlmostEqual(
-            5000, float(self.testcls.instrument.query("SOUR1:FREQ?"))
-        )
-
-        # Upper Limits
-        self.testcls.channel1.frequency(20e6)
-        self.assertAlmostEqual(
-            20e6, float(self.testcls.instrument.query("SOUR1:FREQ?"))
-        )
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to upper limit",
-            self.testcls.channel1.frequency,
-            30e6,
-        )
-
-        # Lower Limits
-        self.testcls.channel1.frequency(0.000001)
-        self.assertAlmostEqual(
-            0.000001, float(self.testcls.instrument.query("SOUR1:FREQ?"))
-        )
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to lower limit",
-            self.testcls.channel1.frequency,
-            1e-7,
-        )
-
-    def test_phase(self):
-        self.testcls.channel1.phase(30)
-
-        # Nominal Level
-        self.assertAlmostEqual(30, float(self.testcls.instrument.query("SOUR1:PHAS?")))
-
-        # Upper Limits
-        self.testcls.channel1.phase(360)
-        self.assertAlmostEqual(360, float(self.testcls.instrument.query("SOUR1:PHAS?")))
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to upper limit",
-            self.testcls.channel1.phase,
-            362,
-        )
-
-        # Lower Limits
-        self.testcls.channel1.phase(-360)
-        self.assertAlmostEqual(
-            -360, float(self.testcls.instrument.query("SOUR1:PHAS?"))
-        )
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to lower limit",
-            self.testcls.channel1.phase,
-            -363,
-        )
-
-    def test_offset(self):
-        self.testcls.channel1.waveform.dc()
-        self.testcls.channel1.load(50)
-        self.assertIn("DC", self.testcls.instrument.query("SOUR1:FUNC?"))
-        # self.testcls.channel1.waveform.square()
-        # self.assertIn("SQU", self.testcls.instrument.query("SOUR1:FUNC?"))          #For Rigol
-
-        # self.testcls.channel1.vpp(1e-3)
-        # self.assertIn("VPP", self.testcls.instrument.query("SOUR1:VOLT:UNIT?"))
-        # self.assertAlmostEqual(1e-3, float(self.testcls.instrument.query("SOUR1:VOLT?")))
-
-        self.testcls.channel1.offset(100e-3)
-        self.assertAlmostEqual(
-            100e-3, float(self.testcls.instrument.query("SOUR1:VOLT:OFFS?"))
-        )
-
-        # Upper Limits
-        self.testcls.channel1.offset(5)
-        self.assertAlmostEqual(
-            5, float(self.testcls.instrument.query("SOUR1:VOLT:OFFS?"))
-        )
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to upper limit",
-            self.testcls.channel1.offset,
-            5.01,
-        )
-
-        # Lower Limits
-        self.testcls.channel1.offset(-5)
-        self.assertAlmostEqual(
-            -5, float(self.testcls.instrument.query("SOUR1:VOLT:OFFS?"))
-        )
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to lower limit",
-            self.testcls.channel1.offset,
-            -5.01,
-        )
-
-    def test_duty(self):
-        # Check Ordering
-        self.testcls.channel1.waveform.square()
-        self.testcls.channel1.duty(40)
-        self.assertAlmostEqual(
-            40, float(self.testcls.instrument.query("SOUR1:FUNC:SQU:DCYC?"))
-        )
-
-        self.assertIn("SQU", self.testcls.instrument.query("SOUR1:FUNC?"))
-        self.testcls.channel1.waveform.pulse()
-        self.assertAlmostEqual(
-            40, float(self.testcls.instrument.query("SOUR1:FUNC:PULS:DCYC?"))
-        )
-        self.assertIn("PULS", self.testcls.instrument.query("SOUR1:FUNC?"))
-        self.testcls.channel1.duty(60)
-        self.assertAlmostEqual(
-            60, float(self.testcls.instrument.query("SOUR1:FUNC:PULS:DCYC?"))
-        )
-        self.assertIn("PULS", self.testcls.instrument.query("SOUR1:FUNC?"))
-        self.testcls.channel1.waveform.square()
-        self.assertAlmostEqual(
-            60, float(self.testcls.instrument.query("SOUR1:FUNC:SQU:DCYC?"))
-        )
-        self.assertIn("SQU", self.testcls.instrument.query("SOUR1:FUNC?"))
-
-        # Upper Limits
-        self.testcls.channel1.waveform.square()
-        self.testcls.channel1.duty(99)
-        self.assertAlmostEqual(
-            99, float(self.testcls.instrument.query("SOUR1:FUNC:SQU:DCYC?"))
-        )
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to upper limit",
-            self.testcls.channel1.duty,
-            100,
-        )
-        self.testcls.channel1.duty(50)
-        self.testcls.channel1.waveform.pulse()
-        self.testcls.channel1.duty(99)
-        self.assertAlmostEqual(
-            99, float(self.testcls.instrument.query("SOUR1:FUNC:PULS:DCYC?"))
-        )
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to upper limit",
-            self.testcls.channel1.duty,
-            100,
-        )
-
-        # Lower Limits
-        self.testcls.channel1.duty(50)
-        self.testcls.channel1.waveform.square()
-        self.testcls.channel1.duty(1)
-        self.assertAlmostEqual(
-            1, float(self.testcls.instrument.query("SOUR1:FUNC:SQU:DCYC?"))
-        )
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to lower limit",
-            self.testcls.channel1.duty,
-            -1,
-        )
-        self.testcls.channel1.duty(50)
-        self.testcls.channel1.waveform.pulse()
-        self.testcls.channel1.duty(1)
-        self.assertAlmostEqual(
-            1, float(self.testcls.instrument.query("SOUR1:FUNC:PULS:DCYC?"))
-        )
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to lower limit",
-            self.testcls.channel1.duty,
-            -1,
-        )
-        self.testcls.channel1.duty(1)
-        self.assertAlmostEqual(
-            1, float(self.testcls.instrument.query("SOUR1:FUNC:PULS:DCYC?"))
-        )
-        self.testcls.channel1.waveform.square()
-        self.assertAlmostEqual(
-            1, float(self.testcls.instrument.query("SOUR1:FUNC:SQU:DCYC?"))
-        )
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to lower limit",
-            self.testcls.channel1.duty,
-            -1,
-        )
-
-        self.testcls.channel1.duty(0.01)
-        self.assertAlmostEqual(
-            0.01, float(self.testcls.instrument.query("SOUR1:FUNC:SQU:DCYC?"))
-        )
-        self.testcls.channel1.waveform.pulse()
-        self.assertAlmostEqual(
-            0.01, float(self.testcls.instrument.query("SOUR1:FUNC:PULS:DCYC?"))
-        )
-        self.assertRaisesRegex(
-            InstrumentError,
-            "value clipped to lower limit",
-            self.testcls.channel1.duty,
-            -1,
-        )
-
-
-@unittest.skip("Requires instrument connected to run")
-class Burst(unittest.TestCase):
-    def setUp(self):
-        self.testcls = get_funcgen()
-        self.testcls.reset()
-
-    def test_burst_state(self):
-        self.testcls.channel1.burst("1")
-        self.assertIn("1", self.testcls.instrument.query("SOUR1:BURS:STAT?"))
-
-    def test_gated(self):
-        self.testcls.channel1.burst.gated()
-        self.assertIn("GAT", self.testcls.instrument.query("SOUR1:BURS:MODE?"))
-
-    def test_ncycle(self):
-        self.testcls.channel1.burst.ncycle()
-        self.assertIn("TRIG", self.testcls.instrument.query("SOUR1:BURS:MODE?"))
-
-    def test_ncycle_cycles(self):
-        self.testcls.channel1.burst.ncycle.cycles(3)
-        self.assertAlmostEqual(
-            3, float(self.testcls.instrument.query("SOUR1:BURS:NCYC?"))
-        )
-
-    def test_cycles_infinite(self):
-        self.testcls.channel1.burst.ncycle.cycles.infinite()
-        self.assertAlmostEqual(
-            9.9e37, float(self.testcls.instrument.query("SOUR1:BURS:NCYC?"))
-        )
-
-    def test_period(self):
-        self.testcls.channel1.burst.ncycle.burst_period(100)
-        self.assertAlmostEqual(
-            100, float(self.testcls.instrument.query("SOUR1:BURS:INT:PER?"))
-        )
-
-    def test_gated_positive(self):
-        self.testcls.channel1.burst.gated.positive()
-        self.assertIn("NORM", self.testcls.instrument.query("SOUR1:BURS:GATE:POL?"))
-
-    def test_gated_negative(self):
-        self.testcls.channel1.burst.gated.negative()
-        self.assertIn("INV", self.testcls.instrument.query("SOUR1:BURS:GATE:POL?"))
-
-    def test_phase(self):
-        self.testcls.channel1.burst.phase(30)
-        self.assertAlmostEqual(
-            30, float(self.testcls.instrument.query("SOUR1:BURS:PHAS?"))
-        )
-
-
-@unittest.skip("Requires instrument connected to run")
-class Modulate_Options(unittest.TestCase):
-    def setUp(self):
-        self.testcls = get_funcgen()
-        self.testcls.reset()
-
-    def test_am_depth(self):
-        self.testcls.channel1.modulate.am.depth(100)
-        self.assertAlmostEqual(
-            100, float(self.testcls.instrument.query("SOUR1:AM:DEPT?"))
-        )
-
-    def test_am_dssc(self):
-        self.testcls.channel1.modulate.am.dssc()
-        self.assertIn("1", self.testcls.instrument.query("SOUR1:AM:DSSC?"))
-
-    def test_fm_freq_dev(self):
-        self.testcls.channel1.modulate.fm.freq_dev(100e3)
-        self.assertAlmostEqual(
-            100e3, float(self.testcls.instrument.query("SOUR1:FM:DEV?"))
-        )
-
-    def test_pm_phase_dev(self):
-        self.testcls.channel1.modulate.pm.phase_dev(100)
-        self.assertAlmostEqual(
-            100, float(self.testcls.instrument.query("SOUR1:PM:DEV?"))
-        )
-
-    def test_fsk_hop_freq(self):
-        self.testcls.channel1.modulate.fsk.hop_freq(100)
-        self.assertAlmostEqual(
-            100, float(self.testcls.instrument.query("SOUR1:FSK:FREQ?"))
-        )
-
-    def test_rate(self):
-        self.testcls.channel1.modulate.fsk.rate(100)
-        self.assertAlmostEqual(
-            100, float(self.testcls.instrument.query("SOUR1:FSK:INT:RATE?"))
-        )
-
-    def test_modulate_percent(self):
-        self.testcls.channel1.modulate.sum()
-        self.assertIn("0", self.testcls.instrument.query("SOUR1:SUM:STAT?"))
-        self.testcls.channel1.modulate.sum.modulate_percent(50)
-        self.assertAlmostEqual(
-            50, float(self.testcls.instrument.query("SOUR1:SUM:AMPL?"))
-        )
-
-
-@unittest.skip("Requires instrument connected to run")
-class Modulate(unittest.TestCase):
-    def setUp(self):
-        self.testcls = get_funcgen()
-        self.testcls.reset()
-
-    def test_am(self):
-        self.testcls.channel1.modulate.am()
-        self.assertIn("0", self.testcls.instrument.query("SOUR1:AM:STAT?"))
-
-    def test_fm(self):
-        self.testcls.channel1.modulate.fm()
-        self.assertIn("0", self.testcls.instrument.query("SOUR1:FM:STAT?"))
-
-    def test_pm(self):
-        self.testcls.channel1.modulate.pm()
-        self.assertIn("0", self.testcls.instrument.query("SOUR1:PM:STAT?"))
-
-    def test_fsk(self):
-        self.testcls.channel1.modulate.fsk()
-        self.assertIn("0", self.testcls.instrument.query("SOUR1:FSK:STAT?"))
-
-    def test_bpsk(self):
-        self.testcls.channel1.modulate.bpsk()
-        self.assertIn("0", self.testcls.instrument.query("SOUR1:BPSK:STAT?"))
-
-    def test_sum(self):
-        self.testcls.channel1.modulate.sum()
-        self.assertIn("0", self.testcls.instrument.query("SOUR1:SUM:STAT?"))
-
-
-@unittest.skip("Requires instrument connected to run")
-class Trigger(unittest.TestCase):
-    def setUp(self):
-        self.testcls = get_funcgen()
-        self.testcls.reset()
-
-    def test_immediate(self):
-        self.testcls.trigger.immediate()
-        self.assertIn("IMM", self.testcls.instrument.query("TRIG1:SOUR?"))
-
-    def test_external(self):
-        self.testcls.trigger.external()
-        self.assertIn("EXT", self.testcls.instrument.query("TRIG1:SOUR?"))
-
-    def test_external_rising(self):
-        self.testcls.trigger.external()
-        self.assertIn("EXT", self.testcls.instrument.query("TRIG1:SOUR?"))
-        self.testcls.trigger.external.rising()
-        self.assertIn("POS", self.testcls.instrument.query("TRIG1:SLOP?"))
-
-    def test_external_falling(self):
-        self.testcls.trigger.external()
-        self.assertIn("EXT", self.testcls.instrument.query("TRIG1:SOUR?"))
-        self.testcls.trigger.external.falling()
-        self.assertIn("NEG", self.testcls.instrument.query("TRIG1:SLOP?"))
-
-    def test_manual(self):
-        self.testcls.trigger.manual()
-        self.assertIn("BUS", self.testcls.instrument.query("TRIG1:SOUR?"))
-
-    def test_initiate(self):
-        self.testcls.trigger.manual.initiate()
-        self.assertIn("BUS", self.testcls.instrument.query("TRIG1:SOUR?"))
-
-    def test_timer(self):
-        self.testcls.trigger.timer(10)
-        self.assertIn("TIM", self.testcls.instrument.query("TRIG1:SOUR?"))
-        self.assertAlmostEqual(10, float(self.testcls.instrument.query("TRIG1:TIM?")))
-
-    def test_delay(self):
-        self.testcls.trigger.delay(10)
-        self.assertAlmostEqual(10, float(self.testcls.instrument.query("TRIG1:DEL?")))
-
-    def test_out_off(self):
-        self.testcls.trigger.out.off()
-        self.assertIn("0", self.testcls.instrument.query("OUTP:TRIG?"))
-
-    def test_out_rising(self):
-        self.testcls.trigger.out.rising()
-        self.assertIn("POS", self.testcls.instrument.query("OUTP:TRIG:SLOP?"))
-
-    def test_out_falling(self):
-        self.testcls.trigger.out.falling()
-        self.assertIn("NEG", self.testcls.instrument.query("OUTP:TRIG:SLOP?"))
-
-
-@unittest.skip("Requires instrument connected to run")
-class Modulate_Source(unittest.TestCase):
-    def setUp(self):
-        self.testcls = get_funcgen()
-        self.testcls.reset()
-
-    def test_internal(self):
-        self.testcls.channel1.modulate.fm()
-        self.assertIn("0", self.testcls.instrument.query("SOUR1:FM:STAT?"))
-        self.testcls.channel1.modulate.source.internal()
-        self.assertIn("INT", self.testcls.instrument.query("SOUR1:FM:SOUR?"))
-
-    def test_external(self):
-        self.testcls.channel1.modulate.fm()
-        self.assertIn("0", self.testcls.instrument.query("SOUR1:FM:STAT?"))
-        self.testcls.channel1.modulate.source.external()
-        self.assertIn("EXT", self.testcls.instrument.query("SOUR1:FM:SOUR?"))
-
-
-@unittest.skip("Requires instrument connected to run")
-class Channel_Activation(unittest.TestCase):
-    def setUp(self):
-        self.testcls = get_funcgen()
-        self.testcls.reset()
-
-    def test_channel1(self):
-        self.testcls.channel1(True)
-        self.assertIn("1", self.testcls.instrument.query("OUTP1?"))
-
-
-@unittest.skip("Requires instrument connected to run")
-class Modulate_Shape(unittest.TestCase):
-    def setUp(self):
-        self.testcls = get_funcgen()
-        self.testcls.reset()
-
-    def test_mod_sin(self):
-        self.testcls.channel1.modulate.fm()
-        self.testcls.channel1.modulate(True)
-        self.assertIn("1", self.testcls.instrument.query("SOUR1:FM:STAT?"))
-        self.testcls.channel1.modulate.source.internal.shape.sin()
-        self.assertIn("SIN", self.testcls.instrument.query("FM:INT:FUNC?"))
-
-    def test_mod_square(self):
-        self.testcls.channel1.modulate.fm()
-        self.assertIn("0", self.testcls.instrument.query("SOUR1:FM:STAT?"))
-        self.testcls.channel1.modulate.source.internal.shape.square()
-        self.assertIn("SQU", self.testcls.instrument.query("FM:INT:FUNC?"))
-
-    def test_mod_triangle(self):
-        self.testcls.channel1.modulate.fm()
-        self.assertIn("0", self.testcls.instrument.query("SOUR1:FM:STAT?"))
-        self.testcls.channel1.modulate.source.internal.shape.triangle()
-        self.assertIn("TRI", self.testcls.instrument.query("FM:INT:FUNC?"))
-
-    def test_mod_up_ramp(self):
-        self.testcls.channel1.modulate.fm()
-        self.assertIn("0", self.testcls.instrument.query("SOUR1:FM:STAT?"))
-        self.testcls.channel1.modulate.source.internal.shape.up_ramp()
-        self.assertIn("RAMP", self.testcls.instrument.query("FM:INT:FUNC?"))
-
-    def test_mod_down_ramp(self):
-        self.testcls.channel1.modulate.fm()
-        self.assertIn("0", self.testcls.instrument.query("SOUR1:FM:STAT?"))
-        self.testcls.channel1.modulate.source.internal.shape.down_ramp()
-        self.assertIn("NRAM", self.testcls.instrument.query("FM:INT:FUNC?"))
-
-    def test_mod_noise(self):
-        self.testcls.channel1.modulate.fm()
-        self.assertIn("0", self.testcls.instrument.query("SOUR1:FM:STAT?"))
-        self.testcls.channel1.modulate.source.internal.shape.noise()
-        self.assertIn("NOIS", self.testcls.instrument.query("FM:INT:FUNC?"))
-
-
-@unittest.skip("Requires instrument connected to run")
-class Modulate_Activation(unittest.TestCase):
-    def setUp(self):
-        import visa
-
-        rm = visa.ResourceManager()
-        resource = rm.open_resource("USB0::2391::9991::MY52303676::0::INSTR")
-        self.testcls = Keysight33500B(instrument=resource)
-        self.testcls.reset()
-
-    def test_mod_activation(self):
-        self.testcls.channel1.modulate.fm()
-        self.assertIn("0", self.testcls.instrument.query("SOUR1:FM:STAT?"))
-        self.testcls.channel1.modulate.source.internal()
-        self.assertIn("INT", self.testcls.instrument.query("SOUR1:FM:SOUR?"))
-        self.testcls.channel1.modulate(True)
-        self.assertIn("1", self.testcls.instrument.query("SOUR1:FM:STAT?"))
-
-
-@unittest.skip("Requires instrument connected to run")
-class Modulate_Frequency(unittest.TestCase):
-    def setUp(self):
-        self.testcls = get_funcgen()
-        self.testcls.reset()
-
-    def test_mod_freq(self):
-        self.testcls.channel1.modulate.fm()
-        self.testcls.channel1.modulate(True)
-        self.assertIn("1", self.testcls.instrument.query("SOUR1:FM:STAT?"))
-        self.testcls.channel1.modulate.source.internal.shape.sin()
-        self.assertIn("SIN", self.testcls.instrument.query("SOUR1:FM:INT:FUNC?"))
-        # self.testcls.channel1.modulate.source.internal.shape.square()
-        self.testcls.channel1.modulate.source.internal.frequency(100e3)
-        self.assertAlmostEqual(
-            100e3, float(self.testcls.instrument.query("SOUR1:FM:INT:FREQ?"))
-        )
+from fixate.config import load_config
+
+load_config()  # Load fixate config file
+
+
+@pytest.mark.drivertest
+def test_open_funcgen():
+    import fixate.drivers.funcgen
+
+    funcgen = fixate.drivers.funcgen.open()
+    assert funcgen, "Could not open function generator"
+
+
+@pytest.mark.drivertest
+def test_sin(funcgen):
+    funcgen.channel1.waveform.sin()
+    assert "SIN\n" == funcgen.instrument.query("SOUR1:FUNC?")
+
+
+@pytest.mark.drivertest
+def test_square(funcgen):
+    funcgen.channel1.waveform.square()
+    assert "SQU\n" == funcgen.instrument.query("SOUR1:FUNC?")
+
+
+@pytest.mark.drivertest
+def test_ramp(funcgen):
+    funcgen.channel1.waveform.ramp()
+    assert "RAMP\n" == funcgen.instrument.query("SOUR1:FUNC?")
+
+
+@pytest.mark.drivertest
+def test_pulse(funcgen):
+    funcgen.channel1.waveform.pulse()
+    assert "PULS\n" == funcgen.instrument.query("SOUR1:FUNC?")
+
+
+@pytest.mark.drivertest
+def test_arb(funcgen):
+    funcgen.channel1.waveform.arb()
+    assert "ARB\n" == funcgen.instrument.query("SOUR1:FUNC?")
+
+
+@pytest.mark.drivertest
+def test_triangle(funcgen):
+    funcgen.channel1.waveform.triangle()
+    assert "TRI\n" == funcgen.instrument.query("SOUR1:FUNC?")
+
+
+@pytest.mark.drivertest
+def test_noise(funcgen):
+    # Noise function has a small VRMS limit. Set this to not error
+    funcgen.channel1.vrms(0.2)
+    funcgen.channel1.waveform.noise()
+    assert "NOIS\n" == funcgen.instrument.query("SOUR1:FUNC?")
+
+
+@pytest.mark.drivertest
+def test_dc(funcgen):
+    funcgen.channel1.waveform.dc()
+    assert "DC\n" == funcgen.instrument.query("SOUR1:FUNC?")
+
+
+@pytest.mark.drivertest
+def test_prbs(funcgen):
+    funcgen.channel1.waveform.prbs()
+    assert "PRBS\n" == funcgen.instrument.query("SOUR1:FUNC?")
+
+
+@pytest.mark.drivertest
+def test_vrms_units(funcgen):
+    funcgen.channel1.vrms(2)
+    assert "VRMS\n" == funcgen.instrument.query("SOUR1:VOLT:UNIT?")
+
+
+@pytest.mark.drivertest
+def test_vrms(funcgen):
+    funcgen.channel1.vrms(2)
+    assert float(funcgen.instrument.query("SOUR1:VOLT?")) == pytest.approx(2.0)
+
+
+@pytest.mark.parametrize("v", [3.6, 353e-6])
+@pytest.mark.drivertest
+def test_vrms_over_range(v, funcgen):
+    funcgen.channel1.load(50)
+    with pytest.raises(InstrumentError) as excinfo:
+        funcgen.channel1.vrms(v)
+
+    assert re.search("value clipped", str(excinfo.value))
+
+
+@pytest.mark.drivertest
+def test_vpp_units(funcgen):
+    funcgen.channel1.vpp(1)
+    assert "VPP\n" == funcgen.instrument.query("SOUR1:VOLT:UNIT?")
+
+
+@pytest.mark.drivertest
+def test_vpp(funcgen):
+    # Nominal Level
+    funcgen.channel1.vpp(2.1)
+    assert float(funcgen.instrument.query("SOUR1:VOLT?")) == pytest.approx(2.1)
+
+
+@pytest.mark.parametrize("v", [21, 0.001])
+@pytest.mark.drivertest
+def test_vpp_over_range(v, funcgen):
+    with pytest.raises(InstrumentError) as excinfo:
+        funcgen.channel1.vpp(v)
+
+    assert re.search("value clipped", str(excinfo.value))
+
+
+@pytest.mark.drivertest
+def test_dbm_units(funcgen):
+    funcgen.channel1.waveform.sin()
+    funcgen.channel1.load(50)
+    funcgen.channel1.dbm(2)
+    assert "DBM\n" == funcgen.instrument.query("SOUR1:VOLT:UNIT?")
+
+
+@pytest.mark.drivertest
+def test_dbm(funcgen):
+    funcgen.channel1.load(50)
+    funcgen.channel1.dbm(2.1)
+    assert float(funcgen.instrument.query("SOUR1:VOLT?")) == pytest.approx(2.1)
+
+
+@pytest.mark.parametrize("db", [23.98, -60])
+@pytest.mark.drivertest
+def test_dbm_over_range(db, funcgen):
+    funcgen.channel1.load(50)
+    with pytest.raises(InstrumentError) as excinfo:
+        funcgen.channel1.dbm(db)
+
+    assert re.search("value clipped", str(excinfo.value))
+
+
+@pytest.mark.drivertest
+def test_frequency(funcgen):
+    funcgen.reset()
+    funcgen.channel1.frequency(5000)
+
+    assert float(funcgen.instrument.query("SOUR1:FREQ?")) == pytest.approx(5000)
+
+
+@pytest.mark.parametrize("freq", [30e6, 1e-7])
+@pytest.mark.drivertest
+def test_frequency_over_range(freq, funcgen):
+    with pytest.raises(InstrumentError) as excinfo:
+        funcgen.channel1.frequency(freq)
+
+    assert re.search("value clipped", str(excinfo.value))
+
+
+@pytest.mark.drivertest
+def test_phase(funcgen):
+    funcgen.channel1.phase(30)
+    assert float(funcgen.instrument.query("SOUR1:PHAS?")) == pytest.approx(30)
+
+
+@pytest.mark.parametrize("phase", [362, -362])
+@pytest.mark.drivertest
+def test_phase_over_range(phase, funcgen):
+    with pytest.raises(InstrumentError) as excinfo:
+        funcgen.channel1.phase(phase)
+
+    assert re.search("value clipped", str(excinfo.value))
+
+
+@pytest.mark.drivertest
+def test_offset(funcgen):
+    funcgen.reset()
+    funcgen.channel1.waveform.dc()
+    funcgen.channel1.load(50)
+    funcgen.channel1.offset(2.1)
+
+    assert float(funcgen.instrument.query("SOUR1:VOLT:OFFS?")) == pytest.approx(2.1)
+
+
+@pytest.mark.parametrize("offset", [362, -362])
+@pytest.mark.drivertest
+def test_offset_over_range(offset, funcgen):
+    with pytest.raises(InstrumentError) as excinfo:
+        funcgen.channel1.offset(offset)
+
+    assert re.search("value clipped", str(excinfo.value))
+
+
+@pytest.mark.drivertest
+def test_duty_square(funcgen):
+    funcgen.channel1.waveform.square()
+    funcgen.channel1.duty(40)
+
+    assert float(funcgen.instrument.query("SOUR1:FUNC:SQU:DCYC?")) == pytest.approx(40)
+
+
+@pytest.mark.parametrize("duty", [101, -1])
+@pytest.mark.drivertest
+def test_duty_square_over_range(duty, funcgen):
+    funcgen.channel1.duty(60)
+    funcgen.channel1.waveform.square()
+    with pytest.raises(InstrumentError) as excinfo:
+        funcgen.channel1.duty(duty)
+
+    assert re.search("value clipped", str(excinfo.value))
+
+
+@pytest.mark.drivertest
+def test_duty_pulse(funcgen):
+    funcgen.channel1.duty(60)
+    funcgen.channel1.waveform.pulse()
+
+    assert float(funcgen.instrument.query("SOUR1:FUNC:PULS:DCYC?")) == pytest.approx(60)
+
+
+@pytest.mark.parametrize("duty", [101, -1])
+@pytest.mark.drivertest
+def test_duty_pulse_over_range(duty, funcgen):
+    funcgen.channel1.duty(60)
+    funcgen.channel1.waveform.pulse()
+    with pytest.raises(InstrumentError) as excinfo:
+        funcgen.channel1.duty(duty)
+
+    assert re.search("value clipped", str(excinfo.value))
+
+
+@pytest.mark.drivertest
+def test_burst(funcgen):
+    funcgen.reset()
+    funcgen.channel1.burst("1")
+    assert "1\n" == funcgen.instrument.query("SOUR1:BURS:STAT?")
+
+
+@pytest.mark.drivertest
+def test_burst_gated(funcgen):
+    funcgen.channel1.burst.gated()
+    assert "GAT\n" == funcgen.instrument.query("SOUR1:BURS:MODE?")
+
+
+@pytest.mark.drivertest
+def test_burst_ncycle(funcgen):
+    funcgen.channel1.burst.ncycle()
+    assert "TRIG\n" == funcgen.instrument.query("SOUR1:BURS:MODE?")
+
+
+@pytest.mark.drivertest
+def test_burst_set_ncycles(funcgen):
+    funcgen.channel1.burst.ncycle.cycles(3)
+    assert float(funcgen.instrument.query("SOUR1:BURS:NCYC?")) == pytest.approx(3)
+
+
+@pytest.mark.drivertest
+def test_burst_set_ncycles_inf(funcgen):
+    funcgen.channel1.burst.ncycle.cycles.infinite()
+    assert float(funcgen.instrument.query("SOUR1:BURS:NCYC?")) == pytest.approx(9.9e37)
+
+
+@pytest.mark.drivertest
+def test_burst_period(funcgen):
+    funcgen.channel1.burst.ncycle.burst_period(100)
+    assert float(funcgen.instrument.query("SOUR1:BURS:INT:PER?")) == pytest.approx(100)
+
+
+@pytest.mark.drivertest
+def test_burst_gated_positive(funcgen):
+    funcgen.channel1.burst.gated.positive()
+    assert "NORM\n" == funcgen.instrument.query("SOUR1:BURS:GATE:POL?")
+
+
+@pytest.mark.drivertest
+def test_burst_gated_negative(funcgen):
+    funcgen.channel1.burst.gated.negative()
+    assert "INV\n" == funcgen.instrument.query("SOUR1:BURS:GATE:POL?")
+
+
+@pytest.mark.drivertest
+def test_burst_phase(funcgen):
+    funcgen.channel1.burst.phase(30)
+    assert float(funcgen.instrument.query("SOUR1:BURS:PHAS?")) == pytest.approx(30)
+
+
+@pytest.mark.drivertest
+def test_modulate_am_depth(funcgen):
+    funcgen.channel1.modulate.am.depth(100)
+    assert float(funcgen.instrument.query("SOUR1:AM:DEPT?")) == pytest.approx(100)
+
+
+@pytest.mark.drivertest
+def test_modulate_am_dssc(funcgen):
+
+    funcgen.channel1.modulate.am.dssc()
+    assert "1\n" == funcgen.instrument.query("SOUR1:AM:DSSC?")
+
+
+@pytest.mark.drivertest
+def test_modulate_fm_freq_dev(funcgen):
+
+    funcgen.channel1.modulate.fm.freq_dev(100e3)
+    assert float(funcgen.instrument.query("SOUR1:FM:DEV?")) == pytest.approx(100e3)
+
+
+@pytest.mark.drivertest
+def test_modulate_pm_phase_dev(funcgen):
+
+    funcgen.channel1.modulate.pm.phase_dev(100)
+    assert float(funcgen.instrument.query("SOUR1:PM:DEV?")) == pytest.approx(100)
+
+
+@pytest.mark.drivertest
+def test_modulate_fsk_hop_freq(funcgen):
+
+    funcgen.channel1.modulate.fsk.hop_freq(100)
+    assert float(funcgen.instrument.query("SOUR1:FSK:FREQ?")) == pytest.approx(100)
+
+
+@pytest.mark.drivertest
+def test_modulate_fsk_rate(funcgen):
+
+    funcgen.channel1.modulate.fsk.rate(100)
+    assert float(funcgen.instrument.query("SOUR1:FSK:INT:RATE?")) == pytest.approx(100)
+
+
+@pytest.mark.drivertest
+def test_modulate_sum(funcgen):
+
+    funcgen.channel1.modulate.sum()
+    assert "0\n" == funcgen.instrument.query("SOUR1:SUM:STAT?")
+
+
+@pytest.mark.drivertest
+def test_modulate_sum_percent(funcgen):
+    funcgen.channel1.modulate.sum()
+    funcgen.channel1.modulate.sum.modulate_percent(50)
+    assert float(funcgen.instrument.query("SOUR1:SUM:AMPL?")) == pytest.approx(50)
+
+
+@pytest.mark.parametrize(
+    "mode, query",
+    [
+        ("am", "SOUR1:AM:STAT?"),
+        ("fm", "SOUR1:FM:STAT?"),
+        ("pm", "SOUR1:PM:STAT?"),
+        ("fsk", "SOUR1:FSK:STAT?"),
+        ("bpsk", "SOUR1:bpsk:STAT?"),
+        ("sum", "SOUR1:SUM:STAT?"),
+    ],
+)
+@pytest.mark.drivertest
+def test_modulate(mode, query, funcgen):
+    getattr(funcgen.channel1.modulate, mode)()
+
+    assert "0\n" == funcgen.instrument.query(query)
+
+
+@pytest.mark.parametrize(
+    "trigger, expected",
+    [
+        ("immediate", "IMM"),
+        ("external", "EXT"),
+        ("manual", "BUS"),
+    ],
+)
+@pytest.mark.drivertest
+def test_trigger_type(trigger, expected, funcgen):
+
+    trig = getattr(funcgen.trigger, trigger)
+    trig()
+    assert expected == funcgen.instrument.query("TRIG1:SOUR?").strip()
+
+
+@pytest.mark.parametrize(
+    "trigger, expected",
+    [
+        ("rising", "POS"),
+        ("falling", "NEG"),
+    ],
+)
+@pytest.mark.drivertest
+def test_trigger_external(trigger, expected, funcgen):
+
+    trig = getattr(funcgen.trigger.external, trigger)
+    trig()
+    assert expected == funcgen.instrument.query("TRIG1:SLOP?").strip()
+
+
+@pytest.mark.drivertest
+def test_trigger_manual_initiate(funcgen):
+
+    funcgen.trigger.manual.initiate()
+    assert "BUS\n" == funcgen.instrument.query("TRIG1:SOUR?")
+
+
+@pytest.mark.drivertest
+def test_trigger_timer_source(funcgen):
+    funcgen.trigger.timer(10)
+    assert "TIM\n" == funcgen.instrument.query("TRIG1:SOUR?")
+
+
+@pytest.mark.drivertest
+def test_trigger_timer(funcgen):
+    funcgen.trigger.timer(10)
+    assert float(funcgen.instrument.query("TRIG1:TIM?")) == pytest.approx(10)
+
+
+@pytest.mark.drivertest
+def test_trigger_delay(funcgen):
+    funcgen.trigger.delay(20)
+    assert float(funcgen.instrument.query("TRIG1:DEL?")) == pytest.approx(20)
+
+
+@pytest.mark.parametrize("out, expected", [("rising", "POS"), ("falling", "NEG")])
+@pytest.mark.drivertest
+def test_trigger_out(out, expected, funcgen):
+    getattr(funcgen.trigger.out, out)()
+    assert expected == funcgen.instrument.query("OUTP:TRIG:SLOP?").strip()
+
+
+@pytest.mark.drivertest
+def test_trigger_out_off(funcgen):
+    funcgen.trigger.out.off()
+    assert "0\n" == funcgen.instrument.query("OUTP:TRIG?")
+
+
+@pytest.mark.parametrize("source, expected", [("internal", "INT"), ("external", "EXT")])
+@pytest.mark.drivertest
+def test_modulate_source(source, expected, funcgen):
+    funcgen.channel1.modulate.fm()
+    sour = getattr(funcgen.channel1.modulate.source, source)
+    sour()
+    assert expected == funcgen.instrument.query("SOUR1:FM:SOUR?").strip()
+
+
+@pytest.mark.drivertest
+def test_channel_activation_on(funcgen):
+    funcgen.channel1(True)
+    assert "1\n" == funcgen.instrument.query("OUTP1?")
+
+
+@pytest.mark.drivertest
+def test_channel_activation_off(funcgen):
+    funcgen.channel1(True)
+    funcgen.channel1(False)
+    assert "0\n" == funcgen.instrument.query("OUTP1?")
+
+
+@pytest.mark.parametrize(
+    "shape, expected",
+    [
+        ("sin", "SIN"),
+        ("square", "SQU"),
+        ("triangle", "TRI"),
+        ("up_ramp", "RAMP"),
+        ("down_ramp", "NRAM"),
+        ("noise", "NOIS"),
+    ],
+)
+@pytest.mark.drivertest
+def test_modulate_shape(shape, expected, funcgen):
+    funcgen.channel1.modulate.fm()
+    mod = getattr(funcgen.channel1.modulate.source.internal.shape, shape)
+    mod()
+    assert expected == funcgen.instrument.query("FM:INT:FUNC?").strip()
+
+
+@pytest.mark.drivertest
+def test_modulate_activation_on(funcgen):
+    funcgen.channel1.modulate.fm()
+    funcgen.channel1.modulate.source.internal()
+    funcgen.channel1.modulate(True)
+    assert "1\n" == funcgen.instrument.query("SOUR1:FM:STAT?")
+
+
+@pytest.mark.drivertest
+def test_modulate_activation_off(funcgen):
+    funcgen.channel1.modulate.fm()
+    funcgen.channel1.modulate.source.internal()
+    funcgen.channel1.modulate(True)
+    funcgen.channel1.modulate(False)
+    assert "0\n" == funcgen.instrument.query("SOUR1:FM:STAT?")
+
+
+@pytest.mark.drivertest
+def test_modulate_frequency(funcgen):
+    funcgen.channel1.modulate.fm()
+    funcgen.channel1.modulate.source.internal()
+    funcgen.channel1.modulate(True)
+    funcgen.channel1.modulate.source.internal.shape.sin()
+    funcgen.channel1.modulate.source.internal.frequency(100e3)
+    assert float(funcgen.instrument.query("SOUR1:FM:INT:FREQ?")) == pytest.approx(100e3)

@@ -230,10 +230,10 @@ def _user_input(msg, q, target=None, attempts=5, kwargs=None):
         if ret_val:
             q.put(("Result", ret_val))
             return
-    q.put(
-        "Exception",
-        UserInputError("Maximum number of attempts {} reached".format(attempts)),
-    )
+    # Display failure of target and send exception
+    error_str = f"Maximum number of attempts {attempts} reached. {target.__doc__}"
+    _user_display(error_str)
+    q.put(("Exception", UserInputError(error_str)))
 
 
 def _user_display(msg):

@@ -23,13 +23,13 @@ output_ch3
 output_ch4
 """
 import pyvisa
+
 import fixate.drivers
 from fixate.config import find_instrument_by_id
-
+from fixate.drivers import InstrumentNotFoundError, InstrumentOpenError
 from fixate.drivers.funcgen.helper import FuncGen
-
-from fixate.drivers.funcgen.rigol_dg1022 import RigolDG1022
 from fixate.drivers.funcgen.keysight_33500b import Keysight33500B
+from fixate.drivers.funcgen.rigol_dg1022 import RigolDG1022
 
 
 def open() -> FuncGen:
@@ -41,11 +41,16 @@ def open() -> FuncGen:
     for driver_class in (Keysight33500B, RigolDG1022):
         instrument = find_instrument_by_id(driver_class.REGEX_ID)
         if instrument is not None:
-            # we've found a connected instrument so open and return it
+            # We've found a configured instrument so try to open it
             rm = pyvisa.ResourceManager()
-            # open_resource could raise visa.VisaIOError?
-            driver = driver_class(rm.open_resource(instrument.address))
+            try:
+                resource = rm.open_resource(instrument.address)
+            except pyvisa.VisaIOError as e:
+                raise InstrumentOpenError(
+                    f"Unable to open FuncGen: {instrument.address}"
+                ) from e
+            # Instantiate driver with connected instrument
+            driver = driver_class(resource)
             fixate.drivers.log_instrument_open(driver)
             return driver
-
-    raise fixate.drivers.InstrumentNotFoundError
+    raise InstrumentNotFoundError

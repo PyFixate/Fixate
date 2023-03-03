@@ -1,7 +1,7 @@
 import struct
 import serial
 
-from fixate.drivers.pps import PPS
+from fixate.drivers.pps.helper import PPS
 from fixate.core.exceptions import ParameterError
 
 """

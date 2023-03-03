@@ -9,7 +9,7 @@ def test_read_local_config():
     We should get a list of InstrumentConfig objects. This is just a real
     simple smoke test.
     """
-    result = fixate.config.load_local_config(CONFIG_DIR / "local_config.json")
+    result = fixate.config.load_instrument_config(CONFIG_DIR / "instruments.json")
 
     assert len(result) == 4
     assert (
