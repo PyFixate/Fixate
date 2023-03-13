@@ -12,10 +12,6 @@ class Keithley6500(DMM):
 
     def __init__(self, instrument, *args, **kwargs):
         self.instrument = instrument
-        instrument.rtscts = 1
-        self.lock = Lock()
-        self._display = "ON100"
-        # del self.instrument.timeout
         self.instrument.timeout = 10000
         self.instrument.query_delay = 0.3  # Stop DMM crash
         self.instrument.delay = 0  # Stop DMM crash
@@ -96,6 +92,7 @@ class Keithley6500(DMM):
     def remote(self):
         # Stop trigger loop and return to normal
         self._write("*TRG")
+        self._is_error()
 
     def set_manual_trigger(self, samples=1):
         """
@@ -110,12 +107,14 @@ class Keithley6500(DMM):
         self._write("TRIG:LOAD 'EMPTY'")  # Load empty model
         self._write(f"TRIG:BLOC:MDIG 1, 'defbuffer1', {samples}")
         self._write("TRAC:CLE")
+        self._is_error()
 
     def trigger(self):
         """
         Manually trigger a measurement and store in instrument buffer.
         """
         self._write("INIT; *WAI")
+        self._is_error()
 
     def measurement(self):
         """
@@ -135,12 +134,11 @@ class Keithley6500(DMM):
         """
         Checks for errors and then returns DMM to power up state
         """
-        with self.lock:
-            self._is_error(silent=True)
-            # Wait for previous commands to finish, reset, clear event logs
-            # self._write("*WAI; *RST; *WAI; *CLS")
-            self._CLEAN_UP_FLAG = False
-            self._is_error()
+        self._is_error(silent=True)
+        # Wait for previous commands to finish, reset, clear event logs
+        self._write("*RST")
+        self._CLEAN_UP_FLAG = False
+        self._is_error()
 
     def __enter__(self):
         return self
@@ -220,7 +218,6 @@ class Keithley6500(DMM):
             if silent:
                 return errors
             else:
-                self.reset()  # Need to call reset after error to stop DMM crashes
                 raise InstrumentError(
                     "Error(s) Returned from DMM\n"
                     + "\n".join(
