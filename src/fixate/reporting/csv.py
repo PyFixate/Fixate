@@ -115,10 +115,6 @@ class CSVWriter:
     def __init__(self):
         self.csv_queue = Queue()
         self.csv_writer = None
-        # data = fixate.config.get_config_dict()
-        # data.update(fixate.config.get_plugin_data('plg_csv'))
-        # self.csv_dir = os.path.join(*fixate.config.render_template(data["tpl_csv_path"], **data,
-        #                                                            **fixate.config.RESOURCES["SEQUENCER"].context_data))
         self.reporting = CsvReporting()
 
     def install(self):
@@ -197,17 +193,15 @@ class CsvReporting:
     ):
         self._write_line_to_csv(
             [
-                "{:.2f}".format(time.perf_counter() - self.start_time),
+                f"{(time.perf_counter() - self.start_time):.2f}",
                 "Sequence",
-                "ended={}".format(
-                    self.data["tpl_time_stamp"].format(datetime.datetime.now())
-                ),
+                f"ended={self.data['tpl_time_stamp'].format(datetime.datetime.now())}",
                 sequence_status,
-                "tests-passed={}".format(passed),
-                "tests-failed={}".format(failed),
-                "tests-error={}".format(error),
-                "tests-skipped={}".format(skipped),
-                "sequence={}".format(status.upper()),
+                f"tests-passed={passed}",
+                f"tests-failed={failed}",
+                f"tests-error={error}",
+                f"tests-skipped={skipped}",
+                f"sequence={status.upper()}",
             ]
         )
         # Close out the reporting
@@ -225,8 +219,8 @@ class CsvReporting:
         # Test <test_index>, start, <test name>
         self._write_line_to_csv(
             [
-                "{:.2f}".format(time.perf_counter() - self.start_time),
-                "Test {}".format(test_index),
+                f"{(time.perf_counter() - self.start_time):.2f}",
+                f"Test {test_index}",
                 "start",
                 data.test_desc,
                 data.test_desc_long,
@@ -238,19 +232,19 @@ class CsvReporting:
         if len(test_params):
             # Test <test_index>, test-parameters, <param_name>=<param_value>, ...
             param_line = [
-                "{:.2f}".format(time.perf_counter() - self.start_time),
-                "Test {}".format(test_index),
+                f"{(time.perf_counter() - self.start_time):.2f}",
+                f"Test {test_index}",
                 "test-parameters",
             ]
             for param_name, param_value in test_params:
-                param_line.append("{}={}".format(param_name, param_value))
+                param_line.append(f"{param_name}={param_value}")
             self._write_line_to_csv(param_line)
 
     def test_exception(self, exception, test_index):
         self.current_test = test_index
         exc_line = [
-            "{:.2f}".format(time.perf_counter() - self.start_time),
-            "Test {}".format(test_index),
+            f"{(time.perf_counter() - self.start_time):.2f}",
+            f"Test {test_index}",
             "exception",
             re.sub(r",\)", ")", repr(exception)),
         ]  # Remove trailing comma for exception for python < 3.7
@@ -290,12 +284,12 @@ class CsvReporting:
 
             self._write_line_to_csv(
                 [
-                    "{:.2f}".format(time.perf_counter() - self.start_time),
-                    "Test {}".format(test_index),
+                    f"{(time.perf_counter() - self.start_time):.2f}",
+                    f"Test {test_index}",
                     "end",
                     status,
-                    "checks-passed={}".format(passed),
-                    "checks-failed={}".format(failed),
+                    f"checks-passed={passed}",
+                    f"checks-failed={failed}",
                 ]
             )
         finally:
@@ -304,8 +298,8 @@ class CsvReporting:
     def user_wait_start(self, *args, **kwargs):
         self._write_line_to_csv(
             [
-                "{:.2f}".format(time.perf_counter() - self.start_time),
-                "Test {}".format(self.current_test),
+                f"{(time.perf_counter() - self.start_time):.2f}",
+                f"Test {self.current_test}",
                 "user_wait_start",
             ]
         )
@@ -313,8 +307,8 @@ class CsvReporting:
     def user_wait_end(self, *args, **kwargs):
         self._write_line_to_csv(
             [
-                "{:.2f}".format(time.perf_counter() - self.start_time),
-                "Test {}".format(self.current_test),
+                f"{time.perf_counter() - self.start_time:.2f}",
+                f"Test {self.current_test}",
                 "user_wait_end",
             ]
         )
@@ -322,7 +316,7 @@ class CsvReporting:
     def driver_open(self, instr_type, identity):
         self._write_line_to_csv(
             [
-                "{:.2f}".format(time.perf_counter() - self.start_time),
+                f"{(time.perf_counter() - self.start_time):.2f}",
                 "DRIVER",
                 instr_type,
                 identity,

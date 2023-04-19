@@ -82,7 +82,7 @@ class _CheckClass:
         )
 
 
-def _message_parse(*, target: Callable[[_CheckClass], bool], **kwargs) -> bool:
+def _message_parse(target: Callable[[_CheckClass], bool], **kwargs) -> bool:
     chk = _CheckClass(target=target, **kwargs)
     chkresult = chk.get_result()
     return fixate.config.RESOURCES["SEQUENCER"].check(chkresult)
