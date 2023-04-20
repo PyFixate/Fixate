@@ -121,7 +121,7 @@ parser.add_argument(
 )
 
 
-def load_test_suite(script_path, zip_path, zip_selector):
+def load_test_suite(script_path: str, zip_path: str, zip_selector: str):
     """
     Attempts to load a Fixate Script file from an absolute path.
     Try loading from zip, then direct script otherwise
@@ -223,7 +223,7 @@ class FixateSupervisor:
 
 
 class FixateWorker:
-    def __init__(self, sequencer, test_script_path, args):
+    def __init__(self, sequencer: fixate.sequencer.Sequencer, test_script_path, args):
         self.sequencer = sequencer
         self.test_script_path = test_script_path
         self.args = args
@@ -401,6 +401,7 @@ def run_main_program(test_script_path=None):
 
     fixate.config.load_config(args.config)
     fixate.config.load_dict_config({"log_file": args.log_file})
+    # Could this be replaced with a simple log_file variable in fixate.config ^ ?
     supervisor = FixateSupervisor(test_script_path, args)
     exit(supervisor.run_fixate())
 

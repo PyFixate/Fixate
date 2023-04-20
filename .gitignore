@@ -22,5 +22,6 @@ venv/
 *.log
 venv
 venv37
+.vscode/
 .venv
 .vscode/settings.json
