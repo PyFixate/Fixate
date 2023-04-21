@@ -9,6 +9,7 @@ Release Date xx/xx/xxxx
 - Fix initial serial number check to properly raise exception on incorrect entry.
 - Failure to open a drivers pyvisa resource will now raise a more informative InstrumentOpenError exception from the pyvisa error
 - Add optional formatting argument ('fmt') to check functions to improve ui display and logging of test values
+- Fix bug where sequencer would return success if terminated during startup
 
 *************
 Version 0.6.0
