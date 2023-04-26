@@ -444,7 +444,7 @@ class FTDI2xx(object):
 
     def get_identity(self) -> str:
         """Return identity string representing connected ftdi object"""
-        return f"{self.ftdi_description.decode()}"
+        return self.ftdi_description.decode()
 
 
 def open(ftdi_description="") -> FTDI2xx:
