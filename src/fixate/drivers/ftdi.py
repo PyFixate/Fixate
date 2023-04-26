@@ -116,7 +116,7 @@ if os.name == "nt":
         ftdI2xx = ctypes.WinDLL("FTD2XX.dll")
     except Exception as e:
         raise ImportError(
-            "Unable to find FTD2XX.dll.\nPlugging in FDTI device will install DLL."
+            "Unable to find FTD2XX.dll.\nPlugging in an FTDI device will install the DLL."
         ) from e
 else:
     try:
