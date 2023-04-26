@@ -2,19 +2,10 @@ import ctypes
 import struct
 import time
 import os
+
+import fixate.drivers
 from fixate.core.common import bits
 from fixate.core.exceptions import InstrumentNotConnected
-
-
-def open(ftdi_description=""):
-    create_device_info_list()
-
-    for dev in get_device_info_list():
-        if ftdi_description.encode() == dev.Description or ftdi_description == "":
-            return FTDI2xx(dev.Description)
-    raise InstrumentNotConnected(
-        "No valid ftdi found by description '{}'".format(ftdi_description)
-    )
 
 
 # Definitions
@@ -450,3 +441,21 @@ class FTDI2xx(object):
         data_out.append(bb_mask + self.bb_latch ^ self.bb_inv_mask)
         data_out.append(bb_mask + self.bb_inv_mask)
         return data_out
+
+    def get_identity(self) -> str:
+        """Return identity string representing connected ftdi object"""
+        return f"{self.ftdi_description.decode()}"
+
+
+def open(ftdi_description="") -> FTDI2xx:
+    """Open FTDI Driver"""
+    create_device_info_list()
+
+    for dev in get_device_info_list():
+        if (ftdi_description.encode() in dev.Description) or ftdi_description == "":
+            driver = FTDI2xx(dev.Description)
+            fixate.drivers.log_instrument_open(driver)
+            return driver
+    raise InstrumentNotConnected(
+        f"No valid ftdi found by description '{ftdi_description}'"
+    )
