@@ -2,6 +2,7 @@ import ctypes
 import struct
 import time
 import os
+import re
 
 import fixate.drivers
 from fixate.core.common import bits
@@ -452,7 +453,10 @@ def open(ftdi_description="") -> FTDI2xx:
     create_device_info_list()
 
     for dev in get_device_info_list():
-        if (ftdi_description.encode() in dev.Description) or ftdi_description == "":
+        if (
+            re.match(ftdi_description, dev.Description.decode())
+            or ftdi_description == ""
+        ):
             driver = FTDI2xx(dev.Description)
             fixate.drivers.log_instrument_open(driver)
             return driver
