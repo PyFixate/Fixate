@@ -454,7 +454,7 @@ def open(ftdi_description="") -> FTDI2xx:
 
     for dev in get_device_info_list():
         if (
-            re.match(ftdi_description, dev.Description.decode())
+            re.fullmatch(ftdi_description, dev.Description.decode())
             or ftdi_description == ""
         ):
             driver = FTDI2xx(dev.Description)
