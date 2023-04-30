@@ -12,16 +12,15 @@ class Keithley6500(DMM):
 
     def __init__(self, instrument, *args, **kwargs):
         self.instrument = instrument
+        instrument.rtscts = 1
+        self.lock = Lock()
         self.instrument.timeout = 10000
         self.instrument.query_delay = 0.3  # Stop DMM crash
-        self.instrument.delay = 0  # Stop DMM crash
+        self.instrument.delay = 0
         self.is_connected = True
         self.reset()
         self._manual_trigger = False
         self._samples = 1
-        self._CLEAN_UP_FLAG = False
-        self._ANALOG_FLAG = False
-        self._DIGITAL_FLAG = False
         self._range_string = ""
         self._bandwidth = None
         self._mode = None
@@ -113,6 +112,8 @@ class Keithley6500(DMM):
         """
         Manually trigger a measurement and store in instrument buffer.
         """
+        if self._manual_trigger == False:
+            raise InstrumentError("Manual trigger mode not set.")
         self._write("INIT; *WAI")
         self._is_error()
 
@@ -155,11 +156,14 @@ class Keithley6500(DMM):
         if data:
             if isinstance(data, str):
                 self.instrument.write(data)
-                time.sleep(0.05)
-            else:
+                time.sleep(0.05)  # Sleep to stop DMM crashes
+            elif isinstance(data, list) and all([isinstance(itm, str) for itm in data]):
+                # If we have a list of strings
                 for itm in data:
                     self.instrument.write(itm)
-                time.sleep(0.05)
+                    time.sleep(0.05)  # Sleep to stop DMM crashes
+            else:
+                raise ParameterError("Invalid data to send to instrument")
         else:
             raise ParameterError("Missing data in instrument write")
 
@@ -267,24 +271,27 @@ class Keithley6500(DMM):
     def fresistance(self, _range=None):
         self._set_measurement_mode("fresistance", _range)
 
-    def frequency(self, _range=None):
+    def frequency(self, _range=None, _volt_range=None):
         """
-        :param _range: The voltage range to perform the measurement.
+        :param _volt_range: The voltage range to perform the measurement.
+        range for DMM is constant for frequency measurements
         """
         command = None
-        if _range:
+        if _volt_range:
             # Have to construct an alternative commnad for FREQuency range
-            command = f"; :SENS:FREQ:THR:RANG:AUTO OFF; :SENS:FREQ:THR:RANG {_range}"
+            command = (
+                f"; :SENS:FREQ:THR:RANG:AUTO OFF; :SENS:FREQ:THR:RANG {_volt_range}"
+            )
         self._set_measurement_mode("frequency", suffix=command)
 
-    def period(self, _range=None):
+    def period(self, _range=None, _volt_range=None):
         """
         :param _range: The voltage range to perform the measurement.
         """
         command = None
-        if _range:
+        if _volt_range:
             # Have to construct an alternative commnad for PERiod range
-            command = f"; :SENS:PER:THR:RANG:AUTO OFF; :SENS:PER:THR:RANG {_range}"
+            command = f"; :SENS:PER:THR:RANG:AUTO OFF; :SENS:PER:THR:RANG {_volt_range}"
         self._set_measurement_mode("period", suffix=command)
 
     def capacitance(self, _range=None):
@@ -308,9 +315,6 @@ class Keithley6500(DMM):
         # 1 kOhm fixed range
         self._set_measurement_mode("continuity")
 
-    def temperature(self):
-        self._set_measurement_mode("temperature")
-
     @property
     def mode(self):
         return self._mode
@@ -323,7 +327,6 @@ class Keithley6500(DMM):
         raise: ParameterError if mode trying to be set is not valid
         """
         self._write("*RST")
-        time.sleep(0.05)
         if value not in self._modes:
             raise ParameterError(f"Unknown mode {value} for DMM")
         self._mode = value

@@ -43,12 +43,6 @@ class DMM:
     def current_dc(self, _range):
         raise NotImplementedError
 
-    def analog_filter(self, bandwidth=None):
-        raise NotImplementedError
-
-    def digital_filter(self):
-        raise NotImplementedError
-
     def resistance(self, _range=None):
         raise NotImplementedError
 
@@ -62,12 +56,6 @@ class DMM:
         raise NotImplementedError
 
     def capacitance(self, _range=None):
-        raise NotImplementedError
-
-    def temperature(self):
-        raise NotImplementedError
-
-    def ftemperature(self):
         raise NotImplementedError
 
     def continuity(self):

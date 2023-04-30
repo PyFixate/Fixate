@@ -16,15 +16,12 @@ class Fluke8846A(DMM):
         self.lock = Lock()
         self.display = "on"
         self.instrument.timeout = 10000
-        self.instrument.query_delay = 0
+        self.instrument.query_delay = 0  # Delay between write and read in a query
         self.instrument.delay = 0
         self.is_connected = True
         self.reset()
         self._manual_trigger = False
         self._samples = 1
-        self._CLEAN_UP_FLAG = False
-        self._ANALOG_FLAG = False
-        self._DIGITAL_FLAG = False
         self._range_string = ""
         self._bandwidth = None
         self._mode = None
@@ -95,6 +92,11 @@ class Fluke8846A(DMM):
         self._is_error()  # Catch possible insufficient memory error (and others)
 
     def trigger(self):
+        """
+        Manually trigger a measurement and store in instrument buffer.
+        """
+        if self._manual_trigger == False:
+            raise InstrumentError("Manual trigger mode not set.")
         self._write("*TRG")  # Send trigger to instrument
         self._is_error()  # Catch errors. This might slow things down
 
@@ -119,7 +121,6 @@ class Fluke8846A(DMM):
         with self.lock:
             self._is_error(silent=True)
             self._write(["*rst", "SYST:REM", "*cls", f"disp {self.display}"])
-            self._CLEAN_UP_FLAG = False
             self._is_error()
 
     def __enter__(self):
@@ -137,11 +138,13 @@ class Fluke8846A(DMM):
         if data:
             if isinstance(data, str):
                 self.instrument.write(data)
-                time.sleep(0.05)
-            else:
+                time.sleep(0.05)  # Sleep to stop DMM crashes
+            elif isinstance(data, list) and all([isinstance(itm, str) for itm in data]):
                 for itm in data:
                     self.instrument.write(itm)
-                time.sleep(0.05)
+                    time.sleep(0.05)  # Sleep to stop DMM crashes
+            else:
+                raise ParameterError("Invalid data to send to instrument")
         else:
             raise ParameterError("Missing data in instrument write")
 
@@ -200,22 +203,10 @@ class Fluke8846A(DMM):
             else:
                 raise InstrumentError(
                     "Error(s) Returned from DMM\n"
-                    + "\n".join(["Code: {code}\nMessage:{msg}" for code, msg in errors])
+                    + "\n".join(
+                        [f"Code: {code}\nMessage:{msg}" for code, msg in errors]
+                    )
                 )
-
-    def error_cleanup(self):
-        """
-        When VisaIOError exception caught, DMM interrupt is sent, read buffer is cleared and DMM returned to power up
-        state.  VI read buffer is then flushed.
-        DMM is then returned to previous configuration
-        """
-        self._CLEAN_UP_FLAG = True
-        # Disaster Recovery
-        self.instrument.write("\x03;*RST;*CLS")  # CTRL-C
-        time.sleep(1.1)  # time needed to clear the dmm read buffer
-        self.instrument.flush(constants.VI_READ_BUF_DISCARD)
-        self.instrument.close()
-        self.instrument.open()
 
     def _set_measurement_mode(self, mode, _range=None, suffix=None):
         """
@@ -268,11 +259,21 @@ class Fluke8846A(DMM):
     def fresistance(self, _range=None):
         self._set_measurement_mode("fresistance", _range)
 
-    def frequency(self, _range=None):
-        self._set_measurement_mode("frequency", _range)
+    def frequency(self, _range=None, _volt_range=None):
+        if _volt_range:
+            self._set_measurement_mode(
+                "frequency", _range, suffix=f" ; :SENS:FREQ:VOLT:RANG {_volt_range}"
+            )
+        else:
+            self._set_measurement_mode("frequency", _range)
 
-    def period(self, _range=None):
-        self._set_measurement_mode("period", _range)
+    def period(self, _range=None, _volt_range=None):
+        if _volt_range:
+            self._set_measurement_mode(
+                "period", _range, suffix=f" ; :SENS:PER:VOLT:RANG {_volt_range}"
+            )
+        else:
+            self._set_measurement_mode("period", _range)
 
     def capacitance(self, _range=None):
         self._set_measurement_mode("capacitance", _range)
@@ -308,36 +309,10 @@ class Fluke8846A(DMM):
         raise: ParameterError if mode trying to be set is not valid
         """
         self._write("*rst")
-        time.sleep(0.05)
         # do we need to set the default filter here?
         if value not in self._modes:
             raise ParameterError(f"Unknown mode {value} for DMM")
         self._mode = value
-
-    def digital_filter(self):
-        """
-        Sets up DMM digital filtering
-        raise: TypeError if trying to set digital filter in an AC mode
-        """
-        if "ac" in self._mode:
-            raise TypeError
-        self._write(self._filters[self.mode] + ":FILT:DIG:STAT ON")
-
-    def analog_filter(self, bandwidth=None):
-        """
-        Sets up DMM analog filtering.  Writes the different filter strings depending on the configuration mode.  Hence,
-        configuration must be set before calling filter.
-        raise: ValueError if invalid filtering bandwidth is requested
-        """
-        if "ac" in self._mode:
-            self._bandwidth = bandwidth or 20
-            if self._bandwidth not in [3, 20, 200]:
-                raise ValueError("Bandwidth must be 3, 20 or 200")
-            self._write(self._filters[self.mode] + f":BAND {self._bandwidth}")
-
-        elif any(x in self._mode for x in ["dc", "res"]):
-            self._write(self._filters[self.mode] + ":FILT:STAT ON")
-        pass
 
     def get_identity(self) -> str:
         """
