@@ -8,7 +8,12 @@ Release Date xx/xx/xxxx
 
 - Fix initial serial number check to properly raise exception on incorrect entry.
 - Failure to open a drivers pyvisa resource will now raise a more informative InstrumentOpenError exception from the pyvisa error
+- New DMM driver added for Keithley 6500 DMM. 
+- Remove unused error_cleanup functinon and flags in fluke DMM driver.
+- Remove temperature, ftemperature, analog filter and digital filter from DMM drivers.
+- Add _voltage_range to frequency and period measurement modes.
 - Add optional formatting argument ('fmt') to check functions to improve ui display and logging of test values
+
 
 *************
 Version 0.6.0

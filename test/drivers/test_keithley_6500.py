@@ -40,24 +40,24 @@ def test_open_dmm(dmm):
 def test_reset(dmm):
     dmm.reset()
     query = dmm.instrument.query("SYST:ERR?")
-    assert '+0,"No error"' == query.strip()
+    assert '0,"No error;0;0 0"' == query.strip()
 
 
 @pytest.mark.parametrize(
     "mode, expected",
     [
         ("voltage_ac", "VOLT:AC"),
-        ("voltage_dc", "VOLT"),
-        ("current_dc", "CURR"),
+        ("voltage_dc", "VOLT:DC"),
+        ("current_dc", "CURR:DC"),
         ("current_ac", "CURR:AC"),
         ("resistance", "RES"),
         ("fresistance", "FRES"),
-        ("period", "PER"),
-        ("frequency", "FREQ"),
+        ("period", "PER:VOLT"),
+        ("frequency", "FREQ:VOLT"),
         ("capacitance", "CAP"),
         ("continuity", "CONT"),
         ("diode", "DIOD"),
-        pytest.param("temperature", "TEMP", marks=pytest.mark.xfail),
+        ("temperature", "TEMP"),
         pytest.param("ftemperature", "TEMP", marks=pytest.mark.xfail),
     ],
 )
@@ -73,16 +73,16 @@ def test_mode(mode, expected, dmm):
 @pytest.mark.drivertest
 def test_samples(nsample, dmm):
     dmm.samples = nsample
-    query = dmm.instrument.query("SAMP:COUN?")
+    query = dmm.instrument.query(":COUN?")
     assert nsample == int(query.strip())
 
 
-@pytest.mark.parametrize("nsample", [50001, 0])
+@pytest.mark.parametrize("nsample", [1000001, 0])
 @pytest.mark.drivertest
 def test_samples_over_range(nsample, dmm):
-    with pytest.raises(InstrumentError) as excinfo:
+    with pytest.raises(ParameterError) as excinfo:
         dmm.samples = nsample
-    assert re.search("Invalid parameter", str(excinfo.value))
+    assert re.search("Number of samples out of bounds", str(excinfo.value))
 
 
 @pytest.mark.parametrize(
@@ -92,10 +92,10 @@ def test_samples_over_range(nsample, dmm):
         ("voltage_ac", 10),
         ("voltage_dc", 1),
         ("voltage_dc", 10),
-        ("current_dc", 1),
-        ("current_dc", 10),
-        ("current_ac", 1),
-        ("current_ac", 10),
+        ("current_dc", 10e-6),
+        ("current_dc", 3),
+        ("current_ac", 100e-6),
+        ("current_ac", 3),
         ("resistance", 10),
         ("resistance", 10e6),
         ("fresistance", 10),
@@ -112,8 +112,6 @@ def test_range(mode, range, dmm):
     assert float(query) == pytest.approx(range)
 
 
-# DMM does not return an error for under range. It just clips the value.
-# It does return an error for over range however..
 @pytest.mark.parametrize(
     "mode, range",
     [
@@ -130,41 +128,51 @@ def test_range(mode, range, dmm):
 def test_range_over_range(mode, range, dmm):
     with pytest.raises(InstrumentError) as excinfo:
         getattr(dmm, mode)(_range=range)
-    assert re.search("Invalid parameter", str(excinfo.value))
+    assert re.search("Parameter, measure range, expected value", str(excinfo.value))
 
 
 @pytest.mark.parametrize(
     "mode, range",
     [
         ("frequency", 100e-3),
-        ("frequency", 1000),
-        ("period", 100e-3),
-        ("period", 1000),
+        ("frequency", 750),
     ],
 )
 @pytest.mark.drivertest
 def test_frequency_input_range(mode, range, dmm):
     getattr(dmm, mode)(_volt_range=range)
-    mod = dmm.instrument.query("SENS:FUNC?").strip('"\r\n')
-    query = dmm.instrument.query(mod + ":VOLT:RANG?")
+    query = dmm.instrument.query(":SENS:FREQ:THR:RANG?")
 
     assert float(query) == pytest.approx(range)
 
 
-# DMM does not return an error for under range. It just clips the value.
-# It does return an error for over range however..
 @pytest.mark.parametrize(
     "mode, range",
     [
-        ("frequency", 10e12),
-        ("period", 10e12),
+        ("period", 100e-3),
+        ("period", 750),
+    ],
+)
+@pytest.mark.drivertest
+def test_period_input_range(mode, range, dmm):
+    getattr(dmm, mode)(_volt_range=range)
+    query = dmm.instrument.query(":SENS:PER:THR:RANG?")
+
+    assert float(query) == pytest.approx(range)
+
+
+@pytest.mark.parametrize(
+    "mode, range",
+    [
+        ("frequency", 1000),
+        ("period", 1000),
     ],
 )
 @pytest.mark.drivertest
 def test_frequency_input_over_range(mode, range, dmm):
     with pytest.raises(InstrumentError) as excinfo:
         getattr(dmm, mode)(_volt_range=range)
-    assert re.search("Invalid parameter", str(excinfo.value))
+    assert re.search("Parameter, measure threshold range", str(excinfo.value))
 
 
 @pytest.mark.drivertest
@@ -179,7 +187,7 @@ def test_manual_trigger_exception(dmm):
 @pytest.mark.drivertest
 def test_manual_trigger(dmm):
     dmm.reset()  # Make sure DMM is not in manual trigger mode
-    dmm.voltage_dc(10)
+    dmm.voltage_ac(10)
     dmm.set_manual_trigger(samples=10)  # Setup manual triggering
     dmm.trigger()  # Take the samples
 
@@ -319,4 +327,4 @@ def test_measurement_diode(funcgen, dmm, rm):
 @pytest.mark.drivertest
 def test_get_identity(dmm):
     iden = dmm.get_identity()
-    assert "FLUKE,8846A" in iden
+    assert "KEITHLEY INSTRUMENTS,MODEL DMM6500" in iden
