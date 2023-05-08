@@ -13,6 +13,7 @@ Release Date xx/xx/xxxx
 - Remove temperature, ftemperature, analog filter and digital filter from DMM drivers.
 - Add _voltage_range to frequency and period measurement modes.
 - Add optional formatting argument ('fmt') to check functions to improve ui display and logging of test values
+- Fix bug where sequencer would return success if terminated during startup
 
 
 *************
