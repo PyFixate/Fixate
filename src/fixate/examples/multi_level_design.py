@@ -1,9 +1,6 @@
 from fixate.core.ui import user_info
 from fixate.core.common import TestClass, TestList
 from fixate.config import RESOURCES
-import fixate
-
-__version__ = "2"
 
 # Standard expected output
 """
@@ -62,8 +59,6 @@ i'm a subclass
 4: teardown 10
 : list exit
 """
-
-seq = fixate.config.RESOURCES["SEQUENCER"]
 
 
 class Test(TestClass):

@@ -6,17 +6,16 @@ from fixate.drivers.dmm.helper import DMM
 import time
 
 
-class Fluke8846A(DMM):
-    REGEX_ID = "FLUKE,8846A"
+class Keithley6500(DMM):
+    REGEX_ID = "KEITHLEY INSTRUMENTS,MODEL DMM6500"
     INSTR_TYPE = "VISA"
 
     def __init__(self, instrument, *args, **kwargs):
         self.instrument = instrument
         instrument.rtscts = 1
         self.lock = Lock()
-        self.display = "on"
         self.instrument.timeout = 10000
-        self.instrument.query_delay = 0  # Delay between write and read in a query
+        self.instrument.query_delay = 0.3  # Stop DMM crash
         self.instrument.delay = 0
         self.is_connected = True
         self.reset()
@@ -28,41 +27,35 @@ class Fluke8846A(DMM):
         # Set to True to have explicit error checks on each read
         self.legacy_mode = False
         self._modes = {
-            "voltage_ac": "CONF:VOLTage:AC",
-            "voltage_dc": "CONF:VOLTage:DC",
-            "current_ac": "CONF:CURRent:AC",
-            "current_dc": "CONF:CURRent:DC",
-            "resistance": "CONF:RESistance",
-            "fresistance": "CONF:FRESistance",
-            "period": "CONF:PERiod",
-            "frequency": "CONF:FREQuency",
-            "temperature": "CONF:TEMPerature:RTD",
-            "ftemperature": "CONF:TEMPerature:FRTD",
-            "capacitance": "CONF:CAPacitance",
-            "continuity": "CONF:CONTinuity",
-            "diode": "CONF:DIODe",
+            "voltage_ac": "VOLT:AC",
+            "voltage_dc": "VOLT:DC",
+            "current_ac": "CURR:AC",
+            "current_dc": "CURR:DC",
+            "resistance": "RES",
+            "fresistance": "FRES",
+            "period": "PER",
+            "frequency": "FREQ",
+            "temperature": "TEMP",
+            "capacitance": "CAP",
+            "continuity": "CONT",
+            "diode": "DIOD",
         }
-        self._filters = {
-            "voltage_ac": "SENS:VOLT:AC",
-            "voltage_dc": "SENS:VOLT:DC",
-            "current_ac": "SENS:CURR:AC",
-            "current_dc": "SENS:CURR:DC",
-            "resistance": "SENS:RES",
-            "fresistance": "SENS:FRES",
-            None: "",
-        }
+
         self._init_string = ""  # Unchanging
 
-        self._resolution = {
-            "voltage_ac": "VOLT:RES",
-            "voltage_dc": "VOLT:RES",
-            "current_ac": "CURR:AC:RES",
-            "current_dc": "CURR:DC:RES",
-            "resistance": "RES:RES",
-            "fresistance": "RES:RES",
-            "capacitance": "CAP:RES",
-            None: "",
-        }
+    # Adapted for different DMM behaviour
+    @property
+    def display(self):
+        return self.display
+
+    @display.setter
+    def display(self, val):
+        if val == "off":
+            self._display = "OFF"
+        else:
+            self._display = "ON100"
+
+        self._write(f"DISP:LIGH:STAT {self._display}")
 
     @property
     def samples(self):
@@ -70,26 +63,50 @@ class Fluke8846A(DMM):
 
     @samples.setter
     def samples(self, val):
-        self._write(f"SAMP:COUN {val}")
+        # Sample number is per mode.
+
+        # Clip values to upper and lower bounds. DMM likes to crash if set out of bounds
+        if val < 1 or val > 1000000:
+            raise ParameterError(
+                "Number of samples out of bounds. Must be between 1 and 1000000"
+            )
+
+        self._write(f":COUN {val}")
         self._is_error()
         self._samples = val
 
     def local(self):
-        self._write("SYST:LOC")
+        # Keithley does not have a way to release the DMM from remote mode
+        # So just set up a trigger loop. Requires *TRG to be sent to drop it out of the loop (call to remote()).
+        self.samples = 1
+        self._write("TRIG:LOAD 'EMPTY'")  # Load empty model
+        self._write(f"TRIG:BLOC:MDIG 1, 'defbuffer1', 1")
+        self._write(f"TRIG:BLOC:DEL:CONS 2, 0.1")
+        self._write("TRIG:BLOC:BRAN:EVEN 3, COMM, 5")
+        self._write(f"TRIG:BLOC:BRAN:ALW 4, 1")
+        self._write("TRIG:BLOC:BUFF:CLE 5")
+        self._write("TRAC:CLE")
+        self._write("INIT")
 
     def remote(self):
-        self._write("SYST:REM")
+        # Stop trigger loop and return to normal
+        self._write("*TRG")
+        self._is_error()
 
     def set_manual_trigger(self, samples=1):
-        MAX_TRIGGER_COUNT = 5000
+        """
+        Setup instrument for manual triggering
+        :param samples: Number of samples to take per trigger
+
+        Use trigger_measurement() to trigger a measurement.
+        Use measurements() to retrieve measurements.
+        """
         self._manual_trigger = True
         self.samples = samples
-        # set DMM to remote trigger
-        self._write("TRIG:SOUR BUS")
-        # Set number of samples to maximum:
-        self._write(f"TRIG:COUN {int(MAX_TRIGGER_COUNT/samples)}")
-        self._write("INIT")  # Wait for trigger
-        self._is_error()  # Catch possible insufficient memory error (and others)
+        self._write("TRIG:LOAD 'EMPTY'")  # Load empty model
+        self._write(f"TRIG:BLOC:MDIG 1, 'defbuffer1', {samples}")
+        self._write("TRAC:CLE")
+        self._is_error()
 
     def trigger(self):
         """
@@ -97,8 +114,8 @@ class Fluke8846A(DMM):
         """
         if self._manual_trigger == False:
             raise InstrumentError("Manual trigger mode not set.")
-        self._write("*TRG")  # Send trigger to instrument
-        self._is_error()  # Catch errors. This might slow things down
+        self._write("INIT; *WAI")
+        self._is_error()
 
     def measurement(self):
         """
@@ -118,10 +135,11 @@ class Fluke8846A(DMM):
         """
         Checks for errors and then returns DMM to power up state
         """
-        with self.lock:
-            self._is_error(silent=True)
-            self._write(["*rst", "SYST:REM", "*cls", f"disp {self.display}"])
-            self._is_error()
+        self._is_error(silent=True)
+        # Wait for previous commands to finish, reset, clear event logs
+        self._write("*RST")
+        self._CLEAN_UP_FLAG = False
+        self._is_error()
 
     def __enter__(self):
         return self
@@ -140,6 +158,7 @@ class Fluke8846A(DMM):
                 self.instrument.write(data)
                 time.sleep(0.05)  # Sleep to stop DMM crashes
             elif isinstance(data, list) and all([isinstance(itm, str) for itm in data]):
+                # If we have a list of strings
                 for itm in data:
                     self.instrument.write(itm)
                     time.sleep(0.05)  # Sleep to stop DMM crashes
@@ -150,23 +169,24 @@ class Fluke8846A(DMM):
 
     def _read_measurements(self):
         """
-        Attempts to read values from the DMM up until self.retrys_on_timeout amount of times
+        Attempts to read values from the DMM
         After each attempt DMM is checked for errors
-        If errors.VisaIOError during read error_cleanup is called
         raise: VisaIOError if exception on the last attempt
                ValueError if no values are read
         return: values read from the DMM
         """
-        if self._manual_trigger:
-            values = self.instrument.query_ascii_values("FETCH?")
-            # Reset for next set of measurements (clear buffer).
-            # Fluke does not allow you to manually clear the buffer, so this roundabout way is used instead
-            self.set_manual_trigger(samples=self.samples)
-        else:
-            values = self.instrument.query_ascii_values("READ?")
+        if not self._manual_trigger:
+            self.instrument.query("READ?; *WAI")  # Start sampling into debuffer1
 
+        # Get number of readings in buffer
+        readings = self.instrument.query_ascii_values("TRAC:ACTual?")
+        values = self.instrument.query_ascii_values(
+            f"TRAC:DATA? 1, {readings[0]}"
+        )  # Read values from the once done.
         if self.legacy_mode:
             self._is_error()
+
+        self._write("TRAC:CLE")  # Clear buffer on exit for next reading
         return values
 
     def _check_errors(self):
@@ -174,9 +194,9 @@ class Fluke8846A(DMM):
         Queries the DMM for errors and splits the resp string into the message and error code
         return: Error code and Error msg
         """
-        resp = self.instrument.query("SYST:ERR?")
+        resp = self.instrument.query("SYST:ERR:NEXT?")
         try:
-            code, msg = resp.strip("\n").split(",")
+            code, msg = resp.strip("\n").split(',"')
             code = int(code)
             msg = msg.strip('"')
         except:
@@ -192,6 +212,7 @@ class Fluke8846A(DMM):
         """
         errors = []
         while True:
+            # Fix errors needs an overhaul.
             code, msg = self._check_errors()
             if code != 0:
                 errors.append((code, msg))
@@ -214,26 +235,17 @@ class Fluke8846A(DMM):
         resistance, fresistance. Reduces previous duplicate code.
         :param mode:
         :param _range:
-        :param _resolution:
         :return:
         """
         self.mode = mode
-        self._manual_trigger = False  # Default mode is auto trigger
-        mode_str = f"{self._modes[self._mode]}"
+        self._manual_trigger = False
+        mode_str = f"SENS:FUNC '{self._modes[self._mode]}'"
         if _range is not None:
-            mode_str += f" {_range}"
+            mode_str += f"; :SENS:{self._modes[self._mode]}:RANGE {_range}"
         if suffix is not None:
-            mode_str += f" {suffix}"
+            mode_str += suffix
         self._write(mode_str)
-        self._write(
-            [
-                "SYST:REM",
-                "TRIG:DEL:AUTO ON",
-                "TRIG:SOUR IMM",
-                "TRIG:COUN 1",
-                f"SAMP:COUN {self.samples}",
-            ]
-        )
+        self._write(f":COUN {self.samples}")
         self._is_error()
 
     def voltage_ac(self, _range=None):
@@ -242,9 +254,9 @@ class Fluke8846A(DMM):
     def voltage_dc(self, _range=None, auto_impedance=False):
         # Auto impedance OFF is the default mode.
         if auto_impedance == True:
-            command = "; :SENS:VOLT:DC:IMP:AUTO ON"
+            command = "; :SENS:VOLT:DC:INP AUTO"
         else:
-            command = "; :SENS:VOLT:DC:IMP:AUTO OFF"
+            command = "; :SENS:VOLT:DC:INP MOHM10"
         self._set_measurement_mode("voltage_dc", _range, suffix=command)
 
     def current_ac(self, _range=None):
@@ -260,34 +272,39 @@ class Fluke8846A(DMM):
         self._set_measurement_mode("fresistance", _range)
 
     def frequency(self, _range=None, _volt_range=None):
+        """
+        :param _volt_range: The voltage range to perform the measurement.
+        range for DMM is constant for frequency measurements
+        """
+        command = None
         if _volt_range:
-            self._set_measurement_mode(
-                "frequency", _range, suffix=f" ; :SENS:FREQ:VOLT:RANG {_volt_range}"
+            # Have to construct an alternative commnad for FREQuency range
+            command = (
+                f"; :SENS:FREQ:THR:RANG:AUTO OFF; :SENS:FREQ:THR:RANG {_volt_range}"
             )
-        else:
-            self._set_measurement_mode("frequency", _range)
+        self._set_measurement_mode("frequency", suffix=command)
 
     def period(self, _range=None, _volt_range=None):
+        """
+        :param _range: The voltage range to perform the measurement.
+        """
+        command = None
         if _volt_range:
-            self._set_measurement_mode(
-                "period", _range, suffix=f" ; :SENS:PER:VOLT:RANG {_volt_range}"
-            )
-        else:
-            self._set_measurement_mode("period", _range)
+            # Have to construct an alternative commnad for PERiod range
+            command = f"; :SENS:PER:THR:RANG:AUTO OFF; :SENS:PER:THR:RANG {_volt_range}"
+        self._set_measurement_mode("period", suffix=command)
 
     def capacitance(self, _range=None):
         self._set_measurement_mode("capacitance", _range)
 
     def diode(self, low_current=True, high_voltage=False):
-        """
-        Writes configuration string for diode to the DMM
-        param _range: value set for the range
-        param _resolution: value set for the resolution
-        """
-        self._set_measurement_mode(
-            "diode",
-            suffix=f"{int(bool(low_current))}, {int(bool(high_voltage))}",
-        )
+        # Cannot set range. 10V fixed range
+        command = None
+        if low_current == True:
+            command = "; :SENS:DIOD:BIAS:LEV 0.0001"  # 100uA
+        if low_current == False:
+            command = "; :SENS:DIOD:BIAS:LEV 0.001"  # 1mA
+        self._set_measurement_mode("diode", suffix=command)
 
     def continuity(self):
         """
@@ -295,6 +312,7 @@ class Fluke8846A(DMM):
         param _range: value set for the range
         param _resolution: value set for the resolution
         """
+        # 1 kOhm fixed range
         self._set_measurement_mode("continuity")
 
     @property
@@ -308,8 +326,7 @@ class Fluke8846A(DMM):
         param value: The string associated with the mode being set up
         raise: ParameterError if mode trying to be set is not valid
         """
-        self._write("*rst")
-        # do we need to set the default filter here?
+        self._write("*RST")
         if value not in self._modes:
             raise ParameterError(f"Unknown mode {value} for DMM")
         self._mode = value

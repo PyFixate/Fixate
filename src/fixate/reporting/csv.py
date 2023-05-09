@@ -96,6 +96,7 @@ from pubsub import pub
 from queue import Queue
 from fixate.core.common import TestClass
 from fixate.core.common import ExcThread
+from fixate.core.checks import CheckResult
 import fixate
 import fixate.config
 
@@ -114,10 +115,6 @@ class CSVWriter:
     def __init__(self):
         self.csv_queue = Queue()
         self.csv_writer = None
-        # data = fixate.config.get_config_dict()
-        # data.update(fixate.config.get_plugin_data('plg_csv'))
-        # self.csv_dir = os.path.join(*fixate.config.render_template(data["tpl_csv_path"], **data,
-        #                                                            **fixate.config.RESOURCES["SEQUENCER"].context_data))
         self.reporting = CsvReporting()
 
     def install(self):
@@ -196,17 +193,15 @@ class CsvReporting:
     ):
         self._write_line_to_csv(
             [
-                "{:.2f}".format(time.perf_counter() - self.start_time),
+                f"{(time.perf_counter() - self.start_time):.2f}",
                 "Sequence",
-                "ended={}".format(
-                    self.data["tpl_time_stamp"].format(datetime.datetime.now())
-                ),
+                f"ended={self.data['tpl_time_stamp'].format(datetime.datetime.now())}",
                 sequence_status,
-                "tests-passed={}".format(passed),
-                "tests-failed={}".format(failed),
-                "tests-error={}".format(error),
-                "tests-skipped={}".format(skipped),
-                "sequence={}".format(status.upper()),
+                f"tests-passed={passed}",
+                f"tests-failed={failed}",
+                f"tests-error={error}",
+                f"tests-skipped={skipped}",
+                f"sequence={status.upper()}",
             ]
         )
         # Close out the reporting
@@ -224,8 +219,8 @@ class CsvReporting:
         # Test <test_index>, start, <test name>
         self._write_line_to_csv(
             [
-                "{:.2f}".format(time.perf_counter() - self.start_time),
-                "Test {}".format(test_index),
+                f"{(time.perf_counter() - self.start_time):.2f}",
+                f"Test {test_index}",
                 "start",
                 data.test_desc,
                 data.test_desc_long,
@@ -237,44 +232,45 @@ class CsvReporting:
         if len(test_params):
             # Test <test_index>, test-parameters, <param_name>=<param_value>, ...
             param_line = [
-                "{:.2f}".format(time.perf_counter() - self.start_time),
-                "Test {}".format(test_index),
+                f"{(time.perf_counter() - self.start_time):.2f}",
+                f"Test {test_index}",
                 "test-parameters",
             ]
             for param_name, param_value in test_params:
-                param_line.append("{}={}".format(param_name, param_value))
+                param_line.append(f"{param_name}={param_value}")
             self._write_line_to_csv(param_line)
 
     def test_exception(self, exception, test_index):
         self.current_test = test_index
         exc_line = [
-            "{:.2f}".format(time.perf_counter() - self.start_time),
-            "Test {}".format(test_index),
+            f"{(time.perf_counter() - self.start_time):.2f}",
+            f"Test {test_index}",
             "exception",
             re.sub(r",\)", ")", repr(exception)),
         ]  # Remove trailing comma for exception for python < 3.7
         self._write_line_to_csv(exc_line)
 
-    def test_comparison(self, passes, chk, chk_cnt, context):
+    def test_comparison(
+        self, passes: bool, chk: CheckResult, chk_cnt: int, context: str
+    ):
         # pub.sendMessage("Check", passes=result, chk=chk, context=self.get_context())
-        if passes:
-            status = "PASS"
-        else:
-            status = "FAIL"
+
         # Test <test_index>, check<number>, <check type>, <status>, <test_val>, <expected>
         # If exception <test_index>, check<number>, <exception details>
         chk_line = [
-            "{:.2f}".format(time.perf_counter() - self.start_time),
-            "Test {}".format(context),
-            "check{}".format(chk_cnt),
-            chk.target.__name__[1:].replace("check_", "").replace("_", " "),
+            f"{(time.perf_counter() - self.start_time):.2f}",
+            f"Test {context}",
+            f"check{chk_cnt}",
+            chk.target_name,
             chk.description,
-            status,
+            chk.status,
             chk.test_val,
         ]
-        chk_line.extend(
-            [x for x in [chk.nominal, chk._min, chk._max, chk.tol] if x is not None]
-        )
+        chk_line.extend(chk.check_params)
+        # TODO: might be clearer to make check_params a dict and then each
+        # parameter entry as "key = value" (e.g "nominal = 55")
+        # Easier to debug without referring to scripts or checks.py?
+        # e.g. chk_line.extend([f"{k} = {v}" for k,v in chk.check_params.items()])
 
         self._write_line_to_csv(chk_line)
         self.chk_cnt += 1
@@ -288,12 +284,12 @@ class CsvReporting:
 
             self._write_line_to_csv(
                 [
-                    "{:.2f}".format(time.perf_counter() - self.start_time),
-                    "Test {}".format(test_index),
+                    f"{(time.perf_counter() - self.start_time):.2f}",
+                    f"Test {test_index}",
                     "end",
                     status,
-                    "checks-passed={}".format(passed),
-                    "checks-failed={}".format(failed),
+                    f"checks-passed={passed}",
+                    f"checks-failed={failed}",
                 ]
             )
         finally:
@@ -302,8 +298,8 @@ class CsvReporting:
     def user_wait_start(self, *args, **kwargs):
         self._write_line_to_csv(
             [
-                "{:.2f}".format(time.perf_counter() - self.start_time),
-                "Test {}".format(self.current_test),
+                f"{(time.perf_counter() - self.start_time):.2f}",
+                f"Test {self.current_test}",
                 "user_wait_start",
             ]
         )
@@ -311,8 +307,8 @@ class CsvReporting:
     def user_wait_end(self, *args, **kwargs):
         self._write_line_to_csv(
             [
-                "{:.2f}".format(time.perf_counter() - self.start_time),
-                "Test {}".format(self.current_test),
+                f"{time.perf_counter() - self.start_time:.2f}",
+                f"Test {self.current_test}",
                 "user_wait_end",
             ]
         )
@@ -320,7 +316,7 @@ class CsvReporting:
     def driver_open(self, instr_type, identity):
         self._write_line_to_csv(
             [
-                "{:.2f}".format(time.perf_counter() - self.start_time),
+                f"{(time.perf_counter() - self.start_time):.2f}",
                 "DRIVER",
                 instr_type,
                 identity,
@@ -386,12 +382,13 @@ def unregister_csv():
     :return:
     """
     global writer
-    pub.unsubscribe(writer.reporting.test_start, "Test_Start")
-    pub.unsubscribe(writer.reporting.test_comparison, "Check")
-    pub.unsubscribe(writer.reporting.test_exception, "Test_Exception")
-    pub.unsubscribe(writer.reporting.test_complete, "Test_Complete")
-    pub.unsubscribe(writer.reporting.sequence_update, "Sequence_Update")
-    pub.unsubscribe(writer.reporting.sequence_complete, "Sequence_Complete")
-    pub.unsubscribe(writer.reporting.user_wait_start, "UI_block_start")
-    pub.unsubscribe(writer.reporting.user_wait_end, "UI_block_end")
-    writer.uninstall()
+    if writer is not None:
+        pub.unsubscribe(writer.reporting.test_start, "Test_Start")
+        pub.unsubscribe(writer.reporting.test_comparison, "Check")
+        pub.unsubscribe(writer.reporting.test_exception, "Test_Exception")
+        pub.unsubscribe(writer.reporting.test_complete, "Test_Complete")
+        pub.unsubscribe(writer.reporting.sequence_update, "Sequence_Update")
+        pub.unsubscribe(writer.reporting.sequence_complete, "Sequence_Complete")
+        pub.unsubscribe(writer.reporting.user_wait_start, "UI_block_start")
+        pub.unsubscribe(writer.reporting.user_wait_end, "UI_block_end")
+        writer.uninstall()
