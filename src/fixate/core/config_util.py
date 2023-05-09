@@ -3,14 +3,13 @@ import argparse
 import pyvisa
 import json
 import copy
+import platformdirs
 from shutil import copy2
 from pathlib import Path
 from cmd2.ansi import style, Fg
 from fixate.drivers.pps.bk_178x import BK178X
-import fixate.config
 from pyvisa.errors import VisaIOError
-
-DEFAULT_CONFIG_FILE = Path(fixate.config.__path__[0]) / "local_config.json"
+import fixate.config
 
 """
 fxconfig is a configuration utility that helps find connected instruments and add them to fixate's driver
@@ -224,7 +223,7 @@ class FxConfigCmd(cmd2.Cmd):
         if line:
             config_file_path = line
         else:
-            config_file_path = DEFAULT_CONFIG_FILE
+            config_file_path = fixate.config.INSTRUMENT_CONFIG_FILE
 
         self._load_config_into_dict(config_file_path)
 
@@ -250,11 +249,12 @@ class FxConfigCmd(cmd2.Cmd):
         if line:
             config_file_path = Path(line)
         else:
-            config_file_path = DEFAULT_CONFIG_FILE
+            config_file_path = fixate.config.INSTRUMENT_CONFIG_FILE
 
         if config_file_path.exists():
             raise Exception("Path '{}' already exists".format(config_file_path))
         else:
+            config_file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(config_file_path, "w") as config_file:
                 config_file.write(
                     "{}"
@@ -357,7 +357,6 @@ def visa_id_query(visa_resource_name):
     instr = pyvisa.ResourceManager().open_resource(visa_resource_name, query_delay=0.1)
     # 1 s timeout is overly conservative. But if we call clear() that can take a while for some instruments
     instr.timeout = 1000
-    # instr.clear()
     resp = instr.query("*IDN?")
 
     if resp:

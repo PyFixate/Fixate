@@ -4,8 +4,6 @@ All available configuration is loaded into the module
 Drivers are hard coded into the config to prevent issues arising from auto discovery
 Must ensure driver imports are infallible to prevent program crash on start
 """
-import sys
-
 from fixate.config.helper import (
     load_dict_config,
     load_yaml_config,
@@ -20,13 +18,22 @@ import dataclasses
 from typing import Dict, List, Optional
 import enum
 import re
+import platformdirs
+from pathlib import Path
+import logging
 
-LOCAL_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "local_config.json")
+logger = logging.getLogger(__name__)
+
+CONFIG_DIRECTORY = Path(platformdirs.site_config_dir("Fixate", False))
+LOG_DIRECTORY = Path(platformdirs.user_log_dir("Fixate", False))
+INSTRUMENT_CONFIG_FILE = CONFIG_DIRECTORY / "instruments.json"
+
 
 INSTRUMENTS = []
 RESOURCES = {}
 
 DEBUG = False
+
 # Begin default "plugins"
 # Use plg_ prefix with dictionary of values to indicate to fixate to install this at startup
 # Default settings for csv reporting. Can be configured via yaml either removing or overriding with plg_csv
@@ -64,10 +71,10 @@ class InstrumentConfig:
     parameters: Dict[str, str]
 
 
-def load_local_config(local_config_path: str) -> List[InstrumentConfig]:
-    """read local_config.json and return the instrument config.
+def load_instrument_config(local_config_path: str) -> List[InstrumentConfig]:
+    """read instruments.json and return the instrument config.
 
-    local_config.json should have this shape:
+    instruments.json should have this shape:
     {
         "INSTRUMENTS": {
             "serial": {
@@ -97,6 +104,8 @@ def load_local_config(local_config_path: str) -> List[InstrumentConfig]:
     if os.path.isfile(local_config_path):
         with open(local_config_path, "r") as f:
             local_config_data = json.load(f)
+    else:
+        logger.debug(f"No instrument config found at {local_config_path}")
     instruments = local_config_data.get("INSTRUMENTS", {})
     serial_instruments = instruments.get(InstrumentType.SERIAL.value, {})
     visa_instruments = instruments.get(InstrumentType.VISA.value, [])
@@ -130,14 +139,15 @@ def load_config(config_files: Optional[List[str]] = None):
     Call to initialise various config at startup.
 
     By default will load the fixate.yml which mostly is used for logging options.
-    It also loads the local_config.json, which is used to configure instruments
+    It also loads the instruments.json, which is used to configure instruments
     which are connected to the test station.
 
     config_files is a list of yaml files. Each will be loaded. Any values
     passed in those files will override the default fixate.yml.
     """
+
     # Load python environment fixate config
-    env_config = os.path.join(sys.prefix, "fixate.yml")
+    env_config = CONFIG_DIRECTORY / "fixate.yml"
     if os.path.exists(env_config):
         load_yaml_config(env_config)
 
@@ -146,7 +156,7 @@ def load_config(config_files: Optional[List[str]] = None):
         for config_file in config_files:
             load_yaml_config(config_file)
 
-    INSTRUMENTS[:] = list(load_local_config(LOCAL_CONFIG_PATH))
+    INSTRUMENTS[:] = list(load_instrument_config(INSTRUMENT_CONFIG_FILE))
 
 
 def find_instrument_by_id(regex_id) -> Optional[InstrumentConfig]:

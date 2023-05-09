@@ -2,6 +2,7 @@ import logging
 import logging.handlers
 import os
 import sys
+from enum import Enum
 from argparse import ArgumentParser, RawTextHelpFormatter
 from functools import partial
 from importlib.machinery import SourceFileLoader
@@ -9,7 +10,7 @@ from zipimport import zipimporter
 from pubsub import pub
 import fixate.config
 from fixate.core.exceptions import SequenceAbort
-from fixate.core.ui import user_serial, user_ok
+from fixate.core.ui import user_info_important, user_serial, user_ok
 from fixate.reporting import register_csv, unregister_csv
 from fixate.ui_cmdline import register_cmd_line, unregister_cmd_line
 import fixate.sequencer
@@ -23,6 +24,16 @@ Fixate Command Line Interface
 )
 
 logger = logging.getLogger(__name__)
+
+
+class ReturnCodes(int, Enum):
+    """Fixate Return codes"""
+
+    PASS = 5
+    FAIL = 10
+    ABORTED = 11
+    ERROR = 12
+
 
 # Optional Arguments
 mutex_group = parser.add_mutually_exclusive_group()
@@ -110,7 +121,7 @@ parser.add_argument(
 )
 
 
-def load_test_suite(script_path, zip_path, zip_selector):
+def load_test_suite(script_path: str, zip_path: str, zip_selector: str):
     """
     Attempts to load a Fixate Script file from an absolute path.
     Try loading from zip, then direct script otherwise
@@ -212,7 +223,7 @@ class FixateSupervisor:
 
 
 class FixateWorker:
-    def __init__(self, sequencer, test_script_path, args):
+    def __init__(self, sequencer: fixate.sequencer.Sequencer, test_script_path, args):
         self.sequencer = sequencer
         self.test_script_path = test_script_path
         self.args = args
@@ -236,11 +247,12 @@ class FixateWorker:
             "Sequence_Abort", exception=SequenceAbort("Application Closing")
         )
 
-        return 11
+        return ReturnCodes.ABORTED
 
     def ui_run(self):
 
         serial_number = None
+        serial_response = None
         test_selector = None
         self.start = True
 
@@ -250,12 +262,19 @@ class FixateWorker:
                 fixate.config.DEBUG = True
 
             if self.args.serial_number is None:
-                serial_number = user_serial("Please enter serial number")
-                self.sequencer.context_data["serial_number"] = serial_number[1]
-                if serial_number == "ABORT_FORCE":
-                    return
+                serial_response = user_serial("Please enter serial number")
+                if serial_response == "ABORT_FORCE":
+                    return ReturnCodes.ABORTED
+                elif serial_response[0] == "Exception":
+                    # Should be tuple: ("Exception", <Exception>)
+                    raise serial_response[1]
+                else:
+                    # Should be tuple: ("Result", serial_number)
+                    serial_number = serial_response[1]
+                    self.sequencer.context_data["serial_number"] = serial_number
             else:
-                self.sequencer.context_data["serial_number"] = self.args.serial_number
+                serial_number = self.args.serial_number
+                self.sequencer.context_data["serial_number"] = serial_number
 
             if self.test_script_path is None:
                 self.test_script_path = self.args.path
@@ -293,22 +312,27 @@ class FixateWorker:
         except BaseException:
             import traceback
 
+            user_info_important("Exception - see terminal for details")
             input(traceback.print_exc())
             raise
         finally:
             unregister_csv()
-            if serial_number == "ABORT_FORCE" or test_selector == "ABORT_FORCE":
-                return 11
+            if serial_response == "ABORT_FORCE" or test_selector == "ABORT_FORCE":
+                return ReturnCodes.ABORTED
+            if serial_number is None:
+                # Error at serial number input stage
+                return ReturnCodes.ERROR
             # Let the supervisor know that the program is finishing normally
             self.clean = True
             if self.sequencer.end_status == "FAILED":
-                return 10
+                return ReturnCodes.FAIL
             elif self.sequencer.status == "Aborted":
-                return 11
-            elif self.sequencer.end_status == "ERROR":
-                return 12
+                return ReturnCodes.ABORTED
+            elif self.sequencer.end_status == "PASSED":
+                return ReturnCodes.PASS
             else:
-                return 5
+                # Default to Error
+                return ReturnCodes.ERROR
 
 
 def retrieve_test_data(test_suite, index):
@@ -364,7 +388,11 @@ def run_main_program(test_script_path=None):
 
     args, unknown = parser.parse_known_args()
     if not args.disable_logs:
-        handler = RotateEachInstanceHandler("fixate.log", backupCount=10)
+        fixate.config.LOG_DIRECTORY.mkdir(parents=True, exist_ok=True)
+
+        handler = RotateEachInstanceHandler(
+            fixate.config.LOG_DIRECTORY / "fixate.log", backupCount=10
+        )
         handler.setFormatter(
             logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         )
@@ -374,6 +402,7 @@ def run_main_program(test_script_path=None):
 
     fixate.config.load_config(args.config)
     fixate.config.load_dict_config({"log_file": args.log_file})
+    # Could this be replaced with a simple log_file variable in fixate.config ^ ?
     supervisor = FixateSupervisor(test_script_path, args)
     exit(supervisor.run_fixate())
 
