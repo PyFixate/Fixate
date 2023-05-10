@@ -328,10 +328,11 @@ class FixateWorker:
                 return ReturnCodes.FAIL
             elif self.sequencer.status == "Aborted":
                 return ReturnCodes.ABORTED
-            elif self.sequencer.end_status == "ERROR":
-                return ReturnCodes.ERROR
-            else:
+            elif self.sequencer.end_status == "PASSED":
                 return ReturnCodes.PASS
+            else:
+                # Default to Error
+                return ReturnCodes.ERROR
 
 
 def retrieve_test_data(test_suite, index):

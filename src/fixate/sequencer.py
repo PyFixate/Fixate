@@ -386,7 +386,6 @@ class Sequencer:
     def _handle_sequence_abort(self):
         self.status = "Aborted"
         self.ABORT = True
-        self.test_running = False
 
     def check(self, chk: CheckResult):
         """Update current pass/fail counts and send check criteria to subscribers"""
