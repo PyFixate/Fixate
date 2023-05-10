@@ -14,7 +14,7 @@ Release Date xx/xx/xxxx
 - Add _voltage_range to frequency and period measurement modes.
 - Add optional formatting argument ('fmt') to check functions to improve ui display and logging of test values
 - Fix bug where sequencer would return success if terminated during startup
-
+- Add logging of FTDI instruments on connection. Allow regex matching of the ftdi description.
 
 *************
 Version 0.6.0
