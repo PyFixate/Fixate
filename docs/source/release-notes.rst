@@ -4,17 +4,22 @@ Release Notes
 *************
 Version 0.6.1
 *************
-Release Date xx/xx/xxxx
+Release Date 22/05/2023
 
-- Fix initial serial number check to properly raise exception on incorrect entry.
-- Failure to open a drivers pyvisa resource will now raise a more informative InstrumentOpenError exception from the pyvisa error
+New Features
+############
 - New DMM driver added for Keithley 6500 DMM. 
-- Remove unused error_cleanup functinon and flags in fluke DMM driver.
+- Add optional formatting argument ('fmt') to check functions to improve ui display and logging of test values.
+- Add logging of FTDI instruments on connection. Allow regex matching of the ftdi description.
+
+Improvements
+############
+- Fix bug where sequencer would return success if terminated during startup.
+- Failure to open a drivers pyvisa resource will now raise a more informative InstrumentOpenError exception from the pyvisa error.
+- Remove unused error_cleanup function and flags in fluke DMM driver.
 - Remove temperature, ftemperature, analog filter and digital filter from DMM drivers.
 - Add _voltage_range to frequency and period measurement modes.
-- Add optional formatting argument ('fmt') to check functions to improve ui display and logging of test values
-- Fix bug where sequencer would return success if terminated during startup
-- Add logging of FTDI instruments on connection. Allow regex matching of the ftdi description.
+- Fix initial serial number check to properly raise exception on incorrect entry.
 
 *************
 Version 0.6.0
