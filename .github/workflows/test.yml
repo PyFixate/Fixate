@@ -35,3 +35,6 @@ jobs:
     - name: Check formatting
       run: |
         tox -e black
+    - name: Run mypy with tox
+      run: |
+        tox -e mypy
