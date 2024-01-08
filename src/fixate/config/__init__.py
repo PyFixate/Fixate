@@ -28,6 +28,13 @@ CONFIG_DIRECTORY = Path(platformdirs.site_config_dir("Fixate", False))
 LOG_DIRECTORY = Path(platformdirs.user_log_dir("Fixate", False))
 INSTRUMENT_CONFIG_FILE = CONFIG_DIRECTORY / "instruments.json"
 
+try:
+    COMPUTERNAME = os.environ["COMPUTERNAME"]  # On Windows
+except KeyError:
+    COMPUTERNAME = os.uname().nodename  # On POSIX
+except AttributeError:
+    # Cant get the computer name
+    COMPUTERNAME = "Unknown"
 
 INSTRUMENTS = []
 RESOURCES = {}
@@ -51,6 +58,7 @@ plg_csv = {
         "test-script-name={test_script_name}",
         "report-format={REPORT_FORMAT_VERSION}",
         "index_string={index}",
+        "computername={COMPUTERNAME}",
     ],
 }
 
