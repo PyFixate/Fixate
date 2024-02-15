@@ -12,6 +12,8 @@ from fixate.config.helper import (
     get_config_dict,
     render_template,
 )
+
+import platform
 import os.path
 import json
 import dataclasses
@@ -28,6 +30,7 @@ CONFIG_DIRECTORY = Path(platformdirs.site_config_dir("Fixate", False))
 LOG_DIRECTORY = Path(platformdirs.user_log_dir("Fixate", False))
 INSTRUMENT_CONFIG_FILE = CONFIG_DIRECTORY / "instruments.json"
 
+COMPUTERNAME = platform.node()  # Computer name, or empty string if unavailable.
 
 INSTRUMENTS = []
 RESOURCES = {}
@@ -51,6 +54,7 @@ plg_csv = {
         "test-script-name={test_script_name}",
         "report-format={REPORT_FORMAT_VERSION}",
         "index_string={index}",
+        "computername={COMPUTERNAME}",
     ],
 }
 
