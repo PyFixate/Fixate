@@ -188,7 +188,9 @@ class Fluke8846A(DMM):
             else:
                 raise InstrumentError(
                     "Error(s) Returned from DMM\n"
-                    + "\n".join([f"Code: {code}\nMessage:{msg}" for code, msg in errors])
+                    + "\n".join(
+                        [f"Code: {code}\nMessage:{msg}" for code, msg in errors]
+                    )
                 )
 
     def _set_measurement_mode(self, mode, _range=None, suffix=None):

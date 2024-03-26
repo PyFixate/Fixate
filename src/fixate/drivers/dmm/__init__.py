@@ -26,7 +26,9 @@ def open() -> DMM:
             try:
                 resource = rm.open_resource(instrument.address)
             except pyvisa.VisaIOError as e:
-                raise InstrumentOpenError(f"Unable to open DMM: {instrument.address}") from e
+                raise InstrumentOpenError(
+                    f"Unable to open DMM: {instrument.address}"
+                ) from e
             # Instantiate driver with connected instrument
             driver = DMM(resource)
             fixate.drivers.log_instrument_open(driver)

@@ -68,7 +68,9 @@ class Keithley6500(DMM):
 
         # Clip values to upper and lower bounds. DMM likes to crash if set out of bounds
         if val < 1 or val > 1000000:
-            raise ParameterError("Number of samples out of bounds. Must be between 1 and 1000000")
+            raise ParameterError(
+                "Number of samples out of bounds. Must be between 1 and 1000000"
+            )
 
         self._write(f":COUN {val}")
         self._is_error()
@@ -227,7 +229,9 @@ class Keithley6500(DMM):
             else:
                 raise InstrumentError(
                     "Error(s) Returned from DMM\n"
-                    + "\n".join([f"Code: {code}\nMessage:{msg}" for code, msg in errors])
+                    + "\n".join(
+                        [f"Code: {code}\nMessage:{msg}" for code, msg in errors]
+                    )
                 )
 
     def _set_measurement_mode(self, mode, _range=None, suffix=None):
@@ -280,7 +284,9 @@ class Keithley6500(DMM):
         command = None
         if _volt_range:
             # Have to construct an alternative commnad for FREQuency range
-            command = f"; :SENS:FREQ:THR:RANG:AUTO OFF; :SENS:FREQ:THR:RANG {_volt_range}"
+            command = (
+                f"; :SENS:FREQ:THR:RANG:AUTO OFF; :SENS:FREQ:THR:RANG {_volt_range}"
+            )
         self._set_measurement_mode("frequency", suffix=command)
 
     def period(self, _range=None, _volt_range=None):
