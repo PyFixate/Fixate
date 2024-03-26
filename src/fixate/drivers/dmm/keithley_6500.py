@@ -11,6 +11,7 @@ class Keithley6500(DMM):
     INSTR_TYPE = "VISA"
 
     def __init__(self, instrument, *args, **kwargs):
+        self.measurement_delay = 0.2 # Delay between call to self.measurement() and querying the DMM.
         self.instrument = instrument
         instrument.rtscts = 1
         self.lock = Lock()
@@ -117,11 +118,15 @@ class Keithley6500(DMM):
         self._write("INIT; *WAI")
         self._is_error()
 
-    def measurement(self):
+    def measurement(self, delay=True):
         """
         Sets up DMM triggering, creates list of measurements from the read buffer
+
+        delay: If True, will wait for self.measurement_delay seconds before triggering a measurement.
         returns: a single value as a float
         """
+        if delay:
+            time.sleep(self.measurement_delay)
         return self.measurements()[0]
 
     def measurements(self):
