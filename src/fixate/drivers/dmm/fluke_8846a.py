@@ -1,7 +1,5 @@
 from threading import Lock
-from pyvisa import constants
 from fixate.core.exceptions import InstrumentError, ParameterError
-from fixate.core.common import mode_builder, deprecated
 from fixate.drivers.dmm.helper import DMM
 import time
 
@@ -43,27 +41,7 @@ class Fluke8846A(DMM):
             "continuity": "CONF:CONTinuity",
             "diode": "CONF:DIODe",
         }
-        self._filters = {
-            "voltage_ac": "SENS:VOLT:AC",
-            "voltage_dc": "SENS:VOLT:DC",
-            "current_ac": "SENS:CURR:AC",
-            "current_dc": "SENS:CURR:DC",
-            "resistance": "SENS:RES",
-            "fresistance": "SENS:FRES",
-            None: "",
-        }
         self._init_string = ""  # Unchanging
-
-        self._resolution = {
-            "voltage_ac": "VOLT:RES",
-            "voltage_dc": "VOLT:RES",
-            "current_ac": "CURR:AC:RES",
-            "current_dc": "CURR:DC:RES",
-            "resistance": "RES:RES",
-            "fresistance": "RES:RES",
-            "capacitance": "CAP:RES",
-            None: "",
-        }
 
     @property
     def samples(self):
@@ -219,7 +197,6 @@ class Fluke8846A(DMM):
         resistance, fresistance. Reduces previous duplicate code.
         :param mode:
         :param _range:
-        :param _resolution:
         :return:
         """
         self.mode = mode
@@ -287,7 +264,6 @@ class Fluke8846A(DMM):
         """
         Writes configuration string for diode to the DMM
         param _range: value set for the range
-        param _resolution: value set for the resolution
         """
         self._set_measurement_mode(
             "diode",
@@ -298,7 +274,6 @@ class Fluke8846A(DMM):
         """
         Writes configuration string for continuity to the DMM
         param _range: value set for the range
-        param _resolution: value set for the resolution
         """
         self._set_measurement_mode("continuity")
 

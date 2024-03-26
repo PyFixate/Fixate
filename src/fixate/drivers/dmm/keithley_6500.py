@@ -1,7 +1,5 @@
 from threading import Lock
-from pyvisa import constants
 from fixate.core.exceptions import InstrumentError, ParameterError
-from fixate.core.common import mode_builder, deprecated
 from fixate.drivers.dmm.helper import DMM
 import time
 
@@ -81,10 +79,10 @@ class Keithley6500(DMM):
         # So just set up a trigger loop. Requires *TRG to be sent to drop it out of the loop (call to remote()).
         self.samples = 1
         self._write("TRIG:LOAD 'EMPTY'")  # Load empty model
-        self._write(f"TRIG:BLOC:MDIG 1, 'defbuffer1', 1")
-        self._write(f"TRIG:BLOC:DEL:CONS 2, 0.1")
+        self._write("TRIG:BLOC:MDIG 1, 'defbuffer1', 1")
+        self._write("TRIG:BLOC:DEL:CONS 2, 0.1")
         self._write("TRIG:BLOC:BRAN:EVEN 3, COMM, 5")
-        self._write(f"TRIG:BLOC:BRAN:ALW 4, 1")
+        self._write("TRIG:BLOC:BRAN:ALW 4, 1")
         self._write("TRIG:BLOC:BUFF:CLE 5")
         self._write("TRAC:CLE")
         self._write("INIT")
