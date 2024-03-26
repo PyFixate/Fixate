@@ -18,9 +18,7 @@ from fixate.drivers.dmm.helper import DMM
 
 
 def open() -> DMM:
-
     for DMM in (Fluke8846A, Keithley6500):
-
         instrument = find_instrument_by_id(DMM.REGEX_ID)
         if instrument is not None:
             # We've found a configured instrument so try to open it
@@ -28,9 +26,7 @@ def open() -> DMM:
             try:
                 resource = rm.open_resource(instrument.address)
             except pyvisa.VisaIOError as e:
-                raise InstrumentOpenError(
-                    f"Unable to open DMM: {instrument.address}"
-                ) from e
+                raise InstrumentOpenError(f"Unable to open DMM: {instrument.address}") from e
             # Instantiate driver with connected instrument
             driver = DMM(resource)
             fixate.drivers.log_instrument_open(driver)

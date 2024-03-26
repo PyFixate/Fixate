@@ -9,7 +9,9 @@ class Fluke8846A(DMM):
     INSTR_TYPE = "VISA"
 
     def __init__(self, instrument, *args, **kwargs):
-        self.measurement_delay = 0.2 # Delay between call to self.measurement() and querying the DMM.
+        self.measurement_delay = (
+            0.2  # Delay between call to self.measurement() and querying the DMM.
+        )
         self.instrument = instrument
         instrument.rtscts = 1
         self.lock = Lock()
@@ -82,7 +84,7 @@ class Fluke8846A(DMM):
     def measurement(self, delay=False):
         """
         Sets up DMM triggering, creates list of measurements from the read buffer
-        
+
         delay: If True, will wait for self.measurement_delay seconds before triggering a measurement.
         returns: a single value as a float
         """
@@ -186,9 +188,7 @@ class Fluke8846A(DMM):
             else:
                 raise InstrumentError(
                     "Error(s) Returned from DMM\n"
-                    + "\n".join(
-                        [f"Code: {code}\nMessage:{msg}" for code, msg in errors]
-                    )
+                    + "\n".join([f"Code: {code}\nMessage:{msg}" for code, msg in errors])
                 )
 
     def _set_measurement_mode(self, mode, _range=None, suffix=None):
