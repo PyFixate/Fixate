@@ -9,9 +9,8 @@ class Fluke8846A(DMM):
     INSTR_TYPE = "VISA"
 
     def __init__(self, instrument, *args, **kwargs):
-        self.measurement_delay = (
-            0.2  # Delay between call to self.measurement() and querying the DMM.
-        )
+        # Delay between call to self.measurement() and querying the DMM.
+        self.measurement_delay = 0
         self.instrument = instrument
         instrument.rtscts = 1
         self.lock = Lock()
@@ -81,15 +80,18 @@ class Fluke8846A(DMM):
         self._write("*TRG")  # Send trigger to instrument
         self._is_error()  # Catch errors. This might slow things down
 
-    def measurement(self, delay=False):
+    def measurement(self, delay=None):
         """
         Sets up DMM triggering, creates list of measurements from the read buffer
 
-        delay: If True, will wait for self.measurement_delay seconds before triggering a measurement.
+        delay: If not set, will wait for self.measurement_delay seconds before triggering a measurement. If set, will wait for delay seconds before triggering a measurement.
         returns: a single value as a float
         """
-        if delay:
-            time.sleep(self.measurement_delay)
+        if delay is None:
+            delay = self.measurement_delay
+
+        if delay > 0:
+            time.sleep(delay)
         return self.measurements()[0]
 
     def measurements(self):
