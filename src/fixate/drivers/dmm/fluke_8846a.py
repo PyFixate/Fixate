@@ -1,7 +1,5 @@
 from threading import Lock
-from pyvisa import constants
 from fixate.core.exceptions import InstrumentError, ParameterError
-from fixate.core.common import mode_builder, deprecated
 from fixate.drivers.dmm.helper import DMM
 import time
 
@@ -11,6 +9,8 @@ class Fluke8846A(DMM):
     INSTR_TYPE = "VISA"
 
     def __init__(self, instrument, *args, **kwargs):
+        # Delay between call to self.measurement() and querying the DMM.
+        self.measurement_delay = 0
         self.instrument = instrument
         instrument.rtscts = 1
         self.lock = Lock()
@@ -42,27 +42,7 @@ class Fluke8846A(DMM):
             "continuity": "CONF:CONTinuity",
             "diode": "CONF:DIODe",
         }
-        self._filters = {
-            "voltage_ac": "SENS:VOLT:AC",
-            "voltage_dc": "SENS:VOLT:DC",
-            "current_ac": "SENS:CURR:AC",
-            "current_dc": "SENS:CURR:DC",
-            "resistance": "SENS:RES",
-            "fresistance": "SENS:FRES",
-            None: "",
-        }
         self._init_string = ""  # Unchanging
-
-        self._resolution = {
-            "voltage_ac": "VOLT:RES",
-            "voltage_dc": "VOLT:RES",
-            "current_ac": "CURR:AC:RES",
-            "current_dc": "CURR:DC:RES",
-            "resistance": "RES:RES",
-            "fresistance": "RES:RES",
-            "capacitance": "CAP:RES",
-            None: "",
-        }
 
     @property
     def samples(self):
@@ -100,11 +80,18 @@ class Fluke8846A(DMM):
         self._write("*TRG")  # Send trigger to instrument
         self._is_error()  # Catch errors. This might slow things down
 
-    def measurement(self):
+    def measurement(self, delay=None):
         """
         Sets up DMM triggering, creates list of measurements from the read buffer
+
+        delay: If not set, will wait for self.measurement_delay seconds before triggering a measurement. If set, will wait for delay seconds before triggering a measurement.
         returns: a single value as a float
         """
+        if delay is None:
+            delay = self.measurement_delay
+
+        if delay > 0:
+            time.sleep(delay)
         return self.measurements()[0]
 
     def measurements(self):
@@ -214,7 +201,6 @@ class Fluke8846A(DMM):
         resistance, fresistance. Reduces previous duplicate code.
         :param mode:
         :param _range:
-        :param _resolution:
         :return:
         """
         self.mode = mode
@@ -282,7 +268,6 @@ class Fluke8846A(DMM):
         """
         Writes configuration string for diode to the DMM
         param _range: value set for the range
-        param _resolution: value set for the resolution
         """
         self._set_measurement_mode(
             "diode",
@@ -293,7 +278,6 @@ class Fluke8846A(DMM):
         """
         Writes configuration string for continuity to the DMM
         param _range: value set for the range
-        param _resolution: value set for the resolution
         """
         self._set_measurement_mode("continuity")
 

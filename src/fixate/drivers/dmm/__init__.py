@@ -18,9 +18,7 @@ from fixate.drivers.dmm.helper import DMM
 
 
 def open() -> DMM:
-
     for DMM in (Fluke8846A, Keithley6500):
-
         instrument = find_instrument_by_id(DMM.REGEX_ID)
         if instrument is not None:
             # We've found a configured instrument so try to open it
