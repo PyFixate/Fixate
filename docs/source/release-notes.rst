@@ -2,6 +2,18 @@
 Release Notes
 ==================================
 *************
+Version 0.6.2
+*************
+Release Date xx/xx/xxxx
+
+New Features
+############
+
+Improvements
+############
+- Update DMM driver with optional measurement delay to improve DMM model compatibility.
+
+*************
 Version 0.6.1
 *************
 Release Date 22/05/2023
