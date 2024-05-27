@@ -1,8 +1,11 @@
+import inspect
 import sys
 import time
 import re
+from typing import Optional, Union, TypeVar, Generic
+
 from pubsub import pub
-from fixate.core.common import TestList, TestClass
+from fixate.core.common import TestList, TestClass, TestScript
 from fixate.core.exceptions import SequenceAbort, CheckFail
 from fixate.core.ui import user_retry_abort_fail
 from fixate.core.checks import CheckResult
@@ -94,7 +97,8 @@ def get_parent_level(level):
 
 class Sequencer:
     def __init__(self):
-        self.tests = TestList()
+        self.test_script: Optional[TestScript] = None
+        self._driver_manager = None
         self._status = "Idle"
         self.active_test = None
         self.ABORT = False
@@ -159,9 +163,9 @@ class Sequencer:
             else:
                 self._status = val
 
-    def load(self, val):
-        self.tests.append(val)
-        self.context.push(self.tests)
+    def load(self, test_script: TestScript):
+        self.context.push(test_script.test_list)
+        self.test_script = test_script
         self.end_status = "N/A"
 
     def count_tests(self):
@@ -225,6 +229,32 @@ class Sequencer:
                     top.current().exit()
                 self.context.pop()
 
+    @property
+    def driver_manager(self):
+        if self._driver_manager is None:
+            self._driver_manager = self.test_script.dm_type()
+        return self._driver_manager
+
+    def _cleanup_driver_manager(self):
+        """
+        Attempt to call close on each instrument on the driver manager.
+
+        We assume any non-private attribute on the driver manager (i.e. not starting with '_')
+        is potentially a driver to be closed. Iterate over all such items and if they
+        have a close method call it.
+
+        Finally, set the driver_manager instance back to None, so that all drivers get
+        re-instantiated if they are needed again.
+        """
+        drivers = [
+            driver
+            for name, driver in inspect.getmembers(self._driver_manager)
+            if not name.startswith("_")
+        ]
+        for driver in drivers:
+            if hasattr(driver, "close"):
+                driver.close()
+
     def run_once(self):
         """
         Runs through the tests once as are pushed onto the context stack.
@@ -244,7 +274,7 @@ class Sequencer:
                             data=top.testlist,
                             test_index=self.levels(),
                         )
-                        top.testlist.exit()
+                        top.testlist.exit(self.driver_manager)
                         if self.context:
                             self.context.top().index += 1
                     elif isinstance(top.current(), TestClass):
@@ -261,7 +291,7 @@ class Sequencer:
                             data=top.current(),
                             test_index=self.levels(),
                         )
-                        top.current().enter()
+                        top.current().enter(self.driver_manager)
                         self.context.push(top.current())
                     else:
                         raise SequenceAbort("Unknown Test Item Type")
@@ -271,6 +301,7 @@ class Sequencer:
                         exception=sys.exc_info()[1],
                         test_index=self.levels(),
                     )
+                    self._cleanup_driver_manager()
                     pub.sendMessage("Sequence_Abort", exception=e)
                     self._handle_sequence_abort()
                     return
@@ -315,11 +346,11 @@ class Sequencer:
                 # Run the test
                 try:
                     for index_context, current_level in enumerate(self.context):
-                        current_level.current().set_up()
-                    active_test.test()
+                        current_level.current().set_up(self.driver_manager)
+                    active_test.test(self.driver_manager)
                 finally:
                     for current_level in self.context[index_context::-1]:
-                        current_level.current().tear_down()
+                        current_level.current().tear_down(self.driver_manager)
                 if not self.chk_fail:
                     active_test_status = "PASS"
                     self.tests_passed += 1
@@ -343,6 +374,8 @@ class Sequencer:
                     exception=sys.exc_info()[1],
                     test_index=self.levels(),
                 )
+                self._cleanup_driver_manager()
+
                 attempts = 0
                 active_test_status = "ERROR"
                 if not self.retry_prompt():
@@ -358,9 +391,11 @@ class Sequencer:
                     exception=sys.exc_info()[1],
                     test_index=self.levels(),
                 )
+                self._cleanup_driver_manager()
 
             # Retry Logic
             pub.sendMessage("Test_Retry", data=active_test, test_index=self.levels())
+            self._cleanup_driver_manager()
         pub.sendMessage(
             "Test_Complete",
             data=active_test,

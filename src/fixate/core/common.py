@@ -1,3 +1,5 @@
+from __future__ import annotations
+import dataclasses
 import re
 import sys
 import threading
@@ -7,6 +9,8 @@ import logging
 import warnings
 from functools import wraps
 from collections import namedtuple
+from typing import TypeVar, Generic, List, Optional, Union, Iterable
+
 from fixate.core.exceptions import ParameterError, InvalidScalarQuantityError
 
 logger = logging.getLogger(__name__)
@@ -325,83 +329,8 @@ def deprecated(func):
 
     return inner
 
-
-# The first line of the doc string will be reflected in the test logs. Please don't change.
-class TestList:
-    """
-    Test List
-    The TestList is a container for TestClasses and TestLists to set up a test hierarchy.
-    They operate similar to a python list except that it has additional methods that can be overridden to provide additional functionality
-    """
-
-    def __init__(self, seq=None):
-        self.tests = []
-        if seq is None:
-            seq = []
-        self.tests.extend(seq)
-
-        try:
-            doc_string = [
-                line.strip() for line in self.__doc__.splitlines() if line.strip()
-            ]
-        except:
-            self.test_desc = self.__class__.__name__
-            self.test_desc_long = ""
-        else:
-            if doc_string:
-                self.test_desc = doc_string[0]
-                self.test_desc_long = "\\n".join(doc_string[1:])
-
-    def __getitem__(self, item):
-        return self.tests.__getitem__(item)
-
-    def __contains__(self, item):
-        return self.tests.__contains__(item)
-
-    def __setitem__(self, key, value):
-        return self.tests.__setitem__(key, value)
-
-    def __delitem__(self, key):
-        return self.tests.__delitem__(key)
-
-    def __len__(self):
-        return self.tests.__len__()
-
-    def append(self, p_object):
-        self.tests.append(p_object)
-
-    def extend(self, iterable):
-        self.tests.extend(iterable)
-
-    def insert(self, index, p_object):
-        self.tests.insert(index, p_object)
-
-    def index(self, value, start=None, stop=None):
-        self.tests.index(value, start, stop)
-
-    def set_up(self):
-        """
-        Optionally override this to be called before the set_up of the included TestClass and/or TestList within this TestList
-        """
-
-    def tear_down(self):
-        """
-        Optionally override this to be called after the tear_down of the included TestClass's and/or TestList's within this TestList
-        This will be called if the set_up has been called regardless of the success of the included TestClass's and/or TestList's
-        """
-
-    def enter(self):
-        """
-        This is called when being pushed onto the stack
-        """
-
-    def exit(self):
-        """
-        This is called when being popped from the stack
-        """
-
-
-class TestClass:
+DmType = TypeVar("DmType")
+class TestClass(Generic[DmType]):
     """
     This class is an abstract base class to implement tests.
     The first line of the docstring of the class that inherits this class will be recognised by logging and UI
@@ -416,7 +345,6 @@ class TestClass:
     test_desc = None
     test_desc_long = None
     attempts = 1
-    tests = []
     retry_type = RT_PROMPT
     retry_exceptions = [BaseException]  # Depreciated
     skip_exceptions = []
@@ -438,19 +366,107 @@ class TestClass:
                     self.test_desc = doc_string[0]
                     self.test_desc_long = "\\n".join(doc_string[1:])
 
-    def set_up(self):
+    def set_up(self, dm: DmType):
         """
         Optionally override this code that is executed before the test method is called
         """
+        pass
 
-    def tear_down(self):
+    def tear_down(self, dm: DmType):
         """
         Optionally override this code that is always executed at the end of the test whether it was successful or not
         """
+        pass
 
-    def test(self):
+    def test(self, dm: DmType):
         """
         This method should be overridden with the test code
         This is the test sequence code
         Use chk functions to set the pass fail criteria for the test
         """
+        raise NotImplementedError
+
+
+# The first line of the doc string will be reflected in the test logs. Please don't change.
+class TestList(Generic[DmType]):
+    """
+    Test List
+    The TestList is a container for TestClasses and TestLists to set up a test hierarchy.
+    They operate similar to a python list except that it has additional methods that can be overridden to provide additional functionality
+    """
+
+    def __init__(self, seq: Optional[List[Union[TestClass[DmType], TestList[DmType]]]] = None):
+        self.tests: List[Union[TestClass[DmType], TestList[DmType]]] = []
+        if seq is None:
+            seq = []
+        self.tests.extend(seq)
+
+        try:
+            doc_string = [
+                line.strip() for line in self.__doc__.splitlines() if line.strip()
+            ]
+        except:
+            self.test_desc = self.__class__.__name__
+            self.test_desc_long = ""
+        else:
+            if doc_string:
+                self.test_desc = doc_string[0]
+                self.test_desc_long = "\\n".join(doc_string[1:])
+
+    def __getitem__(self, item) -> Union[TestClass[DmType], TestList[DmType]]:
+        return self.tests.__getitem__(item)
+
+    def __contains__(self, item) -> bool:
+        return self.tests.__contains__(item)
+
+    def __setitem__(self, key: int, value:  Union[TestClass[DmType], TestList[DmType]]) -> None:
+        return self.tests.__setitem__(key, value)
+
+    def __delitem__(self, key: int) -> None:
+        return self.tests.__delitem__(key)
+
+    def __len__(self) -> int:
+        return self.tests.__len__()
+
+    def append(self, p_object: Union[TestClass[DmType], TestList[DmType]]) -> None:
+        self.tests.append(p_object)
+
+    def extend(self, iterable: Iterable[Union[TestClass[DmType], TestList[DmType]]]):
+        self.tests.extend(iterable)
+
+    def insert(self, index: int, p_object: Union[TestClass[DmType], TestList[DmType]]):
+        self.tests.insert(index, p_object)
+
+    def index(self, value: Union[TestClass[DmType], TestList[DmType]], start: int =None, stop: int=None):
+        self.tests.index(value, start, stop)
+
+    def set_up(self, dm: DmType):
+        """
+        Optionally override this to be called before the set_up of the included TestClass and/or TestList within this TestList
+        """
+        pass
+
+    def tear_down(self, dm: DmType):
+        """
+        Optionally override this to be called after the tear_down of the included TestClass's and/or TestList's within this TestList
+        This will be called if the set_up has been called regardless of the success of the included TestClass's and/or TestList's
+        """
+        pass
+
+    def enter(self, dm: DmType):
+        """
+        This is called when being pushed onto the stack
+        """
+        pass
+
+    def exit(self, dm: DmType):
+        """
+        This is called when being popped from the stack
+        """
+        pass
+
+
+@dataclasses.dataclass
+class TestScript(Generic[DmType]):
+    test_list: TestList[DmType]
+    dm_type: type(DmType)

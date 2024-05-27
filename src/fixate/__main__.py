@@ -13,6 +13,7 @@ from fixate.core.exceptions import SequenceAbort
 from fixate.core.ui import user_info_important, user_serial, user_ok
 from fixate.reporting import register_csv, unregister_csv
 from fixate.ui_cmdline import register_cmd_line, unregister_cmd_line
+from fixate.core.common import TestScript
 import fixate.sequencer
 
 parser = ArgumentParser(
@@ -335,7 +336,7 @@ class FixateWorker:
                 return ReturnCodes.ERROR
 
 
-def retrieve_test_data(test_suite, index):
+def retrieve_test_data(test_suite, index) -> TestScript:
     """
     Tries to retrieve test data from the loaded test_suite module
     :param test_suite: Imported module with tests available
@@ -346,7 +347,7 @@ def retrieve_test_data(test_suite, index):
         data = test_suite.test_data
     except AttributeError:
         # Try legacy API
-        return test_suite.TEST_SEQUENCE
+        return test_suite.TEST_SCRIPT
     try:
         sequence = data[index]
     except KeyError as e:
