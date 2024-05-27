@@ -28,7 +28,7 @@ class DMM:
         """
         raise NotImplementedError
 
-    def measurement(self, delay=False):
+    def measurement(self, delay=None):
         """
         Trigger and return measurement from the instrument buffer.
 

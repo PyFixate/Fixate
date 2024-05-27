@@ -117,7 +117,7 @@ class Keithley6500(DMM):
         self._write("INIT; *WAI")
         self._is_error()
 
-    def measurement(self, delay=True):
+    def measurement(self, delay=None):
         """
         Sets up DMM triggering, creates list of measurements from the read buffer
 
