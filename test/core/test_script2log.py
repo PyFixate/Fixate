@@ -3,6 +3,7 @@ import subprocess
 import os.path
 import csv
 import sys
+import platform
 
 
 def dict_line(line):
@@ -41,6 +42,7 @@ def compare_logs(test_log, expected_log):
 log_dir = os.path.join(os.path.dirname(__file__), "expect-logs")
 script_dir = os.path.join(os.path.dirname(__file__), "scripts")
 local_config = os.path.join(log_dir, "fixate.yml")
+local_config_with_computername = os.path.join(log_dir, "fixate_with_computername.yml")
 
 
 def test_basicpass(tmpdir):
@@ -166,3 +168,32 @@ def test_basichierachy(tmpdir, fail_flag, raise_flag, xfail, return_code):
 
     assert ret == return_code
     compare_logs(expected_log_path, log_path)
+
+
+def test_computername_log(tmpdir):
+    script_path = os.path.join(script_dir, "basicpass.py")
+    log_path = os.path.join(str(tmpdir), "logfile.csv")
+    ret = subprocess.call(
+        [
+            sys.executable,
+            "-m",
+            "fixate",
+            "-p",
+            script_path,
+            "-c",
+            local_config_with_computername,
+            "--serial-number",
+            "0123456789",
+            "--log-file",
+            log_path,
+            "--non-interactive",
+            "--disable-logs",
+        ]
+    )
+    assert ret == 5
+
+    with open(log_path, "r") as f:
+        reader = csv.reader(f, quoting=csv.QUOTE_MINIMAL)
+        first, *lines, last = [line[1:] for line in reader]
+
+        assert f"COMPUTERNAME={platform.node()}" in first
