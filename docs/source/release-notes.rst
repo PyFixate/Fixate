@@ -2,6 +2,19 @@
 Release Notes
 ==================================
 *************
+Version 0.6.2
+*************
+Release Date XX/XX/XX
+
+New Features
+############
+- 
+
+Improvements
+############
+- Add logging of computer name to log file.
+
+*************
 Version 0.6.1
 *************
 Release Date 22/05/2023
