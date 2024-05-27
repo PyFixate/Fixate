@@ -21,8 +21,9 @@ class JigDmm:
 
 @dataclasses.dataclass
 class Jig123DriverManager:
-    dummy: JigDmm = dataclasses.field(default_factory=JigDmm)
-    dmm: dmm.DMM = dataclasses.field(default_factory=dmm.open)
+    dmm: JigDmm = dataclasses.field(default_factory=JigDmm)
+    # This doesn't work right at the moment... not sure why yet.
+    # dmm: dmm.DMM = dataclasses.field(default_factory=dmm.open)
 
 
 class Jig123TestList(TestList[Jig123DriverManager]):
