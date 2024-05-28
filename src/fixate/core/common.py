@@ -329,62 +329,8 @@ def deprecated(func):
 
     return inner
 
+
 DmType = TypeVar("DmType")
-class TestClass(Generic[DmType]):
-    """
-    This class is an abstract base class to implement tests.
-    The first line of the docstring of the class that inherits this class will be recognised by logging and UI
-    as the name of the test with the remaining lines stored as self.test_desc_long which will show in the test logs
-    """
-
-    RT_ABORT = 1  # Abort the whole test sequence
-    RT_RETRY = 2  # Automatically retry up to "attempts"
-    RT_PROMPT = 3  # Prompt the user; Options are Abort the sequence, retry, or fail and continue
-    RT_FAIL = 4  # Automatically fail and move on
-
-    test_desc = None
-    test_desc_long = None
-    attempts = 1
-    retry_type = RT_PROMPT
-    retry_exceptions = [BaseException]  # Depreciated
-    skip_exceptions = []
-    abort_exceptions = [KeyboardInterrupt, AttributeError, NameError]
-    skip_on_fail = False
-
-    def __init__(self, skip=False):
-        self.skip = skip
-        if not self.test_desc:
-            try:
-                doc_string = [
-                    line.strip() for line in self.__doc__.splitlines() if line.strip()
-                ]
-            except:
-                self.test_desc = self.__class__.__name__
-                self.test_desc_long = ""
-            else:
-                if doc_string:
-                    self.test_desc = doc_string[0]
-                    self.test_desc_long = "\\n".join(doc_string[1:])
-
-    def set_up(self, dm: DmType):
-        """
-        Optionally override this code that is executed before the test method is called
-        """
-        pass
-
-    def tear_down(self, dm: DmType):
-        """
-        Optionally override this code that is always executed at the end of the test whether it was successful or not
-        """
-        pass
-
-    def test(self, dm: DmType):
-        """
-        This method should be overridden with the test code
-        This is the test sequence code
-        Use chk functions to set the pass fail criteria for the test
-        """
-        raise NotImplementedError
 
 
 # The first line of the doc string will be reflected in the test logs. Please don't change.
@@ -464,6 +410,63 @@ class TestList(Generic[DmType]):
         This is called when being popped from the stack
         """
         pass
+
+
+class TestClass(Generic[DmType]):
+    """
+    This class is an abstract base class to implement tests.
+    The first line of the docstring of the class that inherits this class will be recognised by logging and UI
+    as the name of the test with the remaining lines stored as self.test_desc_long which will show in the test logs
+    """
+
+    RT_ABORT = 1  # Abort the whole test sequence
+    RT_RETRY = 2  # Automatically retry up to "attempts"
+    RT_PROMPT = 3  # Prompt the user; Options are Abort the sequence, retry, or fail and continue
+    RT_FAIL = 4  # Automatically fail and move on
+
+    test_desc = None
+    test_desc_long = None
+    attempts = 1
+    retry_type = RT_PROMPT
+    retry_exceptions = [BaseException]  # Depreciated
+    skip_exceptions = []
+    abort_exceptions = [KeyboardInterrupt, AttributeError, NameError]
+    skip_on_fail = False
+
+    def __init__(self, skip=False):
+        self.skip = skip
+        if not self.test_desc:
+            try:
+                doc_string = [
+                    line.strip() for line in self.__doc__.splitlines() if line.strip()
+                ]
+            except:
+                self.test_desc = self.__class__.__name__
+                self.test_desc_long = ""
+            else:
+                if doc_string:
+                    self.test_desc = doc_string[0]
+                    self.test_desc_long = "\\n".join(doc_string[1:])
+
+    def set_up(self, dm: DmType):
+        """
+        Optionally override this code that is executed before the test method is called
+        """
+        pass
+
+    def tear_down(self, dm: DmType):
+        """
+        Optionally override this code that is always executed at the end of the test whether it was successful or not
+        """
+        pass
+
+    def test(self, dm: DmType):
+        """
+        This method should be overridden with the test code
+        This is the test sequence code
+        Use chk functions to set the pass fail criteria for the test
+        """
+        raise NotImplementedError
 
 
 @dataclasses.dataclass
