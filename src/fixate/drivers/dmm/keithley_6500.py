@@ -1,7 +1,5 @@
 from threading import Lock
-from pyvisa import constants
 from fixate.core.exceptions import InstrumentError, ParameterError
-from fixate.core.common import mode_builder, deprecated
 from fixate.drivers.dmm.helper import DMM
 import time
 
@@ -11,6 +9,8 @@ class Keithley6500(DMM):
     INSTR_TYPE = "VISA"
 
     def __init__(self, instrument, *args, **kwargs):
+        # Delay between call to self.measurement() and querying the DMM.
+        self.measurement_delay = 0.2
         self.instrument = instrument
         instrument.rtscts = 1
         self.lock = Lock()
@@ -80,10 +80,10 @@ class Keithley6500(DMM):
         # So just set up a trigger loop. Requires *TRG to be sent to drop it out of the loop (call to remote()).
         self.samples = 1
         self._write("TRIG:LOAD 'EMPTY'")  # Load empty model
-        self._write(f"TRIG:BLOC:MDIG 1, 'defbuffer1', 1")
-        self._write(f"TRIG:BLOC:DEL:CONS 2, 0.1")
+        self._write("TRIG:BLOC:MDIG 1, 'defbuffer1', 1")
+        self._write("TRIG:BLOC:DEL:CONS 2, 0.1")
         self._write("TRIG:BLOC:BRAN:EVEN 3, COMM, 5")
-        self._write(f"TRIG:BLOC:BRAN:ALW 4, 1")
+        self._write("TRIG:BLOC:BRAN:ALW 4, 1")
         self._write("TRIG:BLOC:BUFF:CLE 5")
         self._write("TRAC:CLE")
         self._write("INIT")
@@ -117,11 +117,18 @@ class Keithley6500(DMM):
         self._write("INIT; *WAI")
         self._is_error()
 
-    def measurement(self):
+    def measurement(self, delay=None):
         """
         Sets up DMM triggering, creates list of measurements from the read buffer
+
+        delay: If not set, will wait for self.measurement_delay seconds before triggering a measurement. If set, will wait for delay seconds before triggering a measurement.
         returns: a single value as a float
         """
+        if delay is None:
+            delay = self.measurement_delay
+
+        if delay > 0:
+            time.sleep(delay)
         return self.measurements()[0]
 
     def measurements(self):

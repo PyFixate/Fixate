@@ -8,11 +8,12 @@ Release Date XX/XX/XX
 
 New Features
 ############
-- 
 
 Improvements
 ############
 - Add logging of computer name to log file.
+- Update DMM driver with optional measurement delay to improve DMM model compatibility.
+
 
 *************
 Version 0.6.1

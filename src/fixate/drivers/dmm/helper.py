@@ -28,7 +28,13 @@ class DMM:
         """
         raise NotImplementedError
 
-    def measurement(self):
+    def measurement(self, delay=None):
+        """
+        Trigger and return measurement from the instrument buffer.
+
+        delay: If True, waits for self.measurement_delay seconds then triggers a measurement.
+        returns: a single value as a float
+        """
         raise NotImplementedError
 
     def voltage_ac(self, _range=None):
