@@ -1,3 +1,33 @@
+"""
+
+JigDriver is all about switching signals in a jig (and also input, but I'm
+ignoring that for now...) At the script level, the key abstraction is a
+`VirtualMux`, which switching between a number of `Signals`. Each signal is
+defined by a number of `Pins`. When using a relay matrix, a Signal often
+corresponds to a single Pin, but it doesn't have to.
+
+Each VirtualMux connects to the VirtualAddressMap. When the multiplex is
+called on a mux, the mux determines which pin must be set or cleared
+
+
+              _____________    ______________________
+    SIG_1 ---|       pin0 |   |  VirtualAddressMap  |   _____________________
+    SIG_2 ---|  MUX  pin1 |---|                     |   | AddressHandler    |
+    SIG_3 ---|            |   |              pin0   |---| pin0, pin1, pin2  |
+    SIG_4 ---|____________|   |              pin1   |   |___________________|
+                              |              pin2   |   ____________________
+                              |                     |   | AddressHandler   |
+              _____________   |              pin3   |---| pin3, pin4       |
+    SIG_5 ---|       pin2 |   |              pin4   |   |__________________|
+    SIG_6 ---|  MUX  pin3 |---|                     |    ___________________
+    SIG_7 ---|       pin4 |   |              pin5   |---| AddressHandler   |
+    SIG_8 ---|       pin5 |   |                     |   | pin5             |
+             |____________|   |_____________________|   |__________________|
+                            ^                         ^
+                update_pins callback           AddressHandler.set_pins()
+                VirtualAddressMap.add_update()
+"""
+
 from __future__ import annotations
 
 import itertools
@@ -6,9 +36,9 @@ from typing import Optional, Callable, Set, Sequence, TypeVar, Generator, Union,
 from dataclasses import dataclass
 
 Signal = str
-PinName = str
-PinList = Sequence[PinName]
-PinSet = Set[PinName]
+Pin = str
+PinList = Sequence[Pin]
+PinSet = Set[Pin]
 SignalMap = Dict[Signal, PinSet]
 
 
@@ -18,7 +48,14 @@ class PinSetState:
     on: PinSet
 
 
-PinUpdateCallback = Callable[[PinSetState, PinSetState, float, bool], None]
+@dataclass(frozen=True)
+class PinUpdate:
+    setup: PinSetState
+    final: PinSetState
+    minimum_change_time: float
+
+
+PinUpdateCallback = Callable[[PinUpdate, bool], None]
 
 
 class VirtualMux:
@@ -27,7 +64,7 @@ class VirtualMux:
     clearing_time: float = 0.0
 
     ###########################################################################
-    # This methods are the public API for the class
+    # These methods are the public API for the class
 
     def __init__(self, update_pins: Optional[PinUpdateCallback] = None):
         # The last time this mux changed state. This is used in some jigs
@@ -41,10 +78,10 @@ class VirtualMux:
         else:
             self._update_pins = update_pins
 
-        # We force the pin_list to be an ordered sequence, because if the
+        # We annotate the pin_list to be an ordered sequence, because if the
         # mux is defined with a map_tree, we need the ordering. But after
         # initialisation, we only need set operations on the pin list, so
-        # we convert here and keep a reference on the object for future use.
+        # we convert here and keep a reference to the set for future use.
         self._pin_set = set(self.pin_list)
 
         self._state = ""
@@ -52,7 +89,7 @@ class VirtualMux:
         self._signal_map: SignalMap = self._map_signals()
 
         # If it wasn't already defined, define the implicit signal "" which
-        # can be used for no pins to be set.
+        # can be used to signify no pins active.
         if "" not in self._signal_map:
             self._signal_map[""] = set()
 
@@ -81,14 +118,14 @@ class VirtualMux:
         self.state_update_time is updated to the current time.
 
         In general, subclasses should not override. (VirtualSwitch does, but then
-        delegate the real work to this method to ensure consistent behaviour.)
+        delegates the real work to this method to ensure consistent behaviour.)
         """
         if signal_output not in self._signal_map:
             name = self.__class__.__name__
             raise ValueError(f"Signal '{signal_output}' not valid for multiplexer '{name}'")
 
         setup, final = self._calculate_pins(self._state, signal_output)
-        self._update_pins(setup, final, self.clearing_time, trigger_update)
+        self._update_pins(PinUpdate(setup, final, self.clearing_time), trigger_update)
         if signal_output != self._state:
             self.state_update_time = time.time()
         self._state = signal_output
@@ -313,9 +350,7 @@ class VirtualMux:
 
     @staticmethod
     def _default_update_pins(
-            setup: PinSetState,
-            final: PinSetState,
-            minimum_change_time: float = 0.0,
+            pin_updates: PinUpdate,
             trigger_update: bool = True
     ) -> None:
         """
@@ -328,7 +363,7 @@ class VirtualMux:
         In general, this method shouldn't be overridden in a subclass. An alternative
         can be provided to __init__.
         """
-        print(setup, final, minimum_change_time, trigger_update)
+        print(pin_updates, trigger_update)
 
 
 class VirtualSwitch(VirtualMux):
@@ -342,7 +377,7 @@ class VirtualSwitch(VirtualMux):
     shorthand which is to define the pin_name attribute as a string.
     """
 
-    pin_name: PinName = ""
+    pin_name: Pin = ""
     map_tree = ("FALSE", "TRUE")
 
     def multiplex(self, signal_output: Union[Signal, bool], trigger_update: bool = True):
@@ -390,10 +425,10 @@ class AddressHandler:
     :param pin_defaults: Sequence of pins (type string subset of pin_list) that should default to high logic on reset
     """
 
-    pin_list: Sequence[PinName] = ()
+    pin_list: Sequence[Pin] = ()
     pin_defaults = ()
 
-    def set_pins(self, pins: Collection[PinName]):
+    def set_pins(self, pins: Collection[Pin]):
         raise NotImplementedError
 
 
@@ -409,7 +444,7 @@ class PinValueAddressHandler(AddressHandler):
         super().__init__()
         self._pin_lookup = {pin: bit for pin, bit in zip(self.pin_list, bit_generator())}
 
-    def set_pins(self, pins: Collection[PinName]):
+    def set_pins(self, pins: Collection[Pin]):
         value = sum(self._pin_lookup[pin] for pin in pins)
         self._update_output(value)
 
@@ -421,7 +456,15 @@ class PinValueAddressHandler(AddressHandler):
 
 
 class FTDIAddressHandler(PinValueAddressHandler):
-    """Lets define this for the common case?"""
+    """
+    An address handler which uses the ftdi driver to control pins.
+
+    We create this concrete address handler because we use it most
+    often. FT232 is used to bit-bang to shift register that are control
+    the switching in a jig.
+    """
+
+
 
 
 
@@ -429,16 +472,39 @@ class VirtualAddressMap:
     """
     The supervisor loops through the attached virtual multiplexers each time a mux update is triggered.
     """
+    def __init__(self, handlers: Sequence[AddressHandler]):
+        self._pin_to_handler: dict[Pin, AddressHandler] = {}
 
-    def __init__(self):
-        pass
-        # self.address_handlers = []
-        # self.virtual_pin_list = []
-        # self._virtual_pin_values = 0b0
-        # self._virtual_pin_values_active = 0b0
-        # self._virtual_pin_values_clear = 0b0
-        # self.mux_assigned_pins = {}
-        # self._clearing_time = 0
+        for handler in handlers:
+            self._pin_to_handler.update({pin: handler for pin in handler.pin_list})
+
+        self._pending_updates: list[PinUpdate] = []
+
+    def add_update(
+            self,
+            pin_update: PinUpdate,
+            trigger_update: bool = True
+    ) -> None:
+        """This method should be registered with each virtual mux to route pin changes."""
+        self._pending_updates.append(pin_update)
+
+        if trigger_update:
+            self._do_pending_updates()
+
+    def _do_pending_updates(self):
+        """
+        Collate pending updates and send pins to respective address handlers.
+
+        1.  For each pending update, combine pins to clear and pins to set.
+        2.  Find the longest `minimum_change_time` of all the updates
+        3.  Find the AddressHandler required to set each pin.
+        4.  Check if there is actually anything to change. Only write out
+            changes that are required.
+        5.  Do the setup phase
+        6.  Wait the required change time
+        7.  Do the final phase
+        """
+
 
     # Not used in scripts
     # @property
@@ -472,11 +538,6 @@ class VirtualAddressMap:
         #     if value
         # ]
 
-    def install_address_handler(self, handler):
-        ...
-
-    def install_multiplexer(self, mux):
-        ...
 
     # one reference el relays: 35:elv_jig.py: 1010: self.virtual_map.update_defaults()
     # also used below in the jig driver
@@ -531,7 +592,7 @@ class VirtualAddressMap:
     #             self.update_pin_values(pin_values, trigger_update=False)
     #         start_addr = addr
 
-    # These were only used internally, as far as I can tell...
+    # These were only used internally, as far as I can tell... Delete them
     #def update_pin_values(self, values, trigger_update=True):
 
     # def update_clearing_pin_values(self, values, clearing_time):
@@ -582,17 +643,24 @@ class JigDriver(metaclass=JigMeta):
     :attribute defaults: Iterable of the default pins to set high on driver reset
     """
 
-    multiplexers = ()
-    address_handlers = ()
-    defaults = ()
+    # I want this to be
+    # multiplexers: Collection[Callable[[PinUpdateCallback], VirtualMux]] = ()
+    # but for now it needs to be:
+    multiplexers: Collection[VirtualMux] = ()
+    address_handlers: Collection[Callable[[], AddressHandler]] = ()
+
+    # defaults = () not used in any scripts
 
     def __init__(self):
         super().__init__()
-        self.virtual_map = VirtualAddressMap()
-        for addr_hand in self.address_handlers:
-            self.virtual_map.install_address_handler(addr_hand)
+        _address_map_instances = [factory() for factory in self.address_handlers]
+        self.virtual_map = VirtualAddressMap(_address_map_instances)
+
         for mux in self.multiplexers:
-            self.virtual_map.install_multiplexer(mux)
+            # I want to change this. Ideally we would instantiate the virtual mux here
+            # and pass in the virtual_map.add_update. But I need to switch self.multiplexers
+            # to be factories first and work out what that means for JigMeta etc.
+            mux._update_pins = self.virtual_map.add_update
 
     def __setitem__(self, key, value):
         self.virtual_map.update_pin_by_name(key, value)
