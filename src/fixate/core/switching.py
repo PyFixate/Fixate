@@ -41,6 +41,8 @@ PinList = Sequence[Pin]
 PinSet = Set[Pin]
 SignalMap = Dict[Signal, PinSet]
 
+TreeDef = Sequence[Union[Signal, TreeDef]]
+
 
 @dataclass(frozen=True)
 class PinSetState:
@@ -130,12 +132,27 @@ class VirtualMux:
             self.state_update_time = time.time()
         self._state = signal_output
 
-    def defaults(self):
+    def defaults(self) -> None:
         """
         Set the multiplexer to the default state.
         """
         self.multiplex(self.default_signal)
 
+    def switch_through_all_signals(self) -> Generator[str, None, None]:
+        # not sure if we should keep this.
+        # probably better to have a method that retuns all
+        # signals then a helper somewhere else that loops and
+        # switches. I don't like changing state and printing
+        # buried in a generator.
+        # This was iterate_mux_paths on the JigDriver, but then it had
+        # to used internal implementation details. Better to have this
+        # as a method on VirtualMux
+        for signal in self._signal_map:
+            if signal is not None:
+                self.multiplex(signal)
+                yield f"{self.__class__.__name__}: {signal}"
+        self.defaults()
+        
     ###########################################################################
     # The following methods are potential candidates to override in a subclass
 
@@ -491,7 +508,7 @@ class VirtualAddressMap:
         if trigger_update:
             self._do_pending_updates()
 
-    def _do_pending_updates(self):
+    def _do_pending_updates(self) -> None:
         """
         Collate pending updates and send pins to respective address handlers.
 
@@ -520,7 +537,7 @@ class VirtualAddressMap:
     #         )
     #     )
 
-    def active_pins(self):
+    def active_pins(self) -> None:
         pass
         # Used in J474 Scripts:8:as2081_validation_tests.py
         # return [
@@ -541,7 +558,7 @@ class VirtualAddressMap:
 
     # one reference el relays: 35:elv_jig.py: 1010: self.virtual_map.update_defaults()
     # also used below in the jig driver
-    def update_defaults(self):
+    def update_defaults(self) -> None:
         """
         Writes the initialisation values to the address handlers as the default values set in the handlers
         """
@@ -598,11 +615,11 @@ class VirtualAddressMap:
     # def update_clearing_pin_values(self, values, clearing_time):
 
     # used in a few scripts
-    def update_pin_by_name(self, name, value, trigger_update=True):
+    def update_pin_by_name(self, name: Pin, value: bool, trigger_update=True) -> None:
         pass
 
     # not used in any scripts
-    def update_pins_by_name(self, pins, trigger_update=True):
+    def update_pins_by_name(self, pins: Collection[Pin], trigger_update=True) -> None:
         pass
 
     def __getitem__(self, item):
@@ -682,21 +699,11 @@ class JigDriver(metaclass=JigMeta):
             if isinstance(mux, VirtualMux):
                 mux.defaults()
 
-    def iterate_all_mux_paths(self):
+    def iterate_all_mux_paths(self) -> Generator[str, None, None]:
         for _, mux in self.mux.__dict__.items():
             if isinstance(mux, VirtualMux):
-                yield from self.iterate_mux_paths(mux)
+                yield from mux.switch_through_all_signals()
 
-    def iterate_mux_paths(self, mux):
-        """
-        :param mux: Multiplexer as an object
-        :return: Generator of multiplexer signal paths
-        """
-        for pth in mux.signal_map:
-            if pth is not None:
-                mux(pth)
-                yield "{}: {}".format(mux.__class__.__name__, pth)
-        mux.defaults()
 
 
 T = TypeVar("T")
