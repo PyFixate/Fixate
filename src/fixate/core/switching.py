@@ -32,7 +32,13 @@ from __future__ import annotations
 
 import itertools
 import time
-from typing import Optional, Callable, Set, Sequence, TypeVar, Generator, Union, Collection, Dict
+from typing import (
+    Generic, Optional, Callable,
+    Set, Sequence, TypeVar,
+    Generator, Union, Collection, Dict, Any,
+    TYPE_CHECKING,
+    Type,
+    )
 from dataclasses import dataclass
 
 Signal = str
@@ -41,7 +47,10 @@ PinList = Sequence[Pin]
 PinSet = Set[Pin]
 SignalMap = Dict[Signal, PinSet]
 
-TreeDef = Sequence[Union[Signal, TreeDef]]
+if TYPE_CHECKING:
+    TreeDef = Sequence[Union[Signal, TreeDef]]
+else:
+    TreeDef = Sequence[Any]
 
 
 @dataclass(frozen=True)
@@ -104,7 +113,7 @@ class VirtualMux:
         """
         self.multiplex(signal_output, trigger_update)
 
-    def multiplex(self, signal_output: Signal, trigger_update=True):
+    def multiplex(self, signal_output: Signal, trigger_update: bool =True) -> None:
         """
         Update the multiplexer state to signal_output.
 
@@ -197,7 +206,7 @@ class VirtualMux:
         else:
             raise ValueError("VirtualMux subclass must define either map_tree or map_list")
 
-    def _map_tree(self, tree, pins: PinList, fixed_pins: PinSet) -> SignalMap:
+    def _map_tree(self, tree: TreeDef, pins: PinList, fixed_pins: PinSet) -> SignalMap:
         """recursively add nested signal lists to the signal map.
         tree: is the current sub-branch to be added. At the first call
         level, this would be initialised with self.map_tree. It can be
@@ -362,7 +371,7 @@ class VirtualMux:
 
         return signal_map
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__class__.__name__
 
     @staticmethod
@@ -397,7 +406,7 @@ class VirtualSwitch(VirtualMux):
     pin_name: Pin = ""
     map_tree = ("FALSE", "TRUE")
 
-    def multiplex(self, signal_output: Union[Signal, bool], trigger_update: bool = True):
+    def multiplex(self, signal_output: Union[Signal, bool], trigger_update: bool = True) -> None:
         if signal_output is True:
             signal = "TRUE"
         elif signal_output is False:
@@ -445,7 +454,7 @@ class AddressHandler:
     pin_list: Sequence[Pin] = ()
     pin_defaults = ()
 
-    def set_pins(self, pins: Collection[Pin]):
+    def set_pins(self, pins: Collection[Pin]) -> None:
         raise NotImplementedError
 
 
@@ -457,15 +466,15 @@ def bit_generator() -> Generator[int, None, None]:
 class PinValueAddressHandler(AddressHandler):
     """Maps pins to bit values then combines the bit values for an update"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._pin_lookup = {pin: bit for pin, bit in zip(self.pin_list, bit_generator())}
 
-    def set_pins(self, pins: Collection[Pin]):
+    def set_pins(self, pins: Collection[Pin]) -> None:
         value = sum(self._pin_lookup[pin] for pin in pins)
         self._update_output(value)
 
-    def _update_output(self, value: int):
+    def _update_output(self, value: int) -> None:
         # perhaps it's easy to compose by passing the output
         # function into __init__, like what we did with the VirtualMux?
         bits = len(self.pin_list)
@@ -615,22 +624,23 @@ class VirtualAddressMap:
     # def update_clearing_pin_values(self, values, clearing_time):
 
     # used in a few scripts
-    def update_pin_by_name(self, name: Pin, value: bool, trigger_update=True) -> None:
+    def update_pin_by_name(self, name: Pin, value: bool, trigger_update: bool =True) -> None:
         pass
 
     # not used in any scripts
-    def update_pins_by_name(self, pins: Collection[Pin], trigger_update=True) -> None:
+    def update_pins_by_name(self, pins: Collection[Pin], trigger_update: bool=True) -> None:
         pass
 
-    def __getitem__(self, item):
-        pass
+    def __getitem__(self, item: Pin) -> bool:
+        return True
         # self.update_input()
         # return bool((1 << self.virtual_pin_list.index(item)) & self._virtual_pin_values)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Pin, value: bool) -> None:
         pass
         # index = self.virtual_pin_list.index(key)
         # self.update_pin_values([(index, value)])
+
 
 class JigMeta(type):
     """
@@ -639,15 +649,23 @@ class JigMeta(type):
     Dynamically adds multiplexers and multiplexer groups to the Jig Class definition
     """
 
-    def __new__(mcs, clsname, bases, dct):
-        muxes = dct.get("multiplexers", None)
+    def __new__(cls: Type[JigMeta], name: str, bases: tuple, classdict: dict) -> JigMeta:
+        muxes = classdict.get("multiplexers", None)
         if muxes is not None:
             mux_dct = {mux.__class__.__name__: mux for mux in muxes}
-            dct["mux"] = type("MuxController", (), mux_dct)
-        return super().__new__(mcs, clsname, bases, dct)
+            classdict["mux"] = type("MuxController", (), mux_dct)
+        return super().__new__(cls, name, bases, classdict)
 
 
-class JigDriver(metaclass=JigMeta):
+class MuxGroup:
+    def get_multiplexers(self) -> list[VirtualMux]:
+        return [attr for attr in self.__dict__.values() if isinstance(attr, VirtualMux)]
+
+
+JigSpecificMuxGroup = TypeVar("JigSpecificMuxGroup", bound=MuxGroup)
+
+
+class JigDriver(Generic[JigSpecificMuxGroup]):
     """
     :attribute address_handlers: Iterable of Address Handlers
     [<Address_Handler_Instance1>,...
@@ -663,32 +681,46 @@ class JigDriver(metaclass=JigMeta):
     # I want this to be
     # multiplexers: Collection[Callable[[PinUpdateCallback], VirtualMux]] = ()
     # but for now it needs to be:
-    multiplexers: Collection[VirtualMux] = ()
-    address_handlers: Collection[Callable[[], AddressHandler]] = ()
+    # multiplexers: Collection[VirtualMux] = ()
+    # address_handlers: Collection[Callable[[], AddressHandler]] = ()
 
     # defaults = () not used in any scripts
+    
+    # mux is added by the metaclass. I suspect we're better off
+    # doing away with that entirely and getting any script that
+    # using a Jig Driver to build it's own "MuxGroup" or similar
+    # that then gets assigned to JigDriver.mux. i.e. JigDriver
+    # becomes a generic
+    #
+    # Note that for now, the only place we use jig here does an
+    # isinstance check, so the Any makes no differece internally.
+    # But for test scripts that define a jig driver, it means there
+    # is no type info available for mux (i.e. - no IDE autocomplete :())
+    mux: JigSpecificMuxGroup
 
-    def __init__(self):
-        super().__init__()
-        _address_map_instances = [factory() for factory in self.address_handlers]
-        self.virtual_map = VirtualAddressMap(_address_map_instances)
-
-        for mux in self.multiplexers:
-            # I want to change this. Ideally we would instantiate the virtual mux here
-            # and pass in the virtual_map.add_update. But I need to switch self.multiplexers
-            # to be factories first and work out what that means for JigMeta etc.
+    def __init__(self, mux_group_factory: Callable[[],JigSpecificMuxGroup], handlers: Sequence[AddressHandler]):
+        # _address_map_instances = [factory() for factory in self.address_handlers]
+        self.virtual_map = VirtualAddressMap(handlers)
+        
+        self.mux = mux_group_factory()
+        for mux in self.mux.get_multiplexers():
+            # Perhaps we should instantiate the virtual mux here
+            # and pass in the virtual_map.add_update. But we'd have to do some 
+            # magic in the MuxGroup call to pass add_update to each VirtualMux 
+            # constructor, and I was hoping to just use a dataclass...
             mux._update_pins = self.virtual_map.add_update
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Pin, value: bool) -> None:
         self.virtual_map.update_pin_by_name(key, value)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Pin) -> bool:
         return self.virtual_map[item]
 
-    def active_pins(self):
-        return self.virtual_map.active_pins()
+    def active_pins(self) -> None:
+        #return self.virtual_map.active_pins()
+        pass
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the multiplexers to the default values
         Raises exception if failed
