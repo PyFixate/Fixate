@@ -32,7 +32,6 @@ from __future__ import annotations
 import itertools
 import time
 from typing import (
-    TYPE_CHECKING,
     Generic,
     Optional,
     Callable,
@@ -42,7 +41,6 @@ from typing import (
     Union,
     Collection,
     Dict,
-    Any,
     FrozenSet,
     Set,
 )
@@ -55,12 +53,7 @@ Pin = str
 PinList = Sequence[Pin]
 PinSet = FrozenSet[Pin]
 SignalMap = Dict[Signal, PinSet]
-
-if TYPE_CHECKING:
-    # The self reference doesn't work at runtime, by mypy knows what it means.
-    TreeDef = Sequence[Union[Signal, TreeDef]]
-else:
-    TreeDef = Sequence[Any]
+TreeDef = Sequence[Union[Signal, "TreeDef"]]
 
 
 @dataclass(frozen=True)
