@@ -43,7 +43,8 @@ from typing import (
     Collection,
     Dict,
     Any,
-    FrozenSet, Set
+    FrozenSet,
+    Set,
 )
 from dataclasses import dataclass
 from functools import reduce
@@ -84,7 +85,9 @@ class PinUpdate:
             return PinUpdate(
                 setup=self.setup | other.setup,
                 final=self.final | other.final,
-                minimum_change_time=max(self.minimum_change_time, other.minimum_change_time)
+                minimum_change_time=max(
+                    self.minimum_change_time, other.minimum_change_time
+                ),
             )
         return NotImplemented
 
@@ -155,7 +158,9 @@ class VirtualMux:
         """
         if signal_output not in self._signal_map:
             name = self.__class__.__name__
-            raise ValueError(f"Signal '{signal_output}' not valid for multiplexer '{name}'")
+            raise ValueError(
+                f"Signal '{signal_output}' not valid for multiplexer '{name}'"
+            )
 
         setup, final = self._calculate_pins(self._state, signal_output)
         self._update_pins(PinUpdate(setup, final, self.clearing_time), trigger_update)
@@ -177,13 +182,15 @@ class VirtualMux:
                 self.multiplex(signal)
                 yield f"{self.__class__.__name__}: {signal}"
 
-    def reset(self, trigger_update: bool=True) -> None:
+    def reset(self, trigger_update: bool = True) -> None:
         self.multiplex("", trigger_update)
-        
+
     ###########################################################################
     # The following methods are potential candidates to override in a subclass
 
-    def _calculate_pins(self, old_signal: Signal, new_signal: Signal) -> tuple[PinSetState, PinSetState]:
+    def _calculate_pins(
+        self, old_signal: Signal, new_signal: Signal
+    ) -> tuple[PinSetState, PinSetState]:
         """
         Calculate the pin sets for the two-step state change.
 
@@ -226,7 +233,9 @@ class VirtualMux:
         elif hasattr(self, "map_list"):
             return {sig: frozenset(pins) for sig, *pins in self.map_list}
         else:
-            raise ValueError("VirtualMux subclass must define either map_tree or map_list")
+            raise ValueError(
+                "VirtualMux subclass must define either map_tree or map_list"
+            )
 
     def _map_tree(self, tree: TreeDef, pins: PinList, fixed_pins: PinSet) -> SignalMap:
         """recursively add nested signal lists to the signal map.
@@ -393,17 +402,21 @@ class VirtualMux:
         bits_at_this_level = (len(tree) - 1).bit_length()
         pins_at_this_level = pins[:bits_at_this_level]
 
-        for signal_or_tree, pins_for_signal in zip(tree, generate_bit_sets(pins_at_this_level)):
+        for signal_or_tree, pins_for_signal in zip(
+            tree, generate_bit_sets(pins_at_this_level)
+        ):
             if signal_or_tree is None:
                 continue
             if isinstance(signal_or_tree, Signal):
                 signal_map[signal_or_tree] = frozenset(pins_for_signal) | fixed_pins
             else:
-                signal_map.update(self._map_tree(
-                    tree=signal_or_tree,
-                    pins=pins[bits_at_this_level:],
-                    fixed_pins=frozenset(pins_for_signal) | fixed_pins,
-                ))
+                signal_map.update(
+                    self._map_tree(
+                        tree=signal_or_tree,
+                        pins=pins[bits_at_this_level:],
+                        fixed_pins=frozenset(pins_for_signal) | fixed_pins,
+                    )
+                )
 
         return signal_map
 
@@ -412,8 +425,7 @@ class VirtualMux:
 
     @staticmethod
     def _default_update_pins(
-            pin_updates: PinUpdate,
-            trigger_update: bool = True
+        pin_updates: PinUpdate, trigger_update: bool = True
     ) -> None:
         """
         Output callback to effect a state change in the mux.
@@ -442,7 +454,9 @@ class VirtualSwitch(VirtualMux):
     pin_name: Pin = ""
     map_tree = ("FALSE", "TRUE")
 
-    def multiplex(self, signal_output: Union[Signal, bool], trigger_update: bool = True) -> None:
+    def multiplex(
+        self, signal_output: Union[Signal, bool], trigger_update: bool = True
+    ) -> None:
         if signal_output is True:
             signal = "TRUE"
         elif signal_output is False:
@@ -463,7 +477,9 @@ class VirtualSwitch(VirtualMux):
 class RelayMatrixMux(VirtualMux):
     clearing_time = 0.01
 
-    def _calculate_pins(self, old_signal: Signal, new_signal: Signal) -> tuple[PinSetState, PinSetState]:
+    def _calculate_pins(
+        self, old_signal: Signal, new_signal: Signal
+    ) -> tuple[PinSetState, PinSetState]:
         """
         Override of _calculate_pins to implement break-before-make switching.
         """
@@ -503,7 +519,9 @@ class PinValueAddressHandler(AddressHandler):
 
     def __init__(self) -> None:
         super().__init__()
-        self._pin_lookup = {pin: bit for pin, bit in zip(self.pin_list, bit_generator())}
+        self._pin_lookup = {
+            pin: bit for pin, bit in zip(self.pin_list, bit_generator())
+        }
 
     def set_pins(self, pins: Collection[Pin]) -> None:
         value = sum(self._pin_lookup[pin] for pin in pins)
@@ -524,6 +542,7 @@ class FTDIAddressHandler(PinValueAddressHandler):
     often. FT232 is used to bit-bang to shift register that are control
     the switching in a jig.
     """
+
     def _update_output(self, value: int) -> None:
         raise NotImplementedError
 
@@ -532,23 +551,22 @@ class VirtualAddressMap:
     """
     The supervisor loops through the attached virtual multiplexers each time a mux update is triggered.
     """
+
     def __init__(self, handlers: Sequence[AddressHandler]):
         # used to work out which pins get routed to which address handler
         self._handler_pin_sets: list[tuple[PinSet, AddressHandler]] = []
         for handler in handlers:
             self._handler_pin_sets.append((frozenset(handler.pin_list), handler))
-        self._all_pins = frozenset(itertools.chain.from_iterable(handler.pin_list for handler in handlers))
+        self._all_pins = frozenset(
+            itertools.chain.from_iterable(handler.pin_list for handler in handlers)
+        )
 
         # a list of updates that haven't been sent to address handlers yet. This
         # allows a few mux changes to get updated at the same time.
         self._pending_updates: list[PinUpdate] = []
         self._active_pins: set[Pin] = set()
 
-    def add_update(
-            self,
-            pin_update: PinUpdate,
-            trigger_update: bool = True
-    ) -> None:
+    def add_update(self, pin_update: PinUpdate, trigger_update: bool = True) -> None:
         """This method should be registered with each virtual mux to route pin changes."""
         self._pending_updates.append(pin_update)
 
@@ -601,7 +619,6 @@ class VirtualAddressMap:
         """
         self._dispatch_pin_state(PinSetState(off=self._all_pins))
 
-
     def update_input(self) -> None:
         """
         Iterates through the address_handlers and reads the values back to update the pin values for the digital inputs
@@ -610,11 +627,15 @@ class VirtualAddressMap:
         raise NotImplementedError
 
     # used in a few scripts
-    def update_pin_by_name(self, name: Pin, value: bool, trigger_update: bool =True) -> None:
+    def update_pin_by_name(
+        self, name: Pin, value: bool, trigger_update: bool = True
+    ) -> None:
         raise NotImplementedError
 
     # not used in any scripts
-    def update_pins_by_name(self, pins: Collection[Pin], trigger_update: bool=True) -> None:
+    def update_pins_by_name(
+        self, pins: Collection[Pin], trigger_update: bool = True
+    ) -> None:
         raise NotImplementedError
 
     def __getitem__(self, item: Pin) -> bool:
@@ -638,6 +659,7 @@ class MuxGroup:
         mux_one: MuxOne = field(default_factory=MuxOne)
         mux_two: MuxTwo = field(default_factory=MuxTwo)
     """
+
     def get_multiplexers(self) -> list[VirtualMux]:
         return [attr for attr in self.__dict__.values() if isinstance(attr, VirtualMux)]
 
@@ -663,14 +685,19 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
 
     The jig driver joins muxes to handlers by matching up pin definitions.
     """
-    def __init__(self, mux_group_factory: Callable[[],JigSpecificMuxGroup], handlers: Sequence[AddressHandler]):
+
+    def __init__(
+        self,
+        mux_group_factory: Callable[[], JigSpecificMuxGroup],
+        handlers: Sequence[AddressHandler],
+    ):
         self.virtual_map = VirtualAddressMap(handlers)
-        
+
         self.mux = mux_group_factory()
         for mux in self.mux.get_multiplexers():
             # Perhaps we should instantiate the virtual mux here
-            # and pass in the virtual_map.add_update. But we'd have to do some 
-            # magic in the MuxGroup call to pass add_update to each VirtualMux 
+            # and pass in the virtual_map.add_update. But we'd have to do some
+            # magic in the MuxGroup call to pass add_update to each VirtualMux
             # constructor, and I was hoping to just use a dataclass...
             mux._update_pins = self.virtual_map.add_update
 
@@ -710,7 +737,9 @@ def generate_bit_sets(bits: Sequence[T]) -> Generator[set[T], None, None]:
     list(generate_bit_set(["x0", "x1"])) -> [set(), {'x0'}, {'x1'}, {'x0', 'x1'}]
     """
     int_list = range(1 << len(bits)) if len(bits) != 0 else range(0)
-    return ({bit for i, bit in enumerate(bits) if (1 << i) & index} for index in int_list)
+    return (
+        {bit for i, bit in enumerate(bits) if (1 << i) & index} for index in int_list
+    )
 
 
 def bit_generator() -> Generator[int, None, None]:

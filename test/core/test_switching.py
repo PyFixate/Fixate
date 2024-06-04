@@ -1,4 +1,10 @@
-from fixate.core.switching import generate_bit_sets, VirtualMux, bit_generator, PinSetState, PinUpdate
+from fixate.core.switching import (
+    generate_bit_sets,
+    VirtualMux,
+    bit_generator,
+    PinSetState,
+    PinUpdate,
+)
 
 
 ################################################################
@@ -22,9 +28,10 @@ def test_generate_bit_sets_multiple_bits():
         {"b2"},
         {"b2", "b0"},
         {"b2", "b1"},
-        {"b2", "b1", "b0"}
+        {"b2", "b1", "b0"},
     ]
     assert list(generate_bit_sets(["b0", "b1", "b2"])) == expected
+
 
 def test_bit_generator():
     """b1, b10, b100, b1000, ..."""
@@ -33,6 +40,7 @@ def test_bit_generator():
     actual = [next(bit_gen) for _ in range(8)]
     expected = [1, 2, 4, 8, 16, 32, 64, 128]
     assert actual == expected
+
 
 ################################################################
 # virtual mux definitions
@@ -107,27 +115,31 @@ def test_VirtualMux_nested_tree_map():
         "a2_b1_c1": {"x1", "x2", "x4"},
     }
 
+
 ################################################################
 # Helper dataclasses
+
 
 def test_pin_set_state_or():
     a = PinSetState(frozenset("ab"), frozenset("xy"))
     b = PinSetState(frozenset("cd"), frozenset("x"))
     assert a | b == PinSetState(frozenset("abcd"), frozenset("xy"))
 
+
 def test_pin_update_or():
     a = PinUpdate(
         PinSetState(frozenset("a"), frozenset("b")),
         PinSetState(frozenset(), frozenset("yz")),
-        1.0)
+        1.0,
+    )
     b = PinUpdate(
         PinSetState(frozenset("x"), frozenset()),
         PinSetState(frozenset("c"), frozenset("d")),
-        2.0
+        2.0,
     )
     expected = PinUpdate(
         PinSetState(frozenset("ax"), frozenset("b")),
         PinSetState(frozenset("c"), frozenset("yzd")),
-        2.0
+        2.0,
     )
     assert expected == a | b
