@@ -4,7 +4,7 @@ Release Notes
 *************
 Version 0.6.2
 *************
-Release Date XX/XX/XX
+Release Date 05/06/24
 
 New Features
 ############
