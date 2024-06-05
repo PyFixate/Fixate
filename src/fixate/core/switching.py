@@ -48,7 +48,6 @@ from dataclasses import dataclass
 from functools import reduce
 from operator import or_
 
-from fixate.drivers import ftdi
 
 Signal = str
 Pin = str
