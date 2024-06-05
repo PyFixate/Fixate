@@ -48,6 +48,8 @@ from dataclasses import dataclass
 from functools import reduce
 from operator import or_
 
+from fixate.drivers import ftdi
+
 Signal = str
 Pin = str
 PinList = Sequence[Pin]
@@ -506,6 +508,15 @@ class AddressHandler:
         """
         raise NotImplementedError
 
+    def close(self) -> None:
+        """
+        Optional close method to clean-up resources.
+
+        This will be called automatically by the JigDriver for any
+        address handlers passed into the JigDriver when it as created.
+        """
+        pass
+
 
 class PinValueAddressHandler(AddressHandler):
     """Maps pins to bit values then combines the bit values for an update"""
@@ -527,6 +538,16 @@ class PinValueAddressHandler(AddressHandler):
         print(f"0b{value:0{bits}b}")
 
 
+def _pins_for_one_relay_matrix(relay_matrix_num: int) -> list[Pin]:
+    """
+    A helper to create pin names for relay matrix cards.
+
+    Returns 16 pin names. If relay_matrix_num is 1:
+    1K1, 1K2, 1K3, ..., 1K16
+    """
+    return [f"{relay_matrix_num}K{relay}" for relay in range(1, 17)]
+
+
 class FTDIAddressHandler(PinValueAddressHandler):
     """
     An address handler which uses the ftdi driver to control pins.
@@ -535,9 +556,41 @@ class FTDIAddressHandler(PinValueAddressHandler):
     often. FT232 is used to bit-bang to shift register that are control
     the switching in a jig.
     """
+    def __init__(
+        self,
+        ftdi_description: str,
+        relay_matrix_count: int,
+        extra_pins: Sequence[Pin] = tuple()
+    ) -> None:
+        relay_matrix_pin_list = tuple(
+            itertools.chain.from_iterable(
+                _pins_for_one_relay_matrix(rm_number)
+                for rm_number in range(1, relay_matrix_count + 1)
+            )
+        )
+        self.pin_list = relay_matrix_pin_list + tuple(extra_pins)
+        # call the base class super _after_ we create the pin list
+        super().__init__()
+
+        # how many bytes? enough for every pin to get a bit. We might
+        # end up with some left-over bits. The +7 in the expression
+        # ensure we round up.
+        bytes_required = (len(self.pin_list) + 7) // 8
+        self._ftdi = ftdi.open(ftdi_description=ftdi_description)
+        self._ftdi.configure_bit_bang(
+            ftdi.BIT_MODE.FT_BITMODE_ASYNC_BITBANG,
+            bytes_required=bytes_required,
+            data_mask=4,
+            clk_mask=2,
+            latch_mask=1
+        )
+        self._ftdi.baud_rate = 115200
+
+    def close(self) -> None:
+        self._ftdi.close()
 
     def _update_output(self, value: int) -> None:
-        raise NotImplementedError
+        self._ftdi.serial_shift_bit_bang(value)
 
 
 class VirtualAddressMap:
@@ -684,6 +737,8 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
         mux_group_factory: Callable[[], JigSpecificMuxGroup],
         handlers: Sequence[AddressHandler],
     ):
+        # keep a reference to handlers so that we can close them if required.
+        self._handlers = handlers
         self.virtual_map = VirtualAddressMap(handlers)
 
         self.mux = mux_group_factory()
@@ -699,6 +754,10 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
 
     def __getitem__(self, item: Pin) -> bool:
         return self.virtual_map[item]
+
+    def close(self) -> None:
+        for handler in self._handlers:
+            handler.close()
 
     def active_pins(self) -> Set[Pin]:
         return self.virtual_map.active_pins()
