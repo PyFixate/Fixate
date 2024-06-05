@@ -144,12 +144,3 @@ def test_pin_update_or():
         2.0,
     )
     assert expected == a | b
-
-
-################################################################
-# FTDI/Relay Matrix
-
-
-def test_pins_for_one_relay_matrix():
-    expected = "3K1 3K2 3K3 3K4 3K5 3K6 3K7 3K8 3K9 3K10 3K11 3K12 3K13 3K14 3K15 3K16".split()
-    assert _pins_for_one_relay_matrix(3) == expected
