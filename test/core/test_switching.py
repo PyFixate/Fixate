@@ -4,7 +4,6 @@ from fixate.core.switching import (
     bit_generator,
     PinSetState,
     PinUpdate,
-    _pins_for_one_relay_matrix,
 )
 
 
