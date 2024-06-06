@@ -84,7 +84,7 @@ def match_kwarg(search, keys):
 def sanitise_kwargs(kwargs, repl_kwargs):
     for kw in repl_kwargs:
         # Removes all non character symbols
-        new_kw = re.sub("[^\w]", "", repl_kwargs[kw])
+        new_kw = re.sub(r"[^\w]", "", repl_kwargs[kw])
         kwargs[new_kw] = kwargs.pop(kw)
     return kwargs
 
@@ -128,7 +128,7 @@ def mode_builder(search_dict, repl_kwargs, *args, **kwargs):
     ret_string += mode_builder(search_dict[matches[0]], repl_kwargs, *args, **kwargs)
 
     # Remove the optional '[]' markers
-    ret_string = re.sub("[[\]]", "", ret_string)
+    ret_string = re.sub(r"[[\]]", "", ret_string)
     kwargs = sanitise_kwargs(kwargs, repl_kwargs)
     ret_string = ret_string.format(**kwargs)
     return ret_string
@@ -182,7 +182,7 @@ def unit_scale(str_value, accepted_units=UNITS):
             )
         )
     # Match Decimal and Integer Values
-    p = re.compile("\d+(\.\d+)?")
+    p = re.compile(r"\d+(\.\d+)?")
     num_match = p.search(str_value)
     if num_match:
         num = float(num_match.group())
