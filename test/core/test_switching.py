@@ -4,6 +4,7 @@ from fixate.core.switching import (
     bit_generator,
     PinSetState,
     PinUpdate,
+    VirtualSwitch,
 )
 
 import pytest
@@ -175,6 +176,34 @@ def test_invalid_signal_map_raises():
 
     with pytest.raises(ValueError):
         bm = BadMux()
+
+# ###############################################################
+# VirtualSwitch Behaviour
+
+
+def test_virtual_switch():
+    class Sw(VirtualSwitch):
+        pin_name = "x"
+    updates = []
+    sw = Sw(lambda x, y: updates.append((x, y)))
+
+    sw(True)
+    sw(False)
+    sw("TRUE", trigger_update=False)
+    sw("FALSE")
+    sw("")
+
+    on = PinSetState(on=frozenset("x"))
+    off = PinSetState(off=frozenset("x"))
+
+    assert updates == [
+        (PinUpdate(PinSetState(), on), True),
+        (PinUpdate(PinSetState(), off), True),
+        (PinUpdate(PinSetState(), on), False),
+        (PinUpdate(PinSetState(), off), True),
+        (PinUpdate(PinSetState(), off), True),
+    ]
+
 
 
 # ###############################################################
