@@ -446,18 +446,24 @@ class VirtualSwitch(VirtualMux):
     """
 
     pin_name: Pin = ""
-    map_tree = ("FALSE", "TRUE")
+    map_tree = ("Off", "On")
 
     def multiplex(
         self, signal_output: Union[Signal, bool], trigger_update: bool = True
     ) -> None:
         if signal_output is True:
-            signal = "TRUE"
+            signal = "On"
         elif signal_output is False:
-            signal = "FALSE"
+            signal = "Off"
         else:
             signal = signal_output
         super().multiplex(signal, trigger_update=trigger_update)
+
+    def __call__(
+        self, signal_output: Union[Signal, bool], trigger_update: bool = True
+    ) -> None:
+        """Override call to set the type on signal_output correctly."""
+        self.multiplex(signal_output, trigger_update)
 
     def __init__(
         self,

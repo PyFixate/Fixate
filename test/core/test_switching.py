@@ -177,6 +177,7 @@ def test_invalid_signal_map_raises():
     with pytest.raises(ValueError):
         bm = BadMux()
 
+
 # ###############################################################
 # VirtualSwitch Behaviour
 
@@ -184,13 +185,14 @@ def test_invalid_signal_map_raises():
 def test_virtual_switch():
     class Sw(VirtualSwitch):
         pin_name = "x"
+
     updates = []
     sw = Sw(lambda x, y: updates.append((x, y)))
 
     sw(True)
     sw(False)
-    sw("TRUE", trigger_update=False)
-    sw("FALSE")
+    sw("On", trigger_update=False)
+    sw("Off")
     sw("")
 
     on = PinSetState(on=frozenset("x"))
@@ -203,7 +205,6 @@ def test_virtual_switch():
         (PinUpdate(PinSetState(), off), True),
         (PinUpdate(PinSetState(), off), True),
     ]
-
 
 
 # ###############################################################
