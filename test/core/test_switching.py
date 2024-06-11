@@ -123,6 +123,7 @@ def test_VirtualMux_nested_tree_map():
 
 class MuxA(VirtualMux):
     """A mux definitioned used by a few scripts"""
+
     pin_list = ("a0", "a1")
     map_list = (("sig_a1", "a0", "a1"), ("sig_a2", "a1"))
 
