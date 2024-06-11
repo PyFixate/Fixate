@@ -5,6 +5,7 @@ from fixate.core.switching import (
     PinSetState,
     PinUpdate,
     VirtualSwitch,
+    RelayMatrixMux,
 )
 
 import pytest
@@ -204,6 +205,37 @@ def test_virtual_switch():
         (PinUpdate(PinSetState(), on), False),
         (PinUpdate(PinSetState(), off), True),
         (PinUpdate(PinSetState(), off), True),
+    ]
+
+
+# ###############################################################
+# RelayMatrixMux Behaviour
+
+
+def test_relay_matrix_mux():
+    class RMMux(RelayMatrixMux):
+        pin_list = ("a", "b")
+        map_list = (
+            ("sig1", "a"),
+            ("sig2", "b"),
+        )
+
+    sig1 = PinSetState(off=frozenset("b"), on=frozenset("a"))
+    sig2 = PinSetState(off=frozenset("a"), on=frozenset("b"))
+    off = PinSetState(off=frozenset("ab"))
+
+    updates = []
+    rm = RMMux(lambda x, y: updates.append((x, y)))
+    rm("sig1")
+    rm("sig2")
+
+    # compared to the standard mux, the setup of the PinUpdate
+    # sets all pins off. The standard mux does nothing for the
+    # setup phase. And we technically shouldn't compare floats
+    # for equality, but it should be fine here... until it's not :D
+    assert updates == [
+        (PinUpdate(off, sig1, 0.01), True),
+        (PinUpdate(off, sig2, 0.01), True),
     ]
 
 
