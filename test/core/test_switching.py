@@ -6,6 +6,7 @@ from fixate.core.switching import (
     PinUpdate,
 )
 
+import pytest
 
 ################################################################
 # generate_bit_sets
@@ -116,7 +117,66 @@ def test_VirtualMux_nested_tree_map():
     }
 
 
-################################################################
+# ###############################################################
+# VirtualMux Behaviour
+
+
+class MuxA(VirtualMux):
+    """A mux definitioned used by a few scripts"""
+    pin_list = ("a0", "a1")
+    map_list = (("sig_a1", "a0", "a1"), ("sig_a2", "a1"))
+
+
+def test_virtual_mux_basic():
+    updates = []
+    mux_a = MuxA(lambda x, y: updates.append((x, y)))
+
+    # test both the __call__ and multiplex methods trigger
+    # the appropriate update callback.
+    mux_a("sig_a1")
+    mux_a.multiplex("sig_a2", trigger_update=False)
+    mux_a("")
+
+    clear = PinSetState(off=frozenset({"a0", "a1"}))
+    a1 = PinSetState(on=frozenset({"a0", "a1"}))
+    a2 = PinSetState(on=frozenset({"a1"}), off=frozenset({"a0"}))
+    assert updates == [
+        (PinUpdate(PinSetState(), a1), True),
+        (PinUpdate(PinSetState(), a2), False),
+        (PinUpdate(PinSetState(), clear), True),
+    ]
+
+
+def test_virtual_mux_reset():
+    """Check that reset sends an update that sets all pins off"""
+
+    updates = []
+    mux_a = MuxA(lambda x, y: updates.append((x, y)))
+    mux_a.reset()
+    assert updates == [
+        (PinUpdate(PinSetState(), PinSetState(off=frozenset({"a1", "a0"}))), True),
+    ]
+
+
+def test_virtual_mux_invalid_signal():
+    """Check an invalid signal raises an error."""
+
+    mux_a = MuxA()
+    with pytest.raises(ValueError):
+        mux_a("invalid signal")
+
+
+def test_invalid_signal_map_raises():
+    """A virtual mux needs one of tree_map or list_map defined"""
+
+    class BadMux(VirtualMux):
+        pass
+
+    with pytest.raises(ValueError):
+        bm = BadMux()
+
+
+# ###############################################################
 # Helper dataclasses
 
 
