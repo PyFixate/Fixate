@@ -119,6 +119,24 @@ def test_VirtualMux_nested_tree_map():
     }
 
 
+def test_empty_signal_should_not_be_defined():
+    class BadMux1(VirtualMux):
+        pin_list = ["x"]
+        map_list = [["", "x"]]
+
+    class BadMux2(VirtualMux):
+        pin_list = ["x"]
+        # Even though this is the "correct" definition, it is still
+        # not allowed
+        map_list = [[""]]
+
+    with pytest.raises(ValueError):
+        BadMux1()
+
+    with pytest.raises(ValueError):
+        BadMux2()
+
+
 # ###############################################################
 # VirtualMux Behaviour
 

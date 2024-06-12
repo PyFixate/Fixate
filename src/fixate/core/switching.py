@@ -118,10 +118,17 @@ class VirtualMux:
 
         self._signal_map: SignalMap = self._map_signals()
 
-        # If it wasn't already defined, define the implicit signal "" which
-        # can be used to signify no pins active.
+        # Define the implicit signal "" which can be used to turn off all pins.
+        # If the signal map already has this defined, raise an error. In the old
+        # implementation, it allows the map to set this, but when switching the
+        # behaviour was hard coded. Any mux that changed the definition would
+        # have silently done the "wrong" thing. We can revisit this if we find
+        # a good application to override, but for now, don't silently allow something
+        # that probably isn't correct.
         if "" not in self._signal_map:
             self._signal_map[""] = frozenset()
+        else:
+            raise ValueError('The empty signal, "", should not be explicitly defined')
 
     def __call__(self, signal_output: Signal, trigger_update: bool = True) -> None:
         """
