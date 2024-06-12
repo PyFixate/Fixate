@@ -5,32 +5,12 @@ can be used to implement IO for the fixate.core.switching module.
 from __future__ import annotations
 
 from typing import Sequence
-import itertools
 
 from fixate.core.switching import Pin, PinValueAddressHandler
 from fixate.drivers import ftdi
 
 
-def _pins_for_one_relay_matrix(relay_matrix_num: int) -> list[Pin]:
-    """
-    A helper to create pin names for relay matrix cards.
-
-    Returns 16 pin names. If relay_matrix_num is 1:
-    1K1, 1K2, 1K3, ..., 1K16
-    """
-    return [f"{relay_matrix_num}K{relay}" for relay in range(1, 17)]
-
-
-# This is a real quick test. Not worth the effort unravelling
-# imports when ftdi isn't importable, just to get this into a
-# proper test right now...
-__expected = (
-    "3K1 3K2 3K3 3K4 3K5 3K6 3K7 3K8 3K9 3K10 3K11 3K12 3K13 3K14 3K15 3K16".split()
-)
-assert _pins_for_one_relay_matrix(3) == __expected
-
-
-class RelayMatrixAddressHandler(PinValueAddressHandler):
+class FTDIAddressHandler(PinValueAddressHandler):
     """
     An address handler which uses the ftdi driver to control pins.
 
@@ -42,16 +22,10 @@ class RelayMatrixAddressHandler(PinValueAddressHandler):
     def __init__(
         self,
         ftdi_description: str,
-        relay_matrix_count: int,
-        extra_pins: Sequence[Pin] = tuple(),
+        pins: Sequence[Pin] = tuple(),
     ) -> None:
-        relay_matrix_pin_list = tuple(
-            itertools.chain.from_iterable(
-                _pins_for_one_relay_matrix(rm_number)
-                for rm_number in range(1, relay_matrix_count + 1)
-            )
-        )
-        self.pin_list = relay_matrix_pin_list + tuple(extra_pins)
+
+        self.pin_list = tuple(pins)
         # call the base class super _after_ we create the pin list
         super().__init__()
 

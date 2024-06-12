@@ -6,12 +6,15 @@ from fixate.core.switching import (
     PinUpdate,
     VirtualSwitch,
     RelayMatrixMux,
+    PinValueAddressHandler,
+    generate_pin_group,
+    generate_relay_matrix_pin_list,
 )
 
 import pytest
 
 ################################################################
-# generate_bit_sets
+# helper to generate data
 
 
 def test_generate_bit_sets_empty():
@@ -43,6 +46,113 @@ def test_bit_generator():
     actual = [next(bit_gen) for _ in range(8)]
     expected = [1, 2, 4, 8, 16, 32, 64, 128]
     assert actual == expected
+
+
+def test_generate_pin_group():
+    assert list(generate_pin_group(3)) == (
+        "3K1 3K2 3K3 3K4 3K5 3K6 3K7 3K8 3K9 3K10 3K11 3K12 3K13 3K14 3K15 3K16".split()
+    )
+    assert list(generate_pin_group(1, prefix="RM")) == (
+        "RM1K1 RM1K2 RM1K3 RM1K4 RM1K5 RM1K6 RM1K7 RM1K8 RM1K9 RM1K10 RM1K11 RM1K12 RM1K13 RM1K14 RM1K15 RM1K16".split()
+    )
+    assert list(generate_pin_group(10, pin_count=8, prefix="U")) == (
+        "U10K1 U10K2 U10K3 U10K4 U10K5 U10K6 U10K7 U10K8".split()
+    )
+
+
+# fmt:off
+large_pin_list_example1 = [
+    "RC1K1", "RC1K2", "RC1K3", "RC1K4", "RC1K5", "RC1K6", "RC1K7", "RC1K8","RC1K9", "RC1K10", "RC1K11", "RC1K12", "RC1K13", "RC1K14", "RC1K15", "RC1K16",
+    "RC2K1", "RC2K2", "RC2K3", "RC2K4", "RC2K5", "RC2K6", "RC2K7", "RC2K8", "RC2K9", "RC2K10", "RC2K11", "RC2K12", "RC2K13", "RC2K14", "RC2K15", "RC2K16",
+    "RA1K1", "RA1K2", "RA1K3", "RA1K4", "RA1K5", "RA1K6", "RA1K7", "RA1K8", "RA1K9", "RA1K10", "RA1K11", "RA1K12", "RA1K13", "RA1K14", "RA1K15", "RA1K16",
+    "RA2K1", "RA2K2", "RA2K3", "RA2K4", "RA2K5", "RA2K6", "RA2K7", "RA2K8", "RA2K9", "RA2K10", "RA2K11", "RA2K12", "RA2K13", "RA2K14", "RA2K15", "RA2K16",
+    "RA3K1", "RA3K2", "RA3K3", "RA3K4", "RA3K5", "RA3K6", "RA3K7", "RA3K8", "RA3K9", "RA3K10", "RA3K11", "RA3K12", "RA3K13", "RA3K14", "RA3K15", "RA3K16",
+    "RP1K1", "RP1K2", "RP1K3", "RP1K4", "RP1K5", "RP1K6", "RP1K7", "RP1K8", "RP1K9", "RP1K10", "RP1K11", "RP1K12", "RP1K13", "RP1K14", "RP1K15", "RP1K16",
+    "RP2K1", "RP2K2", "RP2K3", "RP2K4", "RP2K5", "RP2K6", "RP2K7", "RP2K8", "RP2K9", "RP2K10", "RP2K11", "RP2K12", "RP2K13", "RP2K14", "RP2K15", "RP2K16",
+    "RH1K1", "RH1K2", "RH1K3", "RH1K4", "RH1K5", "RH1K6", "RH1K7", "RH1K8", "RH1K9", "RH1K10", "RH1K11", "RH1K12", "RH1K13", "RH1K14", "RH1K15", "RH1K16",
+]
+
+large_pin_list_example2 = [
+        # RM19
+        "RM19K1", "RM19K2", "RM19K3", "RM19K4", "RM19K5", "RM19K6", "RM19K7", "RM19K8",
+        "RM19K9", "RM19K10", "RM19K11", "RM19K12", "RM19K13", "RM19K14", "RM19K15", "RM19K16",
+        # RM18
+        "RM18K1", "RM18K2", "RM18K3", "RM18K4", "RM18K5", "RM18K6", "RM18K7", "RM18K8",
+        "RM18K9", "RM18K10", "RM18K11", "RM18K12", "RM18K13", "RM18K14", "RM18K15", "RM18K16",
+        # RM17
+        "RM17K1", "RM17K2", "RM17K3", "RM17K4", "RM17K5", "RM17K6", "RM17K7", "RM17K8",
+        "RM17K9", "RM17K10", "RM17K11", "RM17K12", "RM17K13", "RM17K14", "RM17K15", "RM17K16",
+        # RM16
+        "RM16K1", "RM16K2", "RM16K3", "RM16K4", "RM16K5", "RM16K6", "RM16K7", "RM16K8",
+        "RM16K9", "RM16K10", "RM16K11", "RM16K12", "RM16K13", "RM16K14", "RM16K15", "RM16K16",
+        # RM15
+        "RM15K1", "RM15K2", "RM15K3", "RM15K4", "RM15K5", "RM15K6", "RM15K7", "RM15K8",
+        "RM15K9", "RM15K10", "RM15K11", "RM15K12", "RM15K13", "RM15K14", "RM15K15", "RM15K16",
+        # RM14
+        "RM14K1", "RM14K2", "RM14K3", "RM14K4", "RM14K5", "RM14K6", "RM14K7", "RM14K8",
+        "RM14K9", "RM14K10", "RM14K11", "RM14K12", "RM14K13", "RM14K14", "RM14K15", "RM14K16",
+        # RM13
+        "RM13K1", "RM13K2", "RM13K3", "RM13K4", "RM13K5", "RM13K6", "RM13K7", "RM13K8",
+        "RM13K9", "RM13K10", "RM13K11", "RM13K12", "RM13K13", "RM13K14", "RM13K15", "RM13K16",
+        # RM10
+        "RM10K1", "RM10K2", "RM10K3", "RM10K4", "RM10K5", "RM10K6", "RM10K7", "RM10K8",
+        "RM10K9", "RM10K10", "RM10K11", "RM10K12", "RM10K13", "RM10K14", "RM10K15", "RM10K16",
+        # RM11
+        "RM11K1", "RM11K2", "RM11K3", "RM11K4", "RM11K5", "RM11K6", "RM11K7", "RM11K8",
+        "RM11K9", "RM11K10", "RM11K11", "RM11K12", "RM11K13", "RM11K14", "RM11K15", "RM11K16",
+        # RM12
+        "RM12K1", "RM12K2", "RM12K3", "RM12K4", "RM12K5", "RM12K6", "RM12K7", "RM12K8",
+        "RM12K9", "RM12K10", "RM12K11", "RM12K12", "RM12K13", "RM12K14", "RM12K15", "RM12K16",
+        # RM1
+        "RM1K1", "RM1K2", "RM1K3", "RM1K4", "RM1K5", "RM1K6", "RM1K7", "RM1K8",
+        "RM1K9", "RM1K10", "RM1K11", "RM1K12", "RM1K13", "RM1K14", "RM1K15", "RM1K16",
+        # RM2
+        "RM2K1", "RM2K2", "RM2K3", "RM2K4", "RM2K5", "RM2K6", "RM2K7", "RM2K8",
+        "RM2K9", "RM2K10", "RM2K11", "RM2K12", "RM2K13", "RM2K14", "RM2K15", "RM2K16",
+        # RM3
+        "RM3K1", "RM3K2", "RM3K3", "RM3K4", "RM3K5", "RM3K6", "RM3K7", "RM3K8",
+        "RM3K9", "RM3K10", "RM3K11", "RM3K12", "RM3K13", "RM3K14", "RM3K15", "RM3K16",
+        # RM4
+        "RM4K1", "RM4K2", "RM4K3", "RM4K4", "RM4K5", "RM4K6", "RM4K7", "RM4K8",
+        "RM4K9", "RM4K10", "RM4K11", "RM4K12", "RM4K13", "RM4K14", "RM4K15", "RM4K16",
+        # RM5
+        "RM5K1", "RM5K2", "RM5K3", "RM5K4", "RM5K5", "RM5K6", "RM5K7", "RM5K8",
+        "RM5K9", "RM5K10", "RM5K11", "RM5K12", "RM5K13", "RM5K14", "RM5K15", "RM5K16",
+        # RM6
+        "RM6K1", "RM6K2", "RM6K3", "RM6K4", "RM6K5", "RM6K6", "RM6K7", "RM6K8",
+        "RM6K9", "RM6K10", "RM6K11", "RM6K12", "RM6K13", "RM6K14", "RM6K15", "RM6K16",
+        # RM7
+        "RM7K1", "RM7K2", "RM7K3", "RM7K4", "RM7K5", "RM7K6", "RM7K7", "RM7K8",
+        "RM7K9", "RM7K10", "RM7K11", "RM7K12", "RM7K13", "RM7K14", "RM7K15", "RM7K16",
+        # RM8
+        "RM8K1", "RM8K2", "RM8K3", "RM8K4", "RM8K5", "RM8K6", "RM8K7", "RM8K8",
+        "RM8K9", "RM8K10", "RM8K11", "RM8K12", "RM8K13", "RM8K14", "RM8K15", "RM8K16",
+        # RM9
+        "RM9K1", "RM9K2", "RM9K3", "RM9K4", "RM9K5", "RM9K6", "RM9K7", "RM9K8",
+        "RM9K9", "RM9K10", "RM9K11", "RM9K12", "RM9K13", "RM9K14", "RM9K15", "RM9K16",
+        # U2
+        "U2K1", "U2K3", "U2K4", "U2K5", "U2K6", "U2SC6", "U2SC7", "U2SC8",
+]
+# fmt:on
+
+
+def test_generate_relay_matrix_pin_list():
+    pin_list = list(
+        generate_relay_matrix_pin_list([1, 2], "RC")
+        + generate_relay_matrix_pin_list([1, 2, 3], "RA")
+        + generate_relay_matrix_pin_list([1, 2], "RP")
+        + generate_relay_matrix_pin_list([1], "RH")
+    )
+    assert pin_list == large_pin_list_example1
+
+    pin_list = list(
+        generate_relay_matrix_pin_list(
+            [19, 18, 17, 16, 15, 14, 13, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+            prefix="RM",
+        )
+        + ("U2K1", "U2K3", "U2K4", "U2K5", "U2K6", "U2SC6", "U2SC7", "U2SC8")
+    )
+    assert pin_list == large_pin_list_example2
 
 
 ################################################################
@@ -265,6 +375,19 @@ def test_relay_matrix_mux():
         (PinUpdate(off, sig1, 0.01), True),
         (PinUpdate(off, sig2, 0.01), True),
     ]
+
+
+# ###############################################################
+# AddressHandler
+
+
+def test_pin_default_on_address_handler_raise():
+    class BadHandler(PinValueAddressHandler):
+        pin_list = ("x", "y")
+        pin_defaults = ("x",)
+
+    with pytest.raises(ValueError):
+        BadHandler()
 
 
 # ###############################################################

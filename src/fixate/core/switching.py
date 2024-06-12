@@ -43,6 +43,7 @@ from typing import (
     Dict,
     FrozenSet,
     Set,
+    Iterable,
 )
 from dataclasses import dataclass
 from functools import reduce
@@ -514,6 +515,10 @@ class AddressHandler:
 
     pin_list: Sequence[Pin] = ()
 
+    def __init__(self):
+        if hasattr(self, "pin_defaults"):
+            raise ValueError("'pin_defaults' should not be set on a AddressHandler")
+
     def set_pins(self, pins: Collection[Pin]) -> None:
         """
         Called by the VirtualAddressMap to write out pin changes.
@@ -757,3 +762,45 @@ def generate_bit_sets(bits: Sequence[T]) -> Generator[set[T], None, None]:
 def bit_generator() -> Generator[int, None, None]:
     """b1, b10, b100, b1000, ..."""
     return (1 << counter for counter in itertools.count())
+
+
+def generate_pin_group(
+    group_designator: int, *, pin_count: int = 16, prefix: str = ""
+) -> tuple[Pin, ...]:
+    """
+    A helper to create pin names groups of pins, especially relay matrices.
+
+    By default, returns 16 pin names, suitable for a 16 relay matrix.
+    Changing the default values for pin_count and prefix can be used to generate
+    alternate naming schemes.
+
+    generate_pin_group(1) -> ("1K1", "1K2", "1K3", ..., "1K16")
+    generate_pin_group(3, prefix="RM") -> ("RM1K1", "RM1K2", "RM1K3", ..., "RM1K16")
+    generate_pin_group(5, pin_count=8, prefix="U") -> ("U3K1", "U3K2, "U3K3", ..., "U3K8")
+    """
+    return tuple(
+        f"{prefix}{group_designator}K{relay}" for relay in range(1, pin_count + 1)
+    )
+
+
+def generate_relay_matrix_pin_list(
+    designators: Iterable[int], prefix: str = ""
+) -> tuple[Pin, ...]:
+    """
+    Create a pin list for multiple relay matrix modules.
+
+    Each module is allocated 16 pins
+    generate_relay_matrix_pin_list([1,2,3]) ->
+        ("1K1", "1K2", ..., "1K16", "2K1", ..., "2K16", "3K1", ..., "3K16")
+
+    generate_relay_matrix_pin_list([2,3,1], prefix="RM") ->
+        ("RM2K1", "RM2K2", ..., "RM2K16", "RM3K1", ..., "RM3K16", "RM1K1", ..., "RM1K16")
+
+    Combination generate_relay_matrix_pin_list and generate_pin_group to create pins
+    as needed for a specific jig configuration.
+    """
+    return tuple(
+        itertools.chain.from_iterable(
+            generate_pin_group(rm_number, prefix=prefix) for rm_number in designators
+        )
+    )
