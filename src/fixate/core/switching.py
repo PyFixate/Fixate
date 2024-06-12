@@ -515,7 +515,7 @@ class AddressHandler:
 
     pin_list: Sequence[Pin] = ()
 
-    def __init__(self):
+    def __init__(self) -> None:
         if hasattr(self, "pin_defaults"):
             raise ValueError("'pin_defaults' should not be set on a AddressHandler")
 
