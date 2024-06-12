@@ -130,6 +130,9 @@ class VirtualMux:
         else:
             raise ValueError('The empty signal, "", should not be explicitly defined')
 
+        if hasattr(self, "default_signal"):
+            raise ValueError("'default_signal' should not be set on a VirtualMux")
+
     def __call__(self, signal_output: Signal, trigger_update: bool = True) -> None:
         """
         Convenience to avoid having to type jig.mux.<MuxName>.multiplex.

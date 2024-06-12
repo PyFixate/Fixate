@@ -137,6 +137,16 @@ def test_empty_signal_should_not_be_defined():
         BadMux2()
 
 
+def test_default_signal_on_mux_raises():
+    class BadMux(VirtualMux):
+        pin_list = ["x"]
+        map_list = [["sig1", "x"]]
+        default_signal = "sig1"
+
+    with pytest.raises(ValueError):
+        BadMux()
+
+
 # ###############################################################
 # VirtualMux Behaviour
 
