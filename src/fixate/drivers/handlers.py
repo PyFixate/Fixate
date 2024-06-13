@@ -24,14 +24,13 @@ class FTDIAddressHandler(PinValueAddressHandler):
         ftdi_description: str,
         pins: Sequence[Pin] = tuple(),
     ) -> None:
-
+        # pin_list must be defined before calling the base class __init__
         self.pin_list = tuple(pins)
-        # call the base class super _after_ we create the pin list
         super().__init__()
 
         # how many bytes? enough for every pin to get a bit. We might
         # end up with some left-over bits. The +7 in the expression
-        # ensure we round up.
+        # ensures we round up.
         bytes_required = (len(self.pin_list) + 7) // 8
         self._ftdi = ftdi.open(ftdi_description=ftdi_description)
         self._ftdi.configure_bit_bang(
