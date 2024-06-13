@@ -173,19 +173,8 @@ class VirtualMux:
             self.state_update_time = time.time()
         self._state = signal_output
 
-    def switch_through_all_signals(self) -> Generator[str, None, None]:
-        # not sure if we should keep this.
-        # probably better to have a method that returns all
-        # signals and use that in a helper somewhere else that loops and
-        # switches. I don't like state changes and printing
-        # buried in a generator.
-        # This was iterate_mux_paths on the JigDriver, but then it had
-        # to used internal implementation details. Better to have this
-        # as a method on VirtualMux
-        for signal in self._signal_map:
-            if signal is not None:
-                self.multiplex(signal)
-                yield f"{self.__class__.__name__}: {signal}"
+    def all_signals(self) -> tuple[Signal, ...]:
+        return tuple(self._signal_map.keys())
 
     def reset(self, trigger_update: bool = True) -> None:
         self.multiplex("", trigger_update)
@@ -621,40 +610,24 @@ class VirtualAddressMap:
             for pin_set, handler in self._handler_pin_sets:
                 handler.set_pins(pin_set & self._active_pins)
 
-    def active_pins(self) -> Set[Pin]:
-        return self._active_pins
+    def active_pins(self) -> frozenset[Pin]:
+        return frozenset(self._active_pins)
 
     def reset(self) -> None:
         """
         Sets all pins to be inactive.
+
+        Note: this does not change the state of any VirtualMux's, so it is
+        possible the state of each VirtualMux and its related pins will not
+        be in sync.
         """
         self._dispatch_pin_state(PinSetState(off=self._all_pins))
 
     def update_input(self) -> None:
         """
-        Iterates through the address_handlers and reads the values back to update the pin values for the digital inputs
-        :return:
+        Currently not implemented. A few jigs implement digital input, but not many. It is the intention
+        to implement this eventually, but for now, the old jig_mapping.py version can be used.
         """
-        raise NotImplementedError
-
-    # used in a few scripts
-    def update_pin_by_name(
-        self, name: Pin, value: bool, trigger_update: bool = True
-    ) -> None:
-        raise NotImplementedError
-
-    # not used in any scripts
-    def update_pins_by_name(
-        self, pins: Collection[Pin], trigger_update: bool = True
-    ) -> None:
-        raise NotImplementedError
-
-    def __getitem__(self, item: Pin) -> bool:
-        """Get the value of a pin. (only inputs? or state of outputs also?)"""
-        raise NotImplementedError
-
-    def __setitem__(self, key: Pin, value: bool) -> None:
-        """Set a pin"""
         raise NotImplementedError
 
 
@@ -714,33 +687,37 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
             # constructor, and I was hoping to just use a dataclass...
             mux._update_pins = self.virtual_map.add_update
 
-    def __setitem__(self, key: Pin, value: bool) -> None:
-        self.virtual_map.update_pin_by_name(key, value)
-
-    def __getitem__(self, item: Pin) -> bool:
-        return self.virtual_map[item]
-
     def close(self) -> None:
         for handler in self._handlers:
             handler.close()
 
-    def active_pins(self) -> Set[Pin]:
+    def active_pins(self) -> frozenset[Pin]:
         return self.virtual_map.active_pins()
+
+    def debug_set_pin(self, pin: Pin, value: bool) -> None:
+        # pin is a str, which is iterable... so we can't just throw it into
+        # frozen set, or we end up with frozenset deconstructing it! so
+        # wrap it into another single element list first
+        if value:
+            update = PinSetState(on=frozenset([pin]))
+        else:
+            update = PinSetState(off=frozenset([pin]))
+        self.virtual_map.add_update(PinUpdate(final=update))
+
+    def debug_set_pins(
+        self, on: Collection[Pin] = frozenset(), off: Collection[Pin] = frozenset()
+    ) -> None:
+        update = PinSetState(on=frozenset(on), off=frozenset(off))
+        self.virtual_map.add_update(PinUpdate(final=update))
+
+    def all_mux_signals(self) -> tuple[tuple[VirtualMux, tuple[Signal, ...]], ...]:
+        return tuple(((mux, mux.all_signals()) for mux in self.mux.get_multiplexers()))
 
     def reset(self) -> None:
         """
-        Reset all pins
-
-        This leaves multiplexers in the current state, which may not
-        match up with the real pin state. To reset all the multiplexers,
-        use JigDriver.mux.reset() instead.
+        Reset all VirtualMux's to the default signal "" (all pins off)
         """
-        self.virtual_map.reset()
-
-    def iterate_all_mux_paths(self) -> Generator[str, None, None]:
-        for _, mux in self.mux.__dict__.items():
-            if isinstance(mux, VirtualMux):
-                yield from mux.switch_through_all_signals()
+        self.mux.reset()
 
 
 T = TypeVar("T")
