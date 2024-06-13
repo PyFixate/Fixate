@@ -133,15 +133,22 @@ large_pin_list_example2 = [
         # U2
         "U2K1", "U2K3", "U2K4", "U2K5", "U2K6", "U2SC6", "U2SC7", "U2SC8",
 ]
+
+large_pin_list_example3 = [
+    "RM1_K1", "RM1_K2", "RM1_K3", "RM1_K4", "RM1_K5", "RM1_K6", "RM1_K7", "RM1_K8",
+    "RM1_K9", "RM1_K10", "RM1_K11", "RM1_K12", "RM1_K13", "RM1_K14", "RM1_K15", "RM1_K16",
+    "RM2_K1", "RM2_K2", "RM2_K3", "RM2_K4", "RM2_K5", "RM2_K6", "RM2_K7", "RM2_K8",
+    "RM2_K9", "RM2_K10", "RM2_K11", "RM2_K12", "RM2_K13", "RM2_K14", "RM2_K15", "RM2_K16",
+]
 # fmt:on
 
 
 def test_generate_relay_matrix_pin_list():
     pin_list = list(
-        generate_relay_matrix_pin_list([1, 2], "RC")
-        + generate_relay_matrix_pin_list([1, 2, 3], "RA")
-        + generate_relay_matrix_pin_list([1, 2], "RP")
-        + generate_relay_matrix_pin_list([1], "RH")
+        generate_relay_matrix_pin_list([1, 2], prefix="RC")
+        + generate_relay_matrix_pin_list([1, 2, 3], prefix="RA")
+        + generate_relay_matrix_pin_list([1, 2], prefix="RP")
+        + generate_relay_matrix_pin_list([1], prefix="RH")
     )
     assert pin_list == large_pin_list_example1
 
@@ -153,6 +160,13 @@ def test_generate_relay_matrix_pin_list():
         + ("U2K1", "U2K3", "U2K4", "U2K5", "U2K6", "U2SC6", "U2SC7", "U2SC8")
     )
     assert pin_list == large_pin_list_example2
+
+    pin_list = list(generate_relay_matrix_pin_list([1, 2], prefix="RM", sep="_"))
+    assert pin_list == large_pin_list_example3
+
+    assert "U5_K1 U5_K2 U5_K3".split() == list(
+        generate_pin_group(5, pin_count=3, prefix="U", sep="_")
+    )
 
 
 ################################################################

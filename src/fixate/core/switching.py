@@ -765,7 +765,7 @@ def bit_generator() -> Generator[int, None, None]:
 
 
 def generate_pin_group(
-    group_designator: int, *, pin_count: int = 16, prefix: str = ""
+    group_designator: int, *, pin_count: int = 16, prefix: str = "", sep: str = ""
 ) -> tuple[Pin, ...]:
     """
     A helper to create pin names groups of pins, especially relay matrices.
@@ -779,12 +779,12 @@ def generate_pin_group(
     generate_pin_group(5, pin_count=8, prefix="U") -> ("U3K1", "U3K2, "U3K3", ..., "U3K8")
     """
     return tuple(
-        f"{prefix}{group_designator}K{relay}" for relay in range(1, pin_count + 1)
+        f"{prefix}{group_designator}{sep}K{relay}" for relay in range(1, pin_count + 1)
     )
 
 
 def generate_relay_matrix_pin_list(
-    designators: Iterable[int], prefix: str = ""
+    designators: Iterable[int], *, prefix: str = "", sep: str = ""
 ) -> tuple[Pin, ...]:
     """
     Create a pin list for multiple relay matrix modules.
@@ -801,6 +801,7 @@ def generate_relay_matrix_pin_list(
     """
     return tuple(
         itertools.chain.from_iterable(
-            generate_pin_group(rm_number, prefix=prefix) for rm_number in designators
+            generate_pin_group(rm_number, prefix=prefix, sep=sep)
+            for rm_number in designators
         )
     )
