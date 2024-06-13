@@ -42,13 +42,11 @@ from typing import (
     Collection,
     Dict,
     FrozenSet,
-    Set,
     Iterable,
 )
 from dataclasses import dataclass
 from functools import reduce
 from operator import or_
-
 
 Signal = str
 Pin = str
@@ -98,10 +96,7 @@ class VirtualMux:
     # These methods are the public API for the class
 
     def __init__(self, update_pins: Optional[PinUpdateCallback] = None):
-        # The last time this mux changed state. This is used in some jigs
-        # to enforce a minimum settling time. Perhaps is would be nice to
-        # deprecate this and add a `settle_at_least()` method?
-        self.state_update_time = 0.0  # time.time()
+        self._last_update_time = time.monotonic()
 
         self._update_pins: PinUpdateCallback
         if update_pins is None:
@@ -155,9 +150,6 @@ class VirtualMux:
         multiple mux changes can be set and then when trigger_update is finally
         set to True all changes will happen at once.
 
-        If the signal_output is different to the previous state,
-        self.state_update_time is updated to the current time.
-
         In general, subclasses should not override. (VirtualSwitch does, but then
         delegates the real work to this method to ensure consistent behaviour.)
         """
@@ -170,7 +162,7 @@ class VirtualMux:
         setup, final = self._calculate_pins(self._state, signal_output)
         self._update_pins(PinUpdate(setup, final, self.clearing_time), trigger_update)
         if signal_output != self._state:
-            self.state_update_time = time.time()
+            self._last_update_time = time.monotonic()
         self._state = signal_output
 
     def all_signals(self) -> tuple[Signal, ...]:
@@ -178,6 +170,18 @@ class VirtualMux:
 
     def reset(self, trigger_update: bool = True) -> None:
         self.multiplex("", trigger_update)
+
+    def wait_at_least(self, duration: float) -> None:
+        """
+        Ensure at least `duration` seconds have elapsed since the signal was switched.
+
+        This can be used to ensure a minimum settling time has passed since
+        a particular signal was enabled.
+        """
+        now = time.monotonic()
+        wait_until = self._last_update_time + duration
+        if wait_until > now:
+            time.sleep(wait_until - now)
 
     ###########################################################################
     # The following methods are potential candidates to override in a subclass
