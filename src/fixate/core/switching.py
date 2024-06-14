@@ -612,6 +612,10 @@ class VirtualAddressMap:
         if new_active_pins != self._active_pins:
             self._active_pins = new_active_pins
             for pin_set, handler in self._handler_pin_sets:
+                # Note that we might send an empty set here. We need to do that
+                # so if there are pins to clear, they get cleared. This might
+                # end up in redundant handler updates, but unless we track active_pins
+                # per-handler I don't think we can avoid that.
                 handler.set_pins(pin_set & self._active_pins)
 
     def active_pins(self) -> frozenset[Pin]:

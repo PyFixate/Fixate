@@ -9,6 +9,8 @@ from fixate.core.switching import (
     PinValueAddressHandler,
     generate_pin_group,
     generate_relay_matrix_pin_list,
+    AddressHandler,
+    VirtualAddressMap,
 )
 
 import pytest
@@ -402,6 +404,113 @@ def test_pin_default_on_address_handler_raise():
 
     with pytest.raises(ValueError):
         BadHandler()
+
+
+# ###############################################################
+# VirtualAddressMap
+
+
+class TestHandler(AddressHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.updates = []
+
+    def set_pins(self, pins):
+        self.updates.append(pins)
+
+
+class HandlerXY(TestHandler):
+    pin_list = ("x", "y")
+
+
+class HandlerAB(TestHandler):
+    pin_list = ("a", "b")
+
+
+def test_virtual_address_map_init_no_active_pins():
+    vam = VirtualAddressMap([HandlerAB()])
+    assert vam.active_pins() == frozenset()
+
+
+def test_virtual_address_map_single_handler():
+    """
+    Go through some basic address map operations with a single handler
+    - set pins on, check it was sent to the handler
+    - do a reset and check it was sent to the handler
+    - ensure active_pins is as expected at each step
+    """
+    ab = HandlerAB()
+    vam = VirtualAddressMap([ab])
+    vam.add_update(PinUpdate(final=PinSetState(on=frozenset("ab"))))
+    assert ab.updates[0] == frozenset("ab")
+    assert vam.active_pins() == frozenset("ab")
+    vam.reset()
+    assert ab.updates[1] == frozenset()
+    assert vam.active_pins() == frozenset()
+
+
+def test_virtual_address_map_single_handler_delay_trigger():
+    """
+    Go through some basic address map operations with a single handler,
+    but this time, we split the operation up into steps using
+    trigger_update = False.
+    """
+    ab = HandlerAB()
+    vam = VirtualAddressMap([ab])
+    vam.add_update(
+        PinUpdate(final=PinSetState(on=frozenset("a"))), trigger_update=False
+    )
+    assert len(ab.updates) == 0
+    vam.add_update(PinUpdate(final=PinSetState(on=frozenset("b"))), trigger_update=True)
+    assert len(ab.updates) == 1
+    assert ab.updates[0] == frozenset("ab")
+
+
+def test_virtual_address_map_setup_then_final():
+    """
+    Go through some basic address map operations with a single handler,
+    but this time, we split the operation up into steps using
+    trigger_update = False.
+    """
+    ab = HandlerAB()
+    vam = VirtualAddressMap([ab])
+    vam.add_update(
+        PinUpdate(
+            setup=PinSetState(on=frozenset("b")),
+            final=PinSetState(on=frozenset("a")),  # note we are not turning b off here
+        )
+    )
+    assert len(ab.updates) == 2
+    assert ab.updates[0] == frozenset("b")
+    assert ab.updates[1] == frozenset("ab")
+
+
+def test_virtual_address_map_multiple_handlers():
+    ab = HandlerAB()
+    xy = HandlerXY()
+    vam = VirtualAddressMap([ab, xy])
+    vam.add_update(
+        PinUpdate(
+            setup=PinSetState(on=frozenset("b")),
+            final=PinSetState(on=frozenset("ay")),
+        ),
+    )
+    assert len(ab.updates) == 2
+    assert len(xy.updates) == 2
+    assert ab.updates[0] == frozenset("b")
+    assert ab.updates[1] == frozenset("ab")
+    assert xy.updates[0] == frozenset()
+    assert xy.updates[1] == frozenset("y")
+
+    vam.add_update(
+        PinUpdate(
+            final=PinSetState(off=frozenset("ay"), on=frozenset("x")),
+        ),
+    )
+    assert len(ab.updates) == 3
+    assert len(xy.updates) == 3
+    assert ab.updates[2] == frozenset("b")
+    assert xy.updates[2] == frozenset("x")
 
 
 # ###############################################################
