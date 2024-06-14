@@ -40,7 +40,15 @@ class FTDIAddressHandler(PinValueAddressHandler):
             clk_mask=2,
             latch_mask=1,
         )
-        self._ftdi.baud_rate = 115200
+        # Measurement of baudrate vs bit-bang. The programming manual say 16 x, but that
+        # only appears to be true for lower clock rates. Keeping the actual value at 115200
+        # since that was used regularly in the past
+        # baudrate      bit-bang update rate
+        # 1_000_000     ~2 MHz
+        # 750_000       ~2.4 MHz
+        # 115_200       ~926 kHz
+        # 10_000        ~160 kHz
+        self._ftdi.baud_rate = 115_200
 
     def close(self) -> None:
         self._ftdi.close()
