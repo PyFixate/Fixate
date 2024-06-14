@@ -129,18 +129,18 @@ class VirtualMux:
         if hasattr(self, "default_signal"):
             raise ValueError("'default_signal' should not be set on a VirtualMux")
 
-    def __call__(self, signal_output: Signal, trigger_update: bool = True) -> None:
+    def __call__(self, signal: Signal, trigger_update: bool = True) -> None:
         """
         Convenience to avoid having to type jig.mux.<MuxName>.multiplex.
 
         With this you can just type jig.mux.<MuxName> which is a small, but
         useful saving for the most common method call.
         """
-        self.multiplex(signal_output, trigger_update)
+        self.multiplex(signal, trigger_update)
 
-    def multiplex(self, signal_output: Signal, trigger_update: bool = True) -> None:
+    def multiplex(self, signal: Signal, trigger_update: bool = True) -> None:
         """
-        Update the multiplexer state to signal_output.
+        Update the multiplexer state to signal.
 
         The update is a two-step processes. By default, the change happens on
         the second step. This can be modified by subclassing and overriding the
@@ -153,17 +153,15 @@ class VirtualMux:
         In general, subclasses should not override. (VirtualSwitch does, but then
         delegates the real work to this method to ensure consistent behaviour.)
         """
-        if signal_output not in self._signal_map:
+        if signal not in self._signal_map:
             name = self.__class__.__name__
-            raise ValueError(
-                f"Signal '{signal_output}' not valid for multiplexer '{name}'"
-            )
+            raise ValueError(f"Signal '{signal}' not valid for multiplexer '{name}'")
 
-        setup, final = self._calculate_pins(self._state, signal_output)
+        setup, final = self._calculate_pins(self._state, signal)
         self._update_pins(PinUpdate(setup, final, self.clearing_time), trigger_update)
-        if signal_output != self._state:
+        if signal != self._state:
             self._last_update_time = time.monotonic()
-        self._state = signal_output
+        self._state = signal
 
     def all_signals(self) -> tuple[Signal, ...]:
         return tuple(self._signal_map.keys())
@@ -453,21 +451,21 @@ class VirtualSwitch(VirtualMux):
     map_tree = ("Off", "On")
 
     def multiplex(
-        self, signal_output: Union[Signal, bool], trigger_update: bool = True
+        self, signal: Union[Signal, bool], trigger_update: bool = True
     ) -> None:
-        if signal_output is True:
-            signal = "On"
-        elif signal_output is False:
-            signal = "Off"
+        if signal is True:
+            converted_signal = "On"
+        elif signal is False:
+            converted_signal = "Off"
         else:
-            signal = signal_output
-        super().multiplex(signal, trigger_update=trigger_update)
+            converted_signal = signal
+        super().multiplex(converted_signal, trigger_update=trigger_update)
 
     def __call__(
-        self, signal_output: Union[Signal, bool], trigger_update: bool = True
+        self, signal: Union[Signal, bool], trigger_update: bool = True
     ) -> None:
         """Override call to set the type on signal_output correctly."""
-        self.multiplex(signal_output, trigger_update)
+        self.multiplex(signal, trigger_update)
 
     def __init__(
         self,
