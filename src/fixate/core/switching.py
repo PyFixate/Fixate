@@ -286,6 +286,8 @@ class VirtualMux(Generic[S]):
                     pins = s.__metadata__
                 # get_args gives members of Literal
                 signame, = get_args(sigdef)
+                assert isinstance(signame, Signal), "Signal name must be signal type"
+                assert all(isinstance(p, Pin) for p in pins), "Pins must be pin type"
                 sigmap[signame] = frozenset(pins)
 
             return sigmap
