@@ -52,3 +52,34 @@ jig.mux.mux_one("sig2", trigger_update=False)
 jig.mux.mux_two("sig5")
 jig.mux.mux_three("On")
 jig.mux.mux_three(False)
+
+try:
+    from typing import Annotated
+except ImportError:
+    # 3.8
+    from typing_extensions import Annotated
+
+from typing import Literal, Union
+
+# maybe we can create aliases to make it easier to understand how to create a MuxDef
+SignalName = Literal
+Signal = Annotated
+MuxDef = Union
+
+MuxOneSigDef = MuxDef[
+        Signal[SignalName["sig_a1"], "a0", "a2" ], 
+        Signal[SignalName["sig_a2"], "a1"]
+    ]
+
+class MuxA(VirtualMux[MuxOneSigDef]):
+    """A mux definition used by a few scripts"""
+
+muxa = MuxA(update_pins=print)
+
+muxa("sig_a2")
+muxa("sig_a1")
+
+muxb = VirtualMux[MuxOneSigDef](update_pins=print)
+
+muxb.multiplex("sig_a2")
+muxb.multiplex("sig_a1")
