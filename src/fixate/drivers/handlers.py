@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from fixate.core.switching import Pin, PinValueAddressHandler
+from fixate.core._switching import Pin, PinValueAddressHandler
 from fixate.drivers import ftdi
 
 

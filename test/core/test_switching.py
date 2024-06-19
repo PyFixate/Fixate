@@ -1,7 +1,7 @@
-from fixate.core.switching import (
-    generate_bit_sets,
+from fixate.core._switching import (
+    _generate_bit_sets,
     VirtualMux,
-    bit_generator,
+    _bit_generator,
     PinSetState,
     PinUpdate,
     VirtualSwitch,
@@ -20,11 +20,11 @@ import pytest
 
 
 def test_generate_bit_sets_empty():
-    assert list(generate_bit_sets([])) == []
+    assert list(_generate_bit_sets([])) == []
 
 
 def test_generate_bit_sets_one_bit():
-    assert list(generate_bit_sets(["b0"])) == [set(), {"b0"}]
+    assert list(_generate_bit_sets(["b0"])) == [set(), {"b0"}]
 
 
 def test_generate_bit_sets_multiple_bits():
@@ -38,12 +38,12 @@ def test_generate_bit_sets_multiple_bits():
         {"b2", "b1"},
         {"b2", "b1", "b0"},
     ]
-    assert list(generate_bit_sets(["b0", "b1", "b2"])) == expected
+    assert list(_generate_bit_sets(["b0", "b1", "b2"])) == expected
 
 
 def test_bit_generator():
     """b1, b10, b100, b1000, ..."""
-    bit_gen = bit_generator()
+    bit_gen = _bit_generator()
 
     actual = [next(bit_gen) for _ in range(8)]
     expected = [1, 2, 4, 8, 16, 32, 64, 128]

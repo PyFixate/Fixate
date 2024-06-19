@@ -399,7 +399,7 @@ class VirtualMux:
         pins_at_this_level = pins[:bits_at_this_level]
 
         for signal_or_tree, pins_for_signal in zip(
-            tree, generate_bit_sets(pins_at_this_level)
+            tree, _generate_bit_sets(pins_at_this_level)
         ):
             if signal_or_tree is None:
                 continue
@@ -535,7 +535,7 @@ class PinValueAddressHandler(AddressHandler):
     def __init__(self) -> None:
         super().__init__()
         self._pin_lookup = {
-            pin: bit for pin, bit in zip(self.pin_list, bit_generator())
+            pin: bit for pin, bit in zip(self.pin_list, _bit_generator())
         }
 
     def set_pins(self, pins: Collection[Pin]) -> None:
@@ -726,10 +726,10 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
         self.mux.reset()
 
 
-T = TypeVar("T")
+_T = TypeVar("_T")
 
 
-def generate_bit_sets(bits: Sequence[T]) -> Generator[set[T], None, None]:
+def _generate_bit_sets(bits: Sequence[_T]) -> Generator[set[_T], None, None]:
     """
     Create subsets of bits, representing bits of a list of integers
 
@@ -742,7 +742,7 @@ def generate_bit_sets(bits: Sequence[T]) -> Generator[set[T], None, None]:
     )
 
 
-def bit_generator() -> Generator[int, None, None]:
+def _bit_generator() -> Generator[int, None, None]:
     """b1, b10, b100, b1000, ..."""
     return (1 << counter for counter in itertools.count())
 

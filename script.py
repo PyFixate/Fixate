@@ -2,8 +2,42 @@
 This file is just a test playground that shows how the update jig classes will
 fit together.
 """
+from __future__ import annotations
 from dataclasses import dataclass, field
-from fixate.core.switching import VirtualMux, JigDriver, MuxGroup, PinValueAddressHandler, VirtualSwitch
+from fixate.core._switching import VirtualMux, JigDriver, MuxGroup, PinValueAddressHandler, VirtualSwitch, Signal, Pin
+
+from typing import TypeVar, Generic, Union, Annotated, Literal
+
+S = TypeVar("S")
+
+
+class VirtualMux(Generic[S]):
+    def __init__(self):
+        self._signal_map: dict[Signal, set[Pin]] = {}
+
+    def __call__(self, signal: S, trigger_update: bool = False) -> None:
+        self.multiplex(signal, trigger_update)
+
+    def multiplex(self, signal: S, trigger_update: bool = False) -> None:
+        print(self._signal_map[signal])
+
+
+MuxOneSigDef = Union[
+    Annotated[Literal["sig1"], ("x0",)],
+    Annotated[Literal["sig2"], ("x1",)],
+    Annotated[Literal["sig3"], ("x0", "x1")],
+]
+
+class MuxOne(VirtualMux[MuxOneSigDef]):
+    pass
+
+@dataclass
+class JigMuxGroup(MuxGroup):
+    mux_one: MuxOne = field(default_factory=MuxOne)
+
+
+class MuxOne(VirtualMux[MuxOneSigDef]):
+    pass
 
 
 class MuxOne(VirtualMux):
