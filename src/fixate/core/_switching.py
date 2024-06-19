@@ -181,6 +181,12 @@ class VirtualMux:
         if wait_until > now:
             time.sleep(wait_until - now)
 
+    def pins(self) -> frozenset[Pin]:
+        """
+        Return the set off all pins used by this mux
+        """
+        return self._pin_set
+
     ###########################################################################
     # The following methods are potential candidates to override in a subclass
 
@@ -693,6 +699,8 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
             # constructor, and I was hoping to just use a dataclass...
             mux._update_pins = self.virtual_map.add_update
 
+        self._validate()
+
     def close(self) -> None:
         for handler in self._handlers:
             handler.close()
@@ -724,6 +732,31 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
         Reset all VirtualMux's to the default signal "" (all pins off)
         """
         self.mux.reset()
+
+    def _validate(self) -> None:
+        """
+        Do some basic sanity checks on the jig definition.
+
+        - Ensure all pins that are used in muxes are defined by
+          some address handler.
+
+        Note: It is O.K. for there to be AddressHandler pins that
+            are not used anywhere. Eventually we might choose to
+            warn about them. This it is necessary to define some jigs.
+        """
+        all_handler_pins: set[Pin] = reduce(
+            or_, (set(handler.pin_list) for handler in self._handlers), set()
+        )
+        mux_missing_pins = []
+
+        for mux in self.mux.get_multiplexers():
+            if unknown_pins := mux.pins() - all_handler_pins:
+                mux_missing_pins.append((mux, unknown_pins))
+
+        if mux_missing_pins:
+            raise ValueError(
+                f"One or more VirtualMux uses unknown pins:\n{mux_missing_pins}"
+            )
 
 
 _T = TypeVar("_T")
