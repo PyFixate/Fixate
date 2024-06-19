@@ -11,6 +11,8 @@ from fixate.core._switching import (
     generate_relay_matrix_pin_list,
     AddressHandler,
     VirtualAddressMap,
+    MuxGroup,
+    JigDriver,
 )
 
 import pytest
@@ -511,6 +513,36 @@ def test_virtual_address_map_multiple_handlers():
     assert len(xy.updates) == 3
     assert ab.updates[2] == frozenset("b")
     assert xy.updates[2] == frozenset("x")
+
+
+# ###############################################################
+# Jig Driver
+
+
+def test_jig_driver_with_unknown_pins():
+    class Handler1(AddressHandler):
+        pin_list = ("x0",)
+
+    class Handler2(AddressHandler):
+        pin_list = ("x2",)
+
+    class Handler3(AddressHandler):
+        pin_list = ("x1",)
+
+    class Mux(VirtualMux):
+        pin_list = ("x0", "x1")  # "x1" isn't in either handler
+        map_list = ("sig1", "x1")
+
+    class Group(MuxGroup):
+        def __init__(self):
+            self.mux = Mux()
+
+    # This is O.K., because all the pins are included
+    JigDriver(Group, [Handler1(), Handler2(), Handler3()])
+
+    with pytest.raises(ValueError):
+        # This should raise, because no handler implements "x1"
+        JigDriver(Group, [Handler1(), Handler2()])
 
 
 # ###############################################################
