@@ -4,9 +4,9 @@ can be used to implement IO for the fixate.core.switching module.
 """
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Sequence, Optional
 
-from fixate.core._switching import Pin, PinValueAddressHandler
+from fixate import Pin, PinValueAddressHandler
 from fixate.drivers import ftdi
 
 
@@ -21,19 +21,20 @@ class FTDIAddressHandler(PinValueAddressHandler):
 
     def __init__(
         self,
+        pins: Sequence[Pin],
         ftdi_description: str,
-        pins: Sequence[Pin] = tuple(),
     ) -> None:
-        # pin_list must be defined before calling the base class __init__
-        self.pin_list = tuple(pins)
-        super().__init__()
+        super().__init__(pins)
+        self._ftdi_description = ftdi_description
+        self._ftdi: Optional[ftdi.FTDI2xx] = None
 
+    def _open(self) -> ftdi.FTDI2xx:
         # how many bytes? enough for every pin to get a bit. We might
         # end up with some left-over bits. The +7 in the expression
         # ensures we round up.
         bytes_required = (len(self.pin_list) + 7) // 8
-        self._ftdi = ftdi.open(ftdi_description=ftdi_description)
-        self._ftdi.configure_bit_bang(
+        ftdi_handle = ftdi.open(ftdi_description=self._ftdi_description)
+        ftdi_handle.configure_bit_bang(
             ftdi.BIT_MODE.FT_BITMODE_ASYNC_BITBANG,
             bytes_required=bytes_required,
             data_mask=4,
@@ -48,10 +49,17 @@ class FTDIAddressHandler(PinValueAddressHandler):
         # 750_000       ~2.4 MHz
         # 115_200       ~926 kHz
         # 10_000        ~160 kHz
-        self._ftdi.baud_rate = 115_200
+        ftdi_handle.baud_rate = 115_200
+        return ftdi_handle
 
     def close(self) -> None:
-        self._ftdi.close()
+        if self._ftdi is not None:
+            self._ftdi.close()
+        self._ftdi = None
 
     def _update_output(self, value: int) -> None:
+        # We implement the required semantics of set_pin here,
+        # by ensuring the ftdi device is open.
+        if self._ftdi is None:
+            self._ftdi = self._open()
         self._ftdi.serial_shift_bit_bang(value)

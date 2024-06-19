@@ -39,10 +39,6 @@ class MuxThree(VirtualSwitch):
     pin_name = "x101"
 
 
-class Handler(PinValueAddressHandler):
-    pin_list = ("x0", "x1", "x2", "x3", "x4", "x5", "x101")
-
-
 # Note!
 # our existing scripts/jig driver, the name of the mux is the
 # class of the virtual mux. This scheme below will not allow that
@@ -54,7 +50,10 @@ class JigMuxGroup(MuxGroup):
     mux_three: MuxThree = field(default_factory=MuxThree)
 
 
-jig = JigDriver(JigMuxGroup, [Handler()])
+jig = JigDriver(
+    JigMuxGroup,
+    [PinValueAddressHandler(("x0", "x1", "x2", "x3", "x4", "x5", "x101"))]
+)
 
 jig.mux.mux_one("sig2", trigger_update=False)
 jig.mux.mux_two("sig5")

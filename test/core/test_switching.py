@@ -401,11 +401,10 @@ def test_relay_matrix_mux():
 
 def test_pin_default_on_address_handler_raise():
     class BadHandler(PinValueAddressHandler):
-        pin_list = ("x", "y")
         pin_defaults = ("x",)
 
     with pytest.raises(ValueError):
-        BadHandler()
+        BadHandler(("x", "y"))
 
 
 # ###############################################################
@@ -421,12 +420,12 @@ class TestHandler(AddressHandler):
         self.updates.append(pins)
 
 
-class HandlerXY(TestHandler):
-    pin_list = ("x", "y")
+def HandlerXY():
+    return TestHandler("xy")
 
 
-class HandlerAB(TestHandler):
-    pin_list = ("a", "b")
+def HandlerAB():
+    return TestHandler("ab")
 
 
 def test_virtual_address_map_init_no_active_pins():
@@ -520,14 +519,9 @@ def test_virtual_address_map_multiple_handlers():
 
 
 def test_jig_driver_with_unknown_pins():
-    class Handler1(AddressHandler):
-        pin_list = ("x0",)
-
-    class Handler2(AddressHandler):
-        pin_list = ("x2",)
-
-    class Handler3(AddressHandler):
-        pin_list = ("x1",)
+    handler1 = AddressHandler(("x0",))
+    handler2 = AddressHandler(("x2",))
+    handler3 = AddressHandler(("x1",))
 
     class Mux(VirtualMux):
         pin_list = ("x0", "x1")  # "x1" isn't in either handler
@@ -538,11 +532,11 @@ def test_jig_driver_with_unknown_pins():
             self.mux = Mux()
 
     # This is O.K., because all the pins are included
-    JigDriver(Group, [Handler1(), Handler2(), Handler3()])
+    JigDriver(Group, [handler1, handler2, handler3])
 
     with pytest.raises(ValueError):
         # This should raise, because no handler implements "x1"
-        JigDriver(Group, [Handler1(), Handler2()])
+        JigDriver(Group, [handler1, handler2])
 
 
 # ###############################################################

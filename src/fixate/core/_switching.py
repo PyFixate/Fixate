@@ -504,15 +504,21 @@ class AddressHandler:
     For output, it is assumed that all the pins under the of a given
     AddressHandler are updated in one operation.
 
-    This base class doesn't give you much. You need to create a subclass
-    that implement a set_pins() method.
+    An AddressHandler should lazily open any required hardware
+    resource. Ideally, it should be possible to instantiate and
+    inspect the AddressHandler without requiring hardware to
+    be connected. When `set_pins` is called, the implementation
+    should check for the required hardware connection and open
+    that driver when first called.
 
-    :param pin_list: Sequence of pins
+    Further, calling close() may "uninitialize" the driver. The
+    next time set_pins is called, the handler will re-open hardware.
     """
 
-    pin_list: Sequence[Pin] = ()
-
-    def __init__(self) -> None:
+    def __init__(self, pins: Sequence[Pin]) -> None:
+        # we convert the pin list to an immutable tuple, incase the
+        # caller passing in a mutable sequence that gets modified...
+        self.pin_list = tuple(pins)
         if hasattr(self, "pin_defaults"):
             raise ValueError("'pin_defaults' should not be set on a AddressHandler")
 
@@ -520,7 +526,10 @@ class AddressHandler:
         """
         Called by the VirtualAddressMap to write out pin changes.
 
-        : param pins: is a collection of pins that should be made active. All other
+        If the underlying hardware required for the IO isn't open,
+        open it.
+
+        :param pins: is a collection of pins that should be made active. All other
         pins defined by the AddressHandler should be cleared.
         """
         raise NotImplementedError
@@ -538,8 +547,8 @@ class AddressHandler:
 class PinValueAddressHandler(AddressHandler):
     """Maps pins to bit values then combines the bit values for an update"""
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, pins: Sequence[Pin]) -> None:
+        super().__init__(pins)
         self._pin_lookup = {
             pin: bit for pin, bit in zip(self.pin_list, _bit_generator())
         }
@@ -549,8 +558,6 @@ class PinValueAddressHandler(AddressHandler):
         self._update_output(value)
 
     def _update_output(self, value: int) -> None:
-        # perhaps it's easy to compose by passing the output
-        # function into __init__, like what we did with the VirtualMux?
         bits = len(self.pin_list)
         print(f"0b{value:0{bits}b}")
 
