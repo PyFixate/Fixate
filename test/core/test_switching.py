@@ -387,12 +387,38 @@ def test_relay_matrix_mux():
 
     # compared to the standard mux, the setup of the PinUpdate
     # sets all pins off. The standard mux does nothing for the
-    # setup phase. And we technically shouldn't compare floats
-    # for equality, but it should be fine here... until it's not :D
+    # setup phase.
     assert updates == [
         (PinUpdate(off, sig1, 0.01), True),
         (PinUpdate(off, sig2, 0.01), True),
     ]
+
+
+def test_relay_matrix_mux_no_signal_change():
+    """If the new signal is as-per previous, don't open & close again"""
+
+    class RMMux(RelayMatrixMux):
+        pin_list = ("a", "b")
+        map_list = (
+            ("sig1", "a"),
+            ("sig2", "b"),
+        )
+
+    sig1 = PinSetState(off=frozenset("b"), on=frozenset("a"))
+    off = PinSetState(off=frozenset("ab"))
+
+    updates = []
+    rm = RMMux(lambda x, y: updates.append((x, y)))
+    rm("sig1")
+    rm("sig1")
+
+    # we don't care about the first update, that just ensure the mux in
+    # in the right initial state. Note that there is a bit of implementation
+    # detail leaking here. We could also test that no pins a added to the
+    # pin update. I will keep as is for now, but if we change the implementation
+    # it is reasonable to update this test.
+    assert len(updates) == 2
+    assert updates[1] == (PinUpdate(sig1, sig1, 0.01), True)
 
 
 # ###############################################################

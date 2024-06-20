@@ -494,6 +494,11 @@ class RelayMatrixMux(VirtualMux):
         setup = PinSetState(off=self._pin_set, on=frozenset())
         on_pins = self._signal_map[new_signal]
         final = PinSetState(off=self._pin_set - on_pins, on=on_pins)
+
+        # if the signal doesn't change, we don't want open then close again
+        # so return the 'final' state for both setup and final.
+        if old_signal == new_signal:
+            return final, final
         return setup, final
 
 
