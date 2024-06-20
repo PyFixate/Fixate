@@ -51,8 +51,7 @@ class JigMuxGroup(MuxGroup):
 
 
 jig = JigDriver(
-    JigMuxGroup,
-    [PinValueAddressHandler(("x0", "x1", "x2", "x3", "x4", "x5", "x101"))]
+    JigMuxGroup, [PinValueAddressHandler(("x0", "x1", "x2", "x3", "x4", "x5", "x101"))]
 )
 
 jig.mux.mux_one("sig2", trigger_update=False)
