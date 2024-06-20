@@ -7,7 +7,7 @@
 # to move the API intended for use in test scripts into the
 # top level package namespace and try to be clearer about what
 # is public vs private.
-from fixate.core._switching import (  # noqa
+from fixate._switching import (
     # Type Alias
     Signal as Signal,
     Pin as Pin,

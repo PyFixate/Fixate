@@ -1,4 +1,4 @@
-from fixate.core._switching import (
+from fixate._switching import (
     _generate_bit_sets,
     VirtualMux,
     _bit_generator,
