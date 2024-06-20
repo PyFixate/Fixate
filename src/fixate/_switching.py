@@ -50,6 +50,7 @@ from typing import (
 from dataclasses import dataclass
 from functools import reduce
 from operator import or_
+from types import new_class
 
 Signal = str
 EmptySignal = Literal[""]
@@ -99,19 +100,29 @@ class VirtualMux(Generic[S]):
     pin_list: PinList = ()
     clearing_time: float = 0.0
 
-    def __class_getitem__(cls, *args, **kwargs):
-        # without calling getitem the class doesn't work as a generic
-        getitm = super().__class_getitem__(
-            *args, **kwargs
-        )  # normally returns a generic
-        # create a proxy to force the __init_subclass__ hook
-        class Hack(getitm):
-            ...
+    def __class_getitem__(cls, arg):
+        # https://peps.python.org/pep-0560
 
-            def __name__(self) -> str:
-                return f"{cls.__name__}"
+        # so the problem we have to solve is the way this works is convoluted and the __orig_bases__ property we rely on is not preserved
+        # __orig_bases__ is an attribute set by the metaclass that is used to store the type information provided by __class_getitem__
+        # expected class creation:
+        # VirtualMux[type] -> VirtualMux.__class_getitem__(type) -> VirtualMux.__init__() (with type info visible on __orig_bases__)
+        # what actually happens
+        # VirtualMux[type] -> VirtualMux.__class_getitem__(type) -> _GenericAlias(VirtualMux).__call__() -> VirtualMux.__init__()
+        # the _GenericAlias middle class means we lose the type information provided through the __class_getitem__ call
 
-        return Hack  # now the actual class can be initialised
+        # the attribute __orig_class__ can be used to store the original class that was created with __class_getitem__
+        # HOWEVER this relies on the __init__ of VirtualMux succeeding - we end up in a circular dependency of needing
+        # the init to succeed to set the attribute, but needing the attribute to be set to succeed in the init (due to our implementation)
+
+        # there are two options
+        # 1. create a proxy class and wrap it to look like a normal VirtualMux
+        # 2. spend more time figuring out how the typing system works
+
+        getitm = super().__class_getitem__(arg)  # normally returns a GenericAlias
+        proxy = new_class(f"{cls}[{arg}]", bases=(getitm,))
+
+        return proxy  # now the actual class can be initialised
 
     ###########################################################################
     # These methods are the public API for the class
@@ -281,9 +292,9 @@ class VirtualMux(Generic[S]):
 
         # we are expecting exactly 1 value, unpack it
         (cls,) = self.__orig_bases__
-        assert (
-            get_origin(cls) == VirtualMux
-        ), "VirtualMux subclass must provide a type to VirtualMux"
+        assert issubclass(
+            get_origin(cls), VirtualMux
+        ), "{cls} must be an instance of VirtualMux"  # I don't know if this would ever be false unless you literally copy a method rather than inherit
         (muxdef,) = get_args(cls)
         assert get_origin(muxdef) == Union, "MuxDef must be a Union of signals"
         signals = get_args(muxdef)
@@ -551,7 +562,7 @@ class VirtualSwitch(VirtualMux):
         super().__init__(update_pins)
 
 
-class RelayMatrixMux(VirtualMux):
+class RelayMatrixMux(VirtualMux[S], Generic[S]):
     clearing_time = 0.01
 
     def _calculate_pins(

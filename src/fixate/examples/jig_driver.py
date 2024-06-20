@@ -10,6 +10,7 @@ from fixate import (
     MuxGroup,
     PinValueAddressHandler,
     VirtualSwitch,
+    RelayMatrixMux,
 )
 
 
@@ -59,19 +60,19 @@ jig.mux.mux_two("sig5")
 jig.mux.mux_three("On")
 jig.mux.mux_three(False)
 
-try:
-    from typing import Annotated
-except ImportError:
-    # 3.8
-    from typing_extensions import Annotated
+
+from typing_extensions import Annotated
 
 from typing import Literal, Union
 
 # maybe we can create aliases to make it easier to understand how to create a MuxDef
 SignalName = Literal
+SignalName.__repr__ = lambda self: f"SignalName"
 Signal = Annotated
+Signal.__repr__ = lambda self: f"Signal{self.__args__}"
 MuxDef = Union
 
+# fmt off
 MuxOneSigDef = MuxDef[
     Signal[SignalName["sig_a1"], "a0", "a2"], Signal[SignalName["sig_a2"], "a1"]
 ]
@@ -90,3 +91,21 @@ muxb = VirtualMux[MuxOneSigDef](update_pins=print)
 
 muxb.multiplex("sig_a2")
 muxb.multiplex("sig_a1")
+try:
+    muxb.multiplex("1")
+except ValueError:
+    ...
+else:
+    raise ValueError("muxb.multiplex('1') should have raised a ValueError")
+
+# an example of generic subclasses of VirtualMux
+rmm = RelayMatrixMux[MuxOneSigDef]()
+
+rmm("sig_a1")
+
+try:
+    rmm("sig")
+except ValueError:
+    ...
+else:
+    raise ValueError("rmm('sig') should have raised a ValueError")
