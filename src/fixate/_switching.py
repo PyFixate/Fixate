@@ -45,7 +45,7 @@ from typing import (
     Iterable,
     Literal,
     get_origin,
-    get_args
+    get_args,
 )
 from dataclasses import dataclass
 from functools import reduce
@@ -94,21 +94,24 @@ PinUpdateCallback = Callable[[PinUpdate, bool], None]
 
 S = TypeVar("S", bound=str)
 
+
 class VirtualMux(Generic[S]):
     pin_list: PinList = ()
     clearing_time: float = 0.0
 
     def __class_getitem__(cls, *args, **kwargs):
         # without calling getitem the class doesn't work as a generic
-        getitm =  super().__class_getitem__(*args, **kwargs) # normally returns a generic
+        getitm = super().__class_getitem__(
+            *args, **kwargs
+        )  # normally returns a generic
         # create a proxy to force the __init_subclass__ hook
         class Hack(getitm):
             ...
+
             def __name__(self) -> str:
                 return f"{cls.__name__}"
 
-
-        return Hack # now the actual class can be initialised
+        return Hack  # now the actual class can be initialised
 
     ###########################################################################
     # These methods are the public API for the class
@@ -146,7 +149,9 @@ class VirtualMux(Generic[S]):
         if hasattr(self, "default_signal"):
             raise ValueError("'default_signal' should not be set on a VirtualMux")
 
-    def __call__(self, signal: Union[S, EmptySignal], trigger_update: bool = True) -> None:
+    def __call__(
+        self, signal: Union[S, EmptySignal], trigger_update: bool = True
+    ) -> None:
         """
         Convenience to avoid having to type jig.mux.<MuxName>.multiplex.
 
@@ -155,7 +160,9 @@ class VirtualMux(Generic[S]):
         """
         self.multiplex(signal, trigger_update)
 
-    def multiplex(self, signal: Union[S, EmptySignal], trigger_update: bool = True) -> None:
+    def multiplex(
+        self, signal: Union[S, EmptySignal], trigger_update: bool = True
+    ) -> None:
         """
         Update the multiplexer state to signal.
 
@@ -251,7 +258,7 @@ class VirtualMux(Generic[S]):
             return self._map_tree(self.map_tree, self.pin_list, fixed_pins=frozenset())
         elif hasattr(self, "map_list"):
             return {sig: frozenset(pins) for sig, *pins in self.map_list}
-        elif (self.__orig_bases__ != VirtualMux.__orig_bases__):
+        elif self.__orig_bases__ != VirtualMux.__orig_bases__:
             # the user has provided map_list using annotations
             # if the type annotations have not been supplied, then self.__orig_bases__ == VirtualMux.__orig_bases__
             # if they have been overridden, then self.__orig_bases__ != VirtualMux.__orig_bases__
@@ -263,38 +270,44 @@ class VirtualMux(Generic[S]):
             raise ValueError(
                 "VirtualMux subclass must define either map_tree or map_list or provide a type to VirtualMux"
             )
+
     def _map_signals_from_annotations(self) -> SignalMap:
 
-            # structure is:
-            # Union[
-            #   Annotated[Literal["sig_a1"], "pin1", "pin2", ...]
-            #   Annotated[Literal["sig_a2"], "pin3"]
-            #   ]
+        # structure is:
+        # Union[
+        #   Annotated[Literal["sig_a1"], "pin1", "pin2", ...]
+        #   Annotated[Literal["sig_a2"], "pin3"]
+        #   ]
 
-            # we are expecting exactly 1 value, unpack it
-            cls, = self.__orig_bases__
-            assert get_origin(cls) == VirtualMux, "VirtualMux subclass must provide a type to VirtualMux"
-            muxdef, = get_args(cls)
-            assert get_origin(muxdef) == Union, "MuxDef must be a Union of signals"
-            signals = get_args(muxdef)
-            sigmap = {}
-            for s in signals:
-                # get_args gives Literal
-                # get_args ignores metadata before 3.10
-                sigdef, *pins = get_args(s)
-                # 3.8 only
-                if not pins:
-                    if not hasattr(s, "__metadata__"):
-                        raise ValueError("VirtualMux Subclass must define the pins for each signal")
-                    # s.__metadata__ is our pin list
-                    pins = s.__metadata__
-                # get_args gives members of Literal
-                signame, = get_args(sigdef)
-                assert isinstance(signame, Signal), "Signal name must be signal type"
-                assert all(isinstance(p, Pin) for p in pins), "Pins must be pin type"
-                sigmap[signame] = frozenset(pins)
+        # we are expecting exactly 1 value, unpack it
+        (cls,) = self.__orig_bases__
+        assert (
+            get_origin(cls) == VirtualMux
+        ), "VirtualMux subclass must provide a type to VirtualMux"
+        (muxdef,) = get_args(cls)
+        assert get_origin(muxdef) == Union, "MuxDef must be a Union of signals"
+        signals = get_args(muxdef)
+        sigmap = {}
+        for s in signals:
+            # get_args gives Literal
+            # get_args ignores metadata before 3.10
+            sigdef, *pins = get_args(s)
+            # 3.8 only
+            if not pins:
+                if not hasattr(s, "__metadata__"):
+                    raise ValueError(
+                        "VirtualMux Subclass must define the pins for each signal"
+                    )
+                # s.__metadata__ is our pin list
+                pins = s.__metadata__
+            # get_args gives members of Literal
+            (signame,) = get_args(sigdef)
+            assert isinstance(signame, Signal), "Signal name must be signal type"
+            assert all(isinstance(p, Pin) for p in pins), "Pins must be pin type"
+            sigmap[signame] = frozenset(pins)
 
-            return sigmap
+        return sigmap
+
     def _map_tree(self, tree: TreeDef, pins: PinList, fixed_pins: PinSet) -> SignalMap:
         """recursively add nested signal lists to the signal map.
         tree: is the current sub-branch to be added. At the first call

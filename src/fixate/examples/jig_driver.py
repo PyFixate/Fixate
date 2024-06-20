@@ -73,12 +73,13 @@ Signal = Annotated
 MuxDef = Union
 
 MuxOneSigDef = MuxDef[
-        Signal[SignalName["sig_a1"], "a0", "a2" ], 
-        Signal[SignalName["sig_a2"], "a1"]
-    ]
+    Signal[SignalName["sig_a1"], "a0", "a2"], Signal[SignalName["sig_a2"], "a1"]
+]
+
 
 class MuxA(VirtualMux[MuxOneSigDef]):
     """A mux definition used by a few scripts"""
+
 
 muxa = MuxA(update_pins=print)
 
