@@ -1,7 +1,7 @@
-from fixate.core.switching import (
-    generate_bit_sets,
+from fixate._switching import (
+    _generate_bit_sets,
     VirtualMux,
-    bit_generator,
+    _bit_generator,
     PinSetState,
     PinUpdate,
     VirtualSwitch,
@@ -11,6 +11,8 @@ from fixate.core.switching import (
     generate_relay_matrix_pin_list,
     AddressHandler,
     VirtualAddressMap,
+    MuxGroup,
+    JigDriver,
 )
 
 import pytest
@@ -20,11 +22,11 @@ import pytest
 
 
 def test_generate_bit_sets_empty():
-    assert list(generate_bit_sets([])) == []
+    assert list(_generate_bit_sets([])) == []
 
 
 def test_generate_bit_sets_one_bit():
-    assert list(generate_bit_sets(["b0"])) == [set(), {"b0"}]
+    assert list(_generate_bit_sets(["b0"])) == [set(), {"b0"}]
 
 
 def test_generate_bit_sets_multiple_bits():
@@ -38,12 +40,12 @@ def test_generate_bit_sets_multiple_bits():
         {"b2", "b1"},
         {"b2", "b1", "b0"},
     ]
-    assert list(generate_bit_sets(["b0", "b1", "b2"])) == expected
+    assert list(_generate_bit_sets(["b0", "b1", "b2"])) == expected
 
 
 def test_bit_generator():
     """b1, b10, b100, b1000, ..."""
-    bit_gen = bit_generator()
+    bit_gen = _bit_generator()
 
     actual = [next(bit_gen) for _ in range(8)]
     expected = [1, 2, 4, 8, 16, 32, 64, 128]
@@ -278,7 +280,7 @@ def test_default_signal_on_mux_raises():
 
 
 class MuxA(VirtualMux):
-    """A mux definitioned used by a few scripts"""
+    """A mux definition used by a few tests"""
 
     pin_list = ("a0", "a1")
     map_list = (("sig_a1", "a0", "a1"), ("sig_a2", "a1"))
@@ -385,12 +387,38 @@ def test_relay_matrix_mux():
 
     # compared to the standard mux, the setup of the PinUpdate
     # sets all pins off. The standard mux does nothing for the
-    # setup phase. And we technically shouldn't compare floats
-    # for equality, but it should be fine here... until it's not :D
+    # setup phase.
     assert updates == [
         (PinUpdate(off, sig1, 0.01), True),
         (PinUpdate(off, sig2, 0.01), True),
     ]
+
+
+def test_relay_matrix_mux_no_signal_change():
+    """If the new signal is as-per previous, don't open & close again"""
+
+    class RMMux(RelayMatrixMux):
+        pin_list = ("a", "b")
+        map_list = (
+            ("sig1", "a"),
+            ("sig2", "b"),
+        )
+
+    sig1 = PinSetState(off=frozenset("b"), on=frozenset("a"))
+    off = PinSetState(off=frozenset("ab"))
+
+    updates = []
+    rm = RMMux(lambda x, y: updates.append((x, y)))
+    rm("sig1")
+    rm("sig1")
+
+    # we don't care about the first update, that just ensure the mux in
+    # in the right initial state. Note that there is a bit of implementation
+    # detail leaking here. We could also test that no pins a added to the
+    # pin update. I will keep as is for now, but if we change the implementation
+    # it is reasonable to update this test.
+    assert len(updates) == 2
+    assert updates[1] == (PinUpdate(sig1, sig1, 0.01), True)
 
 
 # ###############################################################
@@ -399,11 +427,10 @@ def test_relay_matrix_mux():
 
 def test_pin_default_on_address_handler_raise():
     class BadHandler(PinValueAddressHandler):
-        pin_list = ("x", "y")
         pin_defaults = ("x",)
 
     with pytest.raises(ValueError):
-        BadHandler()
+        BadHandler(("x", "y"))
 
 
 # ###############################################################
@@ -419,12 +446,12 @@ class TestHandler(AddressHandler):
         self.updates.append(pins)
 
 
-class HandlerXY(TestHandler):
-    pin_list = ("x", "y")
+def HandlerXY():
+    return TestHandler("xy")
 
 
-class HandlerAB(TestHandler):
-    pin_list = ("a", "b")
+def HandlerAB():
+    return TestHandler("ab")
 
 
 def test_virtual_address_map_init_no_active_pins():
@@ -511,6 +538,31 @@ def test_virtual_address_map_multiple_handlers():
     assert len(xy.updates) == 3
     assert ab.updates[2] == frozenset("b")
     assert xy.updates[2] == frozenset("x")
+
+
+# ###############################################################
+# Jig Driver
+
+
+def test_jig_driver_with_unknown_pins():
+    handler1 = AddressHandler(("x0",))
+    handler2 = AddressHandler(("x2",))
+    handler3 = AddressHandler(("x1",))
+
+    class Mux(VirtualMux):
+        pin_list = ("x0", "x1")  # "x1" isn't in either handler
+        map_list = ("sig1", "x1")
+
+    class Group(MuxGroup):
+        def __init__(self):
+            self.mux = Mux()
+
+    # This is O.K., because all the pins are included
+    JigDriver(Group, [handler1, handler2, handler3])
+
+    with pytest.raises(ValueError):
+        # This should raise, because no handler implements "x1"
+        JigDriver(Group, [handler1, handler2])
 
 
 # ###############################################################

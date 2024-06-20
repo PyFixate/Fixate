@@ -2,8 +2,15 @@
 This file is just a test playground that shows how the update jig classes will
 fit together.
 """
+from __future__ import annotations
 from dataclasses import dataclass, field
-from fixate.core.switching import VirtualMux, JigDriver, MuxGroup, PinValueAddressHandler, VirtualSwitch
+from fixate import (
+    VirtualMux,
+    JigDriver,
+    MuxGroup,
+    PinValueAddressHandler,
+    VirtualSwitch,
+)
 
 
 class MuxOne(VirtualMux):
@@ -13,6 +20,7 @@ class MuxOne(VirtualMux):
         ("sig2", "x1"),
         ("sig3", "x2"),
     )
+
 
 class MuxTwo(VirtualMux):
     pin_list = ("x3", "x4", "x5")
@@ -31,10 +39,6 @@ class MuxThree(VirtualSwitch):
     pin_name = "x101"
 
 
-class Handler(PinValueAddressHandler):
-    pin_list = ("x0", "x1", "x2", "x3", "x4", "x5", "x101")
-
-
 # Note!
 # our existing scripts/jig driver, the name of the mux is the
 # class of the virtual mux. This scheme below will not allow that
@@ -46,7 +50,9 @@ class JigMuxGroup(MuxGroup):
     mux_three: MuxThree = field(default_factory=MuxThree)
 
 
-jig = JigDriver(JigMuxGroup, [Handler()])
+jig = JigDriver(
+    JigMuxGroup, [PinValueAddressHandler(("x0", "x1", "x2", "x3", "x4", "x5", "x101"))]
+)
 
 jig.mux.mux_one("sig2", trigger_update=False)
 jig.mux.mux_two("sig5")
