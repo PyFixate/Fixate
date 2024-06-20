@@ -280,7 +280,7 @@ def test_default_signal_on_mux_raises():
 
 
 class MuxA(VirtualMux):
-    """A mux definitioned used by a few scripts"""
+    """A mux definition used by a few tests"""
 
     pin_list = ("a0", "a1")
     map_list = (("sig_a1", "a0", "a1"), ("sig_a2", "a1"))
