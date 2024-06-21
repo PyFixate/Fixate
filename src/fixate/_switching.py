@@ -46,6 +46,7 @@ from typing import (
     Literal,
     get_origin,
     get_args,
+    Any,
 )
 from dataclasses import dataclass
 from functools import reduce
@@ -57,6 +58,7 @@ EmptySignal = Literal[""]
 Pin = str
 PinList = Sequence[Pin]
 PinSet = FrozenSet[Pin]
+MapList = Sequence[Sequence[Union[Signal, Pin]]]
 # do we bother to add EmptySignal here?
 SignalMap = Dict[Signal, PinSet]
 TreeDef = Sequence[Union[Optional[Signal], "TreeDef"]]
@@ -454,43 +456,62 @@ class VirtualMux(Generic[S]):
         """
         print(pin_updates, trigger_update)
 
-    def __class_getitem__(cls, arg):
+    # This looks bad, maybe we should not type hint this
+    def __class_getitem__(cls, arg: Union[TypeVar, Any]) -> type[VirtualMux[S]]:
         # https://peps.python.org/pep-0560
 
-        # so the problem we have to solve is the way this works is convoluted and the __orig_bases__ property we rely on is not preserved
-        # __orig_bases__ is an attribute set by the metaclass that is used to store the type information provided by __class_getitem__
+        # so the problem we have to solve is the way this works is convoluted and
+        # the __orig_bases__ property we rely on is not preserved
+        # __orig_bases__ is an attribute set by the metaclass
+        # that is used to store the type information provided by __class_getitem__
         # expected class creation:
-        # VirtualMux[type] -> VirtualMux.__class_getitem__(type) -> VirtualMux.__init__() (with type info visible on __orig_bases__)
+        # VirtualMux[type] -> VirtualMux.__class_getitem__(type)
+        #       -> VirtualMux.__init__() (with type info visible on __orig_bases__)
         # what actually happens
-        # VirtualMux[type] -> VirtualMux.__class_getitem__(type) -> _GenericAlias(VirtualMux).__call__() -> VirtualMux.__init__()
-        # the _GenericAlias middle class means we lose the type information provided through the __class_getitem__ call
+        # VirtualMux[type] -> VirtualMux.__class_getitem__(type)
+        #       -> _GenericAlias(VirtualMux).__call__() -> VirtualMux.__init__()
+        # the _GenericAlias middle class means we lose the type information provided
+        # through the __class_getitem__ call
 
-        # the attribute __orig_class__ can be used to store the original class that was created with __class_getitem__
-        # HOWEVER this relies on the __init__ of VirtualMux succeeding - we end up in a circular dependency of needing
-        # the init to succeed to set the attribute, but needing the attribute to be set to succeed in the init (due to our implementation)
+        # the attribute __orig_class__ can be used to store the original class that was
+        # created with __class_getitem__
+        # HOWEVER this relies on the __init__ of VirtualMux succeeding
+        #  we end up in a circular dependency of needing the init to succeed to set the attribute,
+        # but needing the attribute to be set to succeed in the init (due to our implementation)
 
         # there are two options
         # 1. create a proxy class and wrap it to look like a normal VirtualMux
         # 2. dynamically create the pin_list map_list here
-        # two cases: either we are a passing in the generic typevar, or we are passing in the mux definition
+        # two cases: either we are a passing in the generic typevar,
+        # or we are passing in the mux definition
         if type(arg) == TypeVar:
             # we are just creating classes normally so fall back to default behaviour
-            return super().__class_getitem__(arg)
+            return super().__class_getitem__(arg)  # type: ignore # __class_getitem__ does magic stuff at runtime
         else:
+            assert issubclass(
+                cls, VirtualMux
+            ), "class we are acting on should be a valid VirtualMux type"
             # we are creating a mux definition
-            proxy = new_class(f"{cls.__name__}", bases=(cls,))
             pin_list, map_list = cls._unpack_muxdef(arg)
-            proxy.pin_list = pin_list
-            proxy.map_list = map_list
+
+            def add_signals(ns: dict[str, Any]) -> dict[str, Any]:
+                ns["pin_list"] = pin_list
+                ns["map_list"] = map_list
+                return ns
+
+            proxy = new_class(f"{cls.__name__}", bases=(cls,), exec_body=add_signals)
+            assert isinstance(
+                proxy, type(VirtualMux)
+            ), "class we have created should be a valid VirtualMux type"
             return proxy  # now the actual class can be initialised
 
     @staticmethod
-    def _unpack_muxdef(muxdef):
+    def _unpack_muxdef(muxdef: Any) -> tuple[PinList, MapList]:
         # muxdef is the signal definition
         assert get_origin(muxdef) == Union, "MuxDef must be a Union of signals"
         signals = get_args(muxdef)
-        map_list: Sequence[Sequence[str]] = []
-        pin_list: PinList = []
+        map_list: list[tuple[str]] = []
+        pin_list: list[str] = []
         for s in signals:
             # get_args gives Literal
             # get_args ignores metadata before 3.10
