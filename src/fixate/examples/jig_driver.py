@@ -124,5 +124,3 @@ except ValueError:
     ...
 else:
     raise ValueError("rmm('sig') should have raised a ValueError")
-
-rmm("fuck")
