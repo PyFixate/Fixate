@@ -102,62 +102,6 @@ class VirtualMux(Generic[S]):
     pin_list: PinList = ()
     clearing_time: float = 0.0
 
-    def __class_getitem__(cls, arg):
-        # https://peps.python.org/pep-0560
-
-        # so the problem we have to solve is the way this works is convoluted and the __orig_bases__ property we rely on is not preserved
-        # __orig_bases__ is an attribute set by the metaclass that is used to store the type information provided by __class_getitem__
-        # expected class creation:
-        # VirtualMux[type] -> VirtualMux.__class_getitem__(type) -> VirtualMux.__init__() (with type info visible on __orig_bases__)
-        # what actually happens
-        # VirtualMux[type] -> VirtualMux.__class_getitem__(type) -> _GenericAlias(VirtualMux).__call__() -> VirtualMux.__init__()
-        # the _GenericAlias middle class means we lose the type information provided through the __class_getitem__ call
-
-        # the attribute __orig_class__ can be used to store the original class that was created with __class_getitem__
-        # HOWEVER this relies on the __init__ of VirtualMux succeeding - we end up in a circular dependency of needing
-        # the init to succeed to set the attribute, but needing the attribute to be set to succeed in the init (due to our implementation)
-
-        # there are two options
-        # 1. create a proxy class and wrap it to look like a normal VirtualMux
-        # 2. dynamically create the pin_list map_list here
-
-        proxy = new_class(f"{cls}[{arg}]", bases=(cls,))
-        # two cases: either we are a passing in the generic typevar, or we are passing in the mux definition
-        if type(arg) != TypeVar:
-            pin_list, map_list = cls._unpack_muxdef(arg)
-            proxy.pin_list = pin_list
-            proxy.map_list = map_list
-        return proxy  # now the actual class can be initialised
-
-    @staticmethod
-    def _unpack_muxdef(muxdef):
-        # two cases
-        # muxdef is the signal definition
-        assert get_origin(muxdef) == Union, "MuxDef must be a Union of signals"
-        signals = get_args(muxdef)
-        map_list: Sequence[Sequence[str]] = []
-        pin_list: PinList = []
-        for s in signals:
-            # get_args gives Literal
-            # get_args ignores metadata before 3.10
-            sigdef, *pins = get_args(s)
-            # 3.8 only
-            if not pins:
-                if not hasattr(s, "__metadata__"):
-                    raise ValueError(
-                        "VirtualMux Subclass must define the pins for each signal"
-                    )
-                # s.__metadata__ is our pin list
-                pins = s.__metadata__
-            # get_args gives members of Literal
-            (signame,) = get_args(sigdef)
-            assert isinstance(signame, Signal), "Signal name must be signal type"
-            assert all(isinstance(p, Pin) for p in pins), "Pins must be pin type"
-            pin_list.extend(pins)
-            map_list.append((signame, *pins))
-
-        return pin_list, map_list
-
     ###########################################################################
     # These methods are the public API for the class
     def __init__(self, update_pins: Optional[PinUpdateCallback] = None):
@@ -509,6 +453,64 @@ class VirtualMux(Generic[S]):
         can be provided to __init__.
         """
         print(pin_updates, trigger_update)
+
+    def __class_getitem__(cls, arg):
+        # https://peps.python.org/pep-0560
+
+        # so the problem we have to solve is the way this works is convoluted and the __orig_bases__ property we rely on is not preserved
+        # __orig_bases__ is an attribute set by the metaclass that is used to store the type information provided by __class_getitem__
+        # expected class creation:
+        # VirtualMux[type] -> VirtualMux.__class_getitem__(type) -> VirtualMux.__init__() (with type info visible on __orig_bases__)
+        # what actually happens
+        # VirtualMux[type] -> VirtualMux.__class_getitem__(type) -> _GenericAlias(VirtualMux).__call__() -> VirtualMux.__init__()
+        # the _GenericAlias middle class means we lose the type information provided through the __class_getitem__ call
+
+        # the attribute __orig_class__ can be used to store the original class that was created with __class_getitem__
+        # HOWEVER this relies on the __init__ of VirtualMux succeeding - we end up in a circular dependency of needing
+        # the init to succeed to set the attribute, but needing the attribute to be set to succeed in the init (due to our implementation)
+
+        # there are two options
+        # 1. create a proxy class and wrap it to look like a normal VirtualMux
+        # 2. dynamically create the pin_list map_list here
+        # two cases: either we are a passing in the generic typevar, or we are passing in the mux definition
+        if type(arg) == TypeVar:
+            # we are just creating classes normally so fall back to default behaviour
+            return super().__class_getitem__(arg)
+        else:
+            # we are creating a mux definition
+            proxy = new_class(f"{cls.__name__}", bases=(cls,))
+            pin_list, map_list = cls._unpack_muxdef(arg)
+            proxy.pin_list = pin_list
+            proxy.map_list = map_list
+            return proxy  # now the actual class can be initialised
+
+    @staticmethod
+    def _unpack_muxdef(muxdef):
+        # muxdef is the signal definition
+        assert get_origin(muxdef) == Union, "MuxDef must be a Union of signals"
+        signals = get_args(muxdef)
+        map_list: Sequence[Sequence[str]] = []
+        pin_list: PinList = []
+        for s in signals:
+            # get_args gives Literal
+            # get_args ignores metadata before 3.10
+            sigdef, *pins = get_args(s)
+            # 3.8 only
+            if not pins:
+                if not hasattr(s, "__metadata__"):
+                    raise ValueError(
+                        "VirtualMux definition must define the pins for each signal"
+                    )
+                # s.__metadata__ is our pin list
+                pins = s.__metadata__
+            # get_args gives members of Literal
+            (signame,) = get_args(sigdef)
+            assert isinstance(signame, Signal), "Signal name must be signal type"
+            assert all(isinstance(p, Pin) for p in pins), "Pins must be pin type"
+            pin_list.extend(pins)
+            map_list.append((signame, *pins))
+
+        return pin_list, map_list
 
 
 class VirtualSwitch(VirtualMux):

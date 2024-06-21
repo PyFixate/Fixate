@@ -648,3 +648,4 @@ def test_typed_mux_generic_subclass():
 
     gsm = GenericSubMux[MuxASigDef]()
     assert gsm._signal_map == MuxA()._signal_map
+    assert gsm._pin_set == MuxA()._pin_set
