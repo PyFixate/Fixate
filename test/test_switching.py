@@ -643,7 +643,7 @@ def test_typed_mux_subclass():
 def test_typed_mux_generic_subclass():
     T = TypeVar("T", bound=str)
 
-    class GenericSubMux(VirtualMux[T], Generic[T]):
+    class GenericSubMux(VirtualMux[T]):
         pass
 
     gsm = GenericSubMux[MuxASigDef]()

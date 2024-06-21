@@ -59,7 +59,7 @@ PinList = Sequence[Pin]
 PinSet = FrozenSet[Pin]
 # do we bother to add EmptySignal here?
 SignalMap = Dict[Signal, PinSet]
-TreeDef = Sequence[Union[Signal, "TreeDef"]]
+TreeDef = Sequence[Union[Optional[Signal], "TreeDef"]]
 
 
 @dataclass(frozen=True)
@@ -97,10 +97,12 @@ S = TypeVar("S", bound=str)
 
 
 class VirtualMux(Generic[S]):
+    map_tree: Optional[TreeDef] = None
+    map_list: Optional[Sequence[Sequence[str]]] = None
     pin_list: PinList = ()
     clearing_time: float = 0.0
 
-    def __class_getitem__(cls, muxdef):
+    def __class_getitem__(cls, arg):
         # https://peps.python.org/pep-0560
 
         # so the problem we have to solve is the way this works is convoluted and the __orig_bases__ property we rely on is not preserved
@@ -117,12 +119,44 @@ class VirtualMux(Generic[S]):
 
         # there are two options
         # 1. create a proxy class and wrap it to look like a normal VirtualMux
-        # 2. spend more time figuring out how the typing system works
+        # 2. dynamically create the pin_list map_list here
 
-        getitm = super().__class_getitem__(muxdef)  # normally returns a GenericAlias
-        proxy = new_class(f"{cls}[{muxdef}]", bases=(getitm,))
-
+        proxy = new_class(f"{cls}[{arg}]", bases=(cls,))
+        # two cases: either we are a passing in the generic typevar, or we are passing in the mux definition
+        if type(arg) != TypeVar:
+            pin_list, map_list = cls._unpack_muxdef(arg)
+            proxy.pin_list = pin_list
+            proxy.map_list = map_list
         return proxy  # now the actual class can be initialised
+
+    @staticmethod
+    def _unpack_muxdef(muxdef):
+        # two cases
+        # muxdef is the signal definition
+        assert get_origin(muxdef) == Union, "MuxDef must be a Union of signals"
+        signals = get_args(muxdef)
+        map_list: Sequence[Sequence[str]] = []
+        pin_list: PinList = []
+        for s in signals:
+            # get_args gives Literal
+            # get_args ignores metadata before 3.10
+            sigdef, *pins = get_args(s)
+            # 3.8 only
+            if not pins:
+                if not hasattr(s, "__metadata__"):
+                    raise ValueError(
+                        "VirtualMux Subclass must define the pins for each signal"
+                    )
+                # s.__metadata__ is our pin list
+                pins = s.__metadata__
+            # get_args gives members of Literal
+            (signame,) = get_args(sigdef)
+            assert isinstance(signame, Signal), "Signal name must be signal type"
+            assert all(isinstance(p, Pin) for p in pins), "Pins must be pin type"
+            pin_list.extend(pins)
+            map_list.append((signame, *pins))
+
+        return pin_list, map_list
 
     ###########################################################################
     # These methods are the public API for the class
@@ -135,19 +169,13 @@ class VirtualMux(Generic[S]):
         else:
             self._update_pins = update_pins
 
+        self._pin_set = frozenset(self.pin_list)
         self._signal_map: SignalMap = self._map_signals()
 
         # We annotate the pin_list to be an ordered sequence, because if the
         # mux is defined with a map_tree, we need the ordering. But after
         # initialisation, we only need set operations on the pin list, so
         # we convert here and keep a reference to the set for future use.
-        if self.pin_list:
-            self._pin_set = frozenset(self.pin_list)
-        else:
-            # in the case of we didn't explicitly define pin_list, collapse the signal map to get all pins
-            self._pin_set = frozenset(
-                itertools.chain.from_iterable(self._signal_map.values())
-            )
 
         self._state = ""
 
@@ -271,59 +299,14 @@ class VirtualMux(Generic[S]):
         Avoid subclassing. Consider creating helper functions to build
         map_tree or map_list.
         """
-        if hasattr(self, "map_tree"):
+        if self.map_tree is not None:
             return self._map_tree(self.map_tree, self.pin_list, fixed_pins=frozenset())
-        elif hasattr(self, "map_list"):
+        elif self.map_list is not None:
             return {sig: frozenset(pins) for sig, *pins in self.map_list}
-        elif self.__orig_bases__ != VirtualMux.__orig_bases__:
-            # the user has provided map_list using annotations
-            # if the type annotations have not been supplied, then self.__orig_bases__ == VirtualMux.__orig_bases__
-            # if they have been overridden, then self.__orig_bases__ != VirtualMux.__orig_bases__
-            # this will only work if VirtualMux was subclassed
-            # if creating an instance using VirtualMux[type]() then __orig_bases__ does not exist
-            # which is why __class_getitem__ is used to create a proxy subclass
-            return self._map_signals_from_annotations()
         else:
             raise ValueError(
                 "VirtualMux subclass must define either map_tree or map_list or provide a type to VirtualMux"
             )
-
-    def _map_signals_from_annotations(self) -> SignalMap:
-
-        # structure is:
-        # Union[
-        #   Annotated[Literal["sig_a1"], "pin1", "pin2", ...]
-        #   Annotated[Literal["sig_a2"], "pin3"]
-        #   ]
-
-        # we are expecting exactly 1 value, unpack it
-        (cls,) = self.__orig_bases__
-        assert issubclass(
-            get_origin(cls), VirtualMux
-        ), "{cls} must be an instance of VirtualMux"  # I don't know if this would ever be false unless you literally copy a method rather than inherit
-        (muxdef,) = get_args(cls)
-        assert get_origin(muxdef) == Union, "MuxDef must be a Union of signals"
-        signals = get_args(muxdef)
-        sigmap = {}
-        for s in signals:
-            # get_args gives Literal
-            # get_args ignores metadata before 3.10
-            sigdef, *pins = get_args(s)
-            # 3.8 only
-            if not pins:
-                if not hasattr(s, "__metadata__"):
-                    raise ValueError(
-                        "VirtualMux Subclass must define the pins for each signal"
-                    )
-                # s.__metadata__ is our pin list
-                pins = s.__metadata__
-            # get_args gives members of Literal
-            (signame,) = get_args(sigdef)
-            assert isinstance(signame, Signal), "Signal name must be signal type"
-            assert all(isinstance(p, Pin) for p in pins), "Pins must be pin type"
-            sigmap[signame] = frozenset(pins)
-
-        return sigmap
 
     def _map_tree(self, tree: TreeDef, pins: PinList, fixed_pins: PinSet) -> SignalMap:
         """recursively add nested signal lists to the signal map.

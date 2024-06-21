@@ -66,10 +66,9 @@ from typing_extensions import Annotated
 from typing import Literal, Union
 
 # maybe we can create aliases to make it easier to understand how to create a MuxDef
+# this doesn't work well because these are instances of type, not instances of object
 SignalName = Literal
-SignalName.__repr__ = lambda self: f"SignalName"
 Signal = Annotated
-Signal.__repr__ = lambda self: f"Signal{self.__args__}"
 MuxDef = Union
 
 # fmt: off
@@ -82,23 +81,26 @@ rmm = RelayMatrixMux[MuxOneSigDef]()
 
 from typing import TypeVar
 
-S = TypeVar("S", bound =str)
+S = TypeVar("S", bound=str)
+
 
 class MuxA(VirtualMux[MuxOneSigDef]):
     """A mux definition used by a few scripts"""
 
+
 muxa = MuxA()
 muxa("sig_a2")
 muxa("sig_a1")
-muxa("sig_a")
+
 
 class MuxC(VirtualMux[S]):
     ...
 
+
 muxc = MuxC[MuxOneSigDef]()
 muxc("sig_a2")
 muxc("sig_a1")
-muxc("sig_a")
+muxa("sig_a")
 
 muxb = VirtualMux[MuxOneSigDef]()
 
@@ -122,3 +124,5 @@ except ValueError:
     ...
 else:
     raise ValueError("rmm('sig') should have raised a ValueError")
+
+rmm("fuck")
