@@ -100,7 +100,7 @@ class VirtualMux(Generic[S]):
     pin_list: PinList = ()
     clearing_time: float = 0.0
 
-    def __class_getitem__(cls, arg):
+    def __class_getitem__(cls, muxdef):
         # https://peps.python.org/pep-0560
 
         # so the problem we have to solve is the way this works is convoluted and the __orig_bases__ property we rely on is not preserved
@@ -119,8 +119,8 @@ class VirtualMux(Generic[S]):
         # 1. create a proxy class and wrap it to look like a normal VirtualMux
         # 2. spend more time figuring out how the typing system works
 
-        getitm = super().__class_getitem__(arg)  # normally returns a GenericAlias
-        proxy = new_class(f"{cls}[{arg}]", bases=(getitm,))
+        getitm = super().__class_getitem__(muxdef)  # normally returns a GenericAlias
+        proxy = new_class(f"{cls}[{muxdef}]", bases=(getitm,))
 
         return proxy  # now the actual class can be initialised
 
@@ -135,15 +135,21 @@ class VirtualMux(Generic[S]):
         else:
             self._update_pins = update_pins
 
+        self._signal_map: SignalMap = self._map_signals()
+
         # We annotate the pin_list to be an ordered sequence, because if the
         # mux is defined with a map_tree, we need the ordering. But after
         # initialisation, we only need set operations on the pin list, so
         # we convert here and keep a reference to the set for future use.
-        self._pin_set = frozenset(self.pin_list)
+        if self.pin_list:
+            self._pin_set = frozenset(self.pin_list)
+        else:
+            # in the case of we didn't explicitly define pin_list, collapse the signal map to get all pins
+            self._pin_set = frozenset(
+                itertools.chain.from_iterable(self._signal_map.values())
+            )
 
         self._state = ""
-
-        self._signal_map: SignalMap = self._map_signals()
 
         # Define the implicit signal "" which can be used to turn off all pins.
         # If the signal map already has this defined, raise an error. In the old
@@ -562,7 +568,7 @@ class VirtualSwitch(VirtualMux):
         super().__init__(update_pins)
 
 
-class RelayMatrixMux(VirtualMux[S], Generic[S]):
+class RelayMatrixMux(VirtualMux[S]):
     clearing_time = 0.01
 
     def _calculate_pins(

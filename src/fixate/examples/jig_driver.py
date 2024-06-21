@@ -72,22 +72,35 @@ Signal = Annotated
 Signal.__repr__ = lambda self: f"Signal{self.__args__}"
 MuxDef = Union
 
-# fmt off
+# fmt: off
 MuxOneSigDef = MuxDef[
-    Signal[SignalName["sig_a1"], "a0", "a2"], Signal[SignalName["sig_a2"], "a1"]
+    Signal[SignalName["sig_a1"], "a0", "a2"], 
+    Signal[SignalName["sig_a2"], "a1"]
 ]
+# fmt: on
+rmm = RelayMatrixMux[MuxOneSigDef]()
 
+from typing import TypeVar
+
+S = TypeVar("S", bound =str)
 
 class MuxA(VirtualMux[MuxOneSigDef]):
     """A mux definition used by a few scripts"""
 
-
-muxa = MuxA(update_pins=print)
-
+muxa = MuxA()
 muxa("sig_a2")
 muxa("sig_a1")
+muxa("sig_a")
 
-muxb = VirtualMux[MuxOneSigDef](update_pins=print)
+class MuxC(VirtualMux[S]):
+    ...
+
+muxc = MuxC[MuxOneSigDef]()
+muxc("sig_a2")
+muxc("sig_a1")
+muxc("sig_a")
+
+muxb = VirtualMux[MuxOneSigDef]()
 
 muxb.multiplex("sig_a2")
 muxb.multiplex("sig_a1")

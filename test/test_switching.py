@@ -15,6 +15,9 @@ from fixate._switching import (
     JigDriver,
 )
 
+from typing import Literal, Union, TypeVar, Generic
+from typing_extensions import Annotated  # only for 3.8
+
 import pytest
 
 ################################################################
@@ -592,3 +595,56 @@ def test_pin_update_or():
         2.0,
     )
     assert expected == a | b
+
+
+# fmt: off
+MuxASigDef = Union[
+    Annotated[Literal["sig_a1"], "a0", "a1"], 
+    Annotated[Literal["sig_a2"], "a1"]
+]
+# fmt: on
+
+
+def test_typed_mux():
+    clear = PinSetState(off=frozenset({"a0", "a1"}))
+    a1 = PinSetState(on=frozenset({"a0", "a1"}))
+    a2 = PinSetState(on=frozenset({"a1"}), off=frozenset({"a0"}))
+
+    updates = []
+    updatesa = []
+
+    mux = VirtualMux[MuxASigDef](lambda x, y: updates.append((x, y)))
+    mux_a = MuxA(lambda x, y: updatesa.append((x, y)))
+    assert mux_a._signal_map == mux._signal_map
+    assert mux_a._pin_set == mux._pin_set
+
+    mux("sig_a1")
+    mux_a("sig_a1")
+    assert updates.pop() == updatesa.pop() == (PinUpdate(PinSetState(), a1), True)
+
+    mux.multiplex("sig_a2", trigger_update=False)
+    mux_a.multiplex("sig_a2", trigger_update=False)
+    assert updates.pop() == updatesa.pop() == (PinUpdate(PinSetState(), a2), False)
+
+    mux("")
+    mux_a("")
+    assert updates.pop() == updatesa.pop() == (PinUpdate(PinSetState(), clear), True)
+
+
+def test_typed_mux_subclass():
+    class SubMux(VirtualMux[MuxASigDef]):
+        pass
+
+    sm = SubMux()
+    assert sm._signal_map == MuxA()._signal_map
+    assert sm._pin_set == MuxA()._pin_set
+
+
+def test_typed_mux_generic_subclass():
+    T = TypeVar("T", bound=str)
+
+    class GenericSubMux(VirtualMux[T], Generic[T]):
+        pass
+
+    gsm = GenericSubMux[MuxASigDef]()
+    assert gsm._signal_map == MuxA()._signal_map
