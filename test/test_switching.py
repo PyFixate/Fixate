@@ -642,7 +642,7 @@ def test_typed_mux_generic_subclass():
     assert gsm._pin_set == MuxA()._pin_set
 
 
-def test_typed_mux_one_pin():
+def test_typed_mux_one_signal():
 
     muxbdef = Annotated[Literal["sig1"], "a0"]
 
