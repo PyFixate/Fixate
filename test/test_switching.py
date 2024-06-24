@@ -15,13 +15,7 @@ from fixate._switching import (
     JigDriver,
 )
 
-from typing import Literal, Union, TypeVar, get_args, get_origin
-import sys
-
-if sys.version_info >= (3, 9):
-    from typing import Annotated
-else:
-    from typing_extensions import Annotated
+from typing import Literal, Union, TypeVar, get_args, get_origin, Annotated
 
 import pytest
 
@@ -701,10 +695,6 @@ def test_annotation_bad_brackets():
         mux = BadMux()
 
 
-@pytest.mark.xfail(
-    sys.version_info < (3, 9),
-    reason="Annotated behaviour is different between python versions",
-)
 def test_annotated_get_origin():
     # Annotated behaviour is different between python versions
     # fails 3.8, passes >=3.9
