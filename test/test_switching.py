@@ -711,6 +711,14 @@ def test_annotated_get_origin():
     assert get_origin(Annotated[Literal["sig_a1"], "a0", "a1"]) == Annotated
 
 
+def test_annotated_get_args():
+    assert get_args(Annotated[Literal["sig_a1"], "a0", "a1"]) == (
+        Literal["sig_a1"],
+        "a0",
+        "a1",
+    )
+
+
 @pytest.mark.skip(
     reason="Revisit this idea once we have a way to stop Generic breaking getattr"
 )
@@ -719,22 +727,34 @@ def test_typed_mux_class_getitem():
     a1 = PinSetState(on=frozenset({"a0", "a1"}))
     a2 = PinSetState(on=frozenset({"a1"}), off=frozenset({"a0"}))
 
-    updates = []
-    updatesa = []
+    updates_class_mux = []
+    updates_mux_a = []
 
-    mux = VirtualMux[MuxASigDef](lambda x, y: updates.append((x, y)))
-    mux_a = MuxA(lambda x, y: updatesa.append((x, y)))
-    assert mux_a._signal_map == mux._signal_map
-    assert mux_a._pin_set == mux._pin_set
+    class_mux = VirtualMux[MuxASigDef](lambda x, y: updates_class_mux.append((x, y)))
+    mux_a = MuxA(lambda x, y: updates_mux_a.append((x, y)))
+    assert mux_a._signal_map == class_mux._signal_map
+    assert mux_a._pin_set == class_mux._pin_set
 
-    mux("sig_a1")
+    class_mux("sig_a1")
     mux_a("sig_a1")
-    assert updates.pop() == updatesa.pop() == (PinUpdate(PinSetState(), a1), True)
+    assert (
+        updates_class_mux.pop()
+        == updates_mux_a.pop()
+        == (PinUpdate(PinSetState(), a1), True)
+    )
 
-    mux.multiplex("sig_a2", trigger_update=False)
+    class_mux.multiplex("sig_a2", trigger_update=False)
     mux_a.multiplex("sig_a2", trigger_update=False)
-    assert updates.pop() == updatesa.pop() == (PinUpdate(PinSetState(), a2), False)
+    assert (
+        updates_class_mux.pop()
+        == updates_mux_a.pop()
+        == (PinUpdate(PinSetState(), a2), False)
+    )
 
-    mux("")
+    class_mux("")
     mux_a("")
-    assert updates.pop() == updatesa.pop() == (PinUpdate(PinSetState(), clear), True)
+    assert (
+        updates_class_mux.pop()
+        == updates_mux_a.pop()
+        == (PinUpdate(PinSetState(), clear), True)
+    )
