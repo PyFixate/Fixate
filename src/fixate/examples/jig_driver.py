@@ -61,8 +61,8 @@ jig.mux.mux_three("On")
 jig.mux.mux_three(False)
 
 
+# VirtualMuxes can be created with type annotations to provide the signal map
 from typing_extensions import Annotated
-
 from typing import Literal, Union
 
 
@@ -71,38 +71,59 @@ MuxOneSigDef = Union[
     Annotated[Literal["sig_a1"], "a0", "a2"], 
     Annotated[Literal["sig_a2"], "a1"],
 ]
+
+MuxTwoSigDef = Union[
+    Annotated[Literal["sig_b1"], "b0", "b2"], 
+    Annotated[Literal["sig_b2"], "b1"],
+]
+
+SingleSingleDef = Annotated[Literal["sig_c1"], "c0"], 
 # fmt: on
-rmm = RelayMatrixMux[MuxOneSigDef]()
 
-from typing import TypeVar
+# VirtualMuxes can now be created with type annotations to provide the signal map
+muxa = VirtualMux[MuxOneSigDef]()
 
-S = TypeVar("S", bound=str)
+muxa("sig_a1")
+muxa("sig_a2")
+
+# using the wrong signal name will be caught at runtime and by the type checker
+try:
+    muxa("unknown signal name")  # type: ignore[arg-type]
+except ValueError as e:
+    print(f"An Exception would have occurred: {e}")
+else:
+    raise ValueError("Should have raised an exception")
+
+# alternatively, the mux definition can be passed in while subclassing
 
 
-class MuxA(VirtualMux[MuxOneSigDef]):
+class SubClassed(VirtualMux[MuxTwoSigDef]):
     """A mux definition used by a few scripts"""
 
-
-muxa = MuxA()
-muxa("sig_a2")
-muxa("sig_a1")
+    def extra_method(self) -> None:
+        print("Extra method")
 
 
-class MuxC(VirtualMux[S]):
-    ...
+muxb = SubClassed()
+muxb.multiplex("sig_b1")
+muxb.multiplex("sig_b2")
 
+# # further generic types can be created by subclassing from VirtualMux using a TypeVar
+# # compared to the above way of subclassing, this way lets you reuse the class
 
-muxc = MuxC[MuxOneSigDef]()
-muxc("sig_a2")
-muxc("sig_a1")
+# from typing import TypeVar
 
-muxb = VirtualMux[MuxOneSigDef]()
+# S = TypeVar("S", bound=str)
+# class MyGenericMux(VirtualMux[S]):
+#     ...
+#     def extra_method(self) -> None:
+#         print("Extra method")
 
-muxb.multiplex("sig_a2")
-muxb.multiplex("sig_a1")
+# generic_mux = MyGenericMux[MuxOneSigDef]()
+# generic_mux("sig_a2")
+# generic_mux("sig_a1")
 
-# an example of generic subclasses of VirtualMux
-rmm = RelayMatrixMux[MuxOneSigDef]()
-
-rmm("sig_a1")
-
+# # RelayMatrixMux is an example of this
+# rmm = RelayMatrixMux[MuxOneSigDef]()
+# rmm("sig_a1")
+# rmm("sig_a2")
