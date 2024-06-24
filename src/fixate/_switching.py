@@ -54,6 +54,7 @@ from operator import or_
 from types import new_class
 
 import sys
+
 if sys.version_info >= (3, 9):
     from typing import Annotated
 else:
@@ -104,6 +105,8 @@ PinUpdateCallback = Callable[[PinUpdate, bool], None]
 
 S = TypeVar("S", bound=str)
 
+from types import get_original_bases, resolve_bases
+
 
 class VirtualMux(Generic[S]):
     map_tree: Optional[TreeDef] = None
@@ -114,6 +117,9 @@ class VirtualMux(Generic[S]):
     ###########################################################################
     # These methods are the public API for the class
     def __init__(self, update_pins: Optional[PinUpdateCallback] = None):
+        # digest all the typing information if there is any to sete pin_list and map_list
+        self._digest_type_hints()
+
         self._last_update_time = time.monotonic()
 
         self._update_pins: PinUpdateCallback
@@ -463,54 +469,31 @@ class VirtualMux(Generic[S]):
         """
         print(pin_updates, trigger_update)
 
-    # This looks bad, maybe we should not type hint this
-    def __class_getitem__(cls, arg: Union[TypeVar, type]) -> type[VirtualMux[S]]:
-        # https://peps.python.org/pep-0560
-
-        # so the problem we have to solve is the way this works is convoluted and
-        # expected class creation:
-        # VirtualMux[type] -> VirtualMux.__class_getitem__(type)
-        #       -> VirtualMux.__init__() (with type info visible on __orig_bases__)
-        # what actually happens
-        # VirtualMux[type] -> VirtualMux.__class_getitem__(type)
-        #       -> _GenericAlias(VirtualMux).__call__() -> VirtualMux.__init__()
-        # the _GenericAlias middle class means we lose the type information provided
-        # through the __class_getitem__ call
-
-
-        # two cases: either we are a passing in the generic typevar,
-        # or we are passing in the mux definition
-        if type(arg) == TypeVar:
-            # we are just creating classes normally so fall back to default behaviour
-            return super().__class_getitem__(arg)  # type: ignore # __class_getitem__ does magic stuff at runtime
-        else:
-            assert issubclass(
-                cls, VirtualMux
-            ), "class we are acting on should be a valid VirtualMux type"
-            # we are creating a mux definition
-            pin_list, map_list = cls._unpack_muxdef(arg)
-
-            def add_signals(ns: dict[str, Any]) -> dict[str, Any]:
-                ns["pin_list"] = pin_list
-                ns["map_list"] = map_list
-                return ns
-
-            proxy = new_class(f"{cls.__name__}", bases=(cls,), exec_body=add_signals)
-            assert isinstance(
-                proxy, type(VirtualMux)
-            ), "class we have created should be a valid VirtualMux type"
-            return proxy  # now the actual class can be initialised
+    def _digest_type_hints(self):
+        # digest all the typing information if there is any
+        bases = get_original_bases(self.__class__)
+        resolved_bases = resolve_bases(bases)
+        first_resolved_base = resolved_bases[0]
+        assert issubclass(
+            first_resolved_base, VirtualMux
+        ), f"{first_resolved_base} should be VirtualMux subclass"
+        if bases != resolved_bases:
+            args = get_args(bases[0])
+            plist, mlist = self._unpack_muxdef(args[0])
+            self.pin_list = plist
+            self.map_list = mlist
 
     @staticmethod
-    def _unpack_muxdef(muxdef: Any) -> tuple[PinList, MapList]:
+    def _unpack_muxdef(muxdef: type) -> tuple[PinList, MapList]:
         # muxdef is the signal definition
         if get_origin(muxdef) == Union:
             signals = get_args(muxdef)
         elif get_origin(muxdef) == Annotated:
+            # Union FORCES you to have two or more types, so this handles the case of only one pin
             signals = (muxdef,)
         else:
             raise TypeError("Signal definition must be Union or Annotated")
-        
+
         map_list: list[tuple[str]] = []
         pin_list: list[str] = []
         for s in signals:
@@ -519,7 +502,9 @@ class VirtualMux(Generic[S]):
             # get_args gives Literal
             # get_args ignores metadata before 3.10
             sigdef, *pins = get_args(s)
-            assert get_origin(sigdef) == Literal, "Signal definition must be string literal"
+            assert (
+                get_origin(sigdef) == Literal
+            ), "Signal definition must be string literal"
             # 3.8 only, Annotated forces a type and at least one annotation
             if not pins:
                 if not hasattr(s, "__metadata__"):

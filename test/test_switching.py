@@ -15,8 +15,9 @@ from fixate._switching import (
     JigDriver,
 )
 
-from typing import Literal, Union, TypeVar, Generic, get_args, get_origin
+from typing import Literal, Union, TypeVar, get_args, get_origin
 import sys
+
 if sys.version_info >= (3, 9):
     from typing import Annotated
 else:
@@ -609,7 +610,111 @@ MuxASigDef = Union[
 # fmt: on
 
 
-def test_typed_mux():
+def test_typed_mux_using_subclass():
+    class SubMux(VirtualMux[MuxASigDef]):
+        pass
+
+    sm = SubMux(update_pins=print)
+    assert sm._signal_map == MuxA()._signal_map
+    assert sm._pin_set == MuxA()._pin_set
+
+
+def test_typed_relaymux_using_subclass():
+    class SubRelayMux(RelayMatrixMux[MuxASigDef]):
+        pass
+
+    srm = SubRelayMux()
+    assert srm._signal_map == MuxA()._signal_map
+    assert srm._pin_set == MuxA()._pin_set
+
+
+def test_typed_mux_generic_subclass():
+    T = TypeVar("T", bound=str)
+
+    class GenericSubMux(VirtualMux[T]):
+        pass
+
+    class ConcreteMux(GenericSubMux[MuxASigDef]):
+        pass
+
+    gsm = ConcreteMux()
+    assert gsm._signal_map == MuxA()._signal_map
+    assert gsm._pin_set == MuxA()._pin_set
+
+
+def test_typed_mux_one_pin():
+
+    muxbdef = Annotated[Literal["sig1"], "a0"]
+
+    class MuxB(VirtualMux[muxbdef]):
+        ...
+
+    clear = PinSetState(off=frozenset({"a0"}))
+    a1 = PinSetState(on=frozenset({"a0"}))
+
+    updates = []
+    muxb = MuxB(update_pins=lambda x, y: updates.append((x, y)))
+    muxb("sig1")
+    assert updates.pop() == (PinUpdate(PinSetState(), a1), True)
+
+    muxb("")
+    assert updates.pop() == (PinUpdate(PinSetState(), clear), True)
+
+
+def test_annotated_preserve_pin_defs():
+    annotated = Annotated[Literal["sig_a1"], "a0", "a1"]
+    sigdef, *pins = get_args(annotated)
+
+
+def test_annotated_raises_on_missing_pin_def():
+    with pytest.raises(TypeError):
+        annotated = Annotated[Literal["sig_a1"]]
+
+
+def test_annotation_bad_pindefs():
+    BadMuxDef = Union[
+        Annotated[Literal["sig_a1"], "a0", "a1"],
+        Annotated[Literal["sig_a1"], "a0", 1],
+    ]
+
+    class BadMux(VirtualMux[BadMuxDef]):
+        pass
+
+    with pytest.raises(AssertionError):
+        mux = BadMux()
+
+
+def test_annotation_bad_brackets():
+    """
+    We put the brackets in the wrong spot and accidentally defined
+    one of the signals as one of the pins of the previous signal
+    """
+    BadMuxDef = Union[
+        Annotated[Literal["sig_a1"], "a0", "a1", Annotated[Literal["sig_a2"], "a1"]],
+        Annotated[Literal["sig_a1"], "a0", "a1"],
+    ]
+
+    class BadMux(VirtualMux[BadMuxDef]):
+        pass
+
+    with pytest.raises(AssertionError):
+        mux = BadMux()
+
+
+@pytest.mark.xfail(
+    sys.version_info < (3, 9),
+    reason="Annotated behaviour is different between python versions",
+)
+def test_annotated_get_origin():
+    # Annotated behaviour is different between python versions
+    # fails 3.8, passes >=3.9
+    assert get_origin(Annotated[Literal["sig_a1"], "a0", "a1"]) == Annotated
+
+
+@pytest.mark.skip(
+    reason="Revisit this idea once we have a way to stop Generic breaking getattr"
+)
+def test_typed_mux_class_getitem():
     clear = PinSetState(off=frozenset({"a0", "a1"}))
     a1 = PinSetState(on=frozenset({"a0", "a1"}))
     a2 = PinSetState(on=frozenset({"a1"}), off=frozenset({"a0"}))
@@ -633,60 +738,3 @@ def test_typed_mux():
     mux("")
     mux_a("")
     assert updates.pop() == updatesa.pop() == (PinUpdate(PinSetState(), clear), True)
-
-
-def test_typed_mux_subclass():
-    class SubMux(VirtualMux[MuxASigDef]):
-        pass
-
-    sm = SubMux()
-    assert sm._signal_map == MuxA()._signal_map
-    assert sm._pin_set == MuxA()._pin_set
-
-
-def test_typed_mux_generic_subclass():
-    T = TypeVar("T", bound=str)
-
-    class GenericSubMux(VirtualMux[T]):
-        pass
-
-    gsm = GenericSubMux[MuxASigDef]()
-    assert gsm._signal_map == MuxA()._signal_map
-    assert gsm._pin_set == MuxA()._pin_set
-
-
-def test_annotated_preserve_pin_defs():
-    annotated = Annotated[Literal["sig_a1"], "a0", "a1"]
-    sigdef, *pins = get_args(annotated)
-
-def test_annotated_raises_on_missing_pin_def():
-    with pytest.raises(TypeError):
-        annotated = Annotated[Literal["sig_a1"]]
-
-def test_annotation_bad_pindefs():
-    BadMuxDef = Union[
-    Annotated[Literal["sig_a1"], "a0", "a1"],
-    Annotated[Literal["sig_a1"], "a0", 1],
-    ]
-
-    with pytest.raises(AssertionError):
-        mux = VirtualMux[BadMuxDef]()
-
-def test_annotation_bad_brackets():
-    """
-    We put the brackets in the wrong spot and accidentally defined
-    one of the signals as one of the pins of the previous signal
-    """
-    BadMuxDef = Union[
-    Annotated[Literal["sig_a1"], "a0", "a1",
-    Annotated[Literal["sig_a2"], "a1"]],
-    Annotated[Literal["sig_a1"], "a0", "a1"],
-    ]
-
-    with pytest.raises(AssertionError):
-        mux = VirtualMux[BadMuxDef]()
-
-def test_annotated_get_origin():
-    # Annotated behaviour is different between python versions
-    # fails 3.8, passes >=3.9
-    assert get_origin(Annotated[Literal["sig_a1"], "a0", "a1"]) == Annotated
