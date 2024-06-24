@@ -53,6 +53,13 @@ from functools import reduce
 from operator import or_
 from types import new_class
 
+import sys
+if sys.version_info >= (3, 9):
+    from typing import Annotated
+else:
+    from typing_extensions import Annotated
+
+
 Signal = str
 EmptySignal = Literal[""]
 Pin = str
@@ -457,13 +464,10 @@ class VirtualMux(Generic[S]):
         print(pin_updates, trigger_update)
 
     # This looks bad, maybe we should not type hint this
-    def __class_getitem__(cls, arg: Union[TypeVar, Any]) -> type[VirtualMux[S]]:
+    def __class_getitem__(cls, arg: Union[TypeVar, type]) -> type[VirtualMux[S]]:
         # https://peps.python.org/pep-0560
 
         # so the problem we have to solve is the way this works is convoluted and
-        # the __orig_bases__ property we rely on is not preserved
-        # __orig_bases__ is an attribute set by the metaclass
-        # that is used to store the type information provided by __class_getitem__
         # expected class creation:
         # VirtualMux[type] -> VirtualMux.__class_getitem__(type)
         #       -> VirtualMux.__init__() (with type info visible on __orig_bases__)
@@ -473,15 +477,7 @@ class VirtualMux(Generic[S]):
         # the _GenericAlias middle class means we lose the type information provided
         # through the __class_getitem__ call
 
-        # the attribute __orig_class__ can be used to store the original class that was
-        # created with __class_getitem__
-        # HOWEVER this relies on the __init__ of VirtualMux succeeding
-        #  we end up in a circular dependency of needing the init to succeed to set the attribute,
-        # but needing the attribute to be set to succeed in the init (due to our implementation)
 
-        # there are two options
-        # 1. create a proxy class and wrap it to look like a normal VirtualMux
-        # 2. dynamically create the pin_list map_list here
         # two cases: either we are a passing in the generic typevar,
         # or we are passing in the mux definition
         if type(arg) == TypeVar:
@@ -508,15 +504,23 @@ class VirtualMux(Generic[S]):
     @staticmethod
     def _unpack_muxdef(muxdef: Any) -> tuple[PinList, MapList]:
         # muxdef is the signal definition
-        assert get_origin(muxdef) == Union, "MuxDef must be a Union of signals"
-        signals = get_args(muxdef)
+        if get_origin(muxdef) == Union:
+            signals = get_args(muxdef)
+        elif get_origin(muxdef) == Annotated:
+            signals = (muxdef,)
+        else:
+            raise TypeError("Signal definition must be Union or Annotated")
+        
         map_list: list[tuple[str]] = []
         pin_list: list[str] = []
         for s in signals:
+            # not working, get_origin(Annotated) returns the wrapped type in 3.8
+            # assert get_origin(s) == Annotated, "Signal definition must be annotated"
             # get_args gives Literal
             # get_args ignores metadata before 3.10
             sigdef, *pins = get_args(s)
-            # 3.8 only
+            assert get_origin(sigdef) == Literal, "Signal definition must be string literal"
+            # 3.8 only, Annotated forces a type and at least one annotation
             if not pins:
                 if not hasattr(s, "__metadata__"):
                     raise ValueError(

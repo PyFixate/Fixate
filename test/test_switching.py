@@ -15,8 +15,12 @@ from fixate._switching import (
     JigDriver,
 )
 
-from typing import Literal, Union, TypeVar, Generic
-from typing_extensions import Annotated  # only for 3.8
+from typing import Literal, Union, TypeVar, Generic, get_args, get_origin
+import sys
+if sys.version_info >= (3, 9):
+    from typing import Annotated
+else:
+    from typing_extensions import Annotated
 
 import pytest
 
@@ -649,3 +653,40 @@ def test_typed_mux_generic_subclass():
     gsm = GenericSubMux[MuxASigDef]()
     assert gsm._signal_map == MuxA()._signal_map
     assert gsm._pin_set == MuxA()._pin_set
+
+
+def test_annotated_preserve_pin_defs():
+    annotated = Annotated[Literal["sig_a1"], "a0", "a1"]
+    sigdef, *pins = get_args(annotated)
+
+def test_annotated_raises_on_missing_pin_def():
+    with pytest.raises(TypeError):
+        annotated = Annotated[Literal["sig_a1"]]
+
+def test_annotation_bad_pindefs():
+    BadMuxDef = Union[
+    Annotated[Literal["sig_a1"], "a0", "a1"],
+    Annotated[Literal["sig_a1"], "a0", 1],
+    ]
+
+    with pytest.raises(AssertionError):
+        mux = VirtualMux[BadMuxDef]()
+
+def test_annotation_bad_brackets():
+    """
+    We put the brackets in the wrong spot and accidentally defined
+    one of the signals as one of the pins of the previous signal
+    """
+    BadMuxDef = Union[
+    Annotated[Literal["sig_a1"], "a0", "a1",
+    Annotated[Literal["sig_a2"], "a1"]],
+    Annotated[Literal["sig_a1"], "a0", "a1"],
+    ]
+
+    with pytest.raises(AssertionError):
+        mux = VirtualMux[BadMuxDef]()
+
+def test_annotated_get_origin():
+    # Annotated behaviour is different between python versions
+    # fails 3.8, passes >=3.9
+    assert get_origin(Annotated[Literal["sig_a1"], "a0", "a1"]) == Annotated
