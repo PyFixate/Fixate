@@ -500,19 +500,10 @@ class VirtualMux(Generic[S]):
             # not working, get_origin(Annotated) returns the wrapped type in 3.8
             # assert get_origin(s) == Annotated, "Signal definition must be annotated"
             # get_args gives Literal
-            # get_args ignores metadata before 3.10
             sigdef, *pins = get_args(s)
             assert (
                 get_origin(sigdef) == Literal
             ), "Signal definition must be string literal"
-            # 3.8 only, Annotated forces a type and at least one annotation
-            if not pins:
-                if not hasattr(s, "__metadata__"):
-                    raise ValueError(
-                        "VirtualMux definition must define the pins for each signal"
-                    )
-                # s.__metadata__ is our pin list
-                pins = s.__metadata__
             # get_args gives members of Literal
             (signame,) = get_args(sigdef)
             assert isinstance(signame, Signal), "Signal name must be signal type"
