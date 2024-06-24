@@ -62,10 +62,13 @@ jig.mux.mux_three(False)
 
 
 # VirtualMuxes can be created with type annotations to provide the signal map
-from typing_extensions import Annotated
-from typing import Literal, Union
+from typing import Literal, Annotated, Union
 
-
+# a signal is a typing Annotation
+# the first Literal is the signal name, the rest are the pin names
+# the signal name MUST be a Literal
+# multiple signals can be combined with a Union
+# assigning annotations to variables is possible
 # fmt: off
 MuxOneSigDef = Union[
     Annotated[Literal["sig_a1"], "a0", "a2"], 
@@ -73,15 +76,20 @@ MuxOneSigDef = Union[
 ]
 
 MuxTwoSigDef = Union[
-    Annotated[Literal["sig_b1"], "b0", "b2"], 
+    Annotated[Literal["sig_b1"], "b0", "b2"],
     Annotated[Literal["sig_b2"], "b1"],
 ]
 
-SingleSingleDef = Annotated[Literal["sig_c1"], "c0"], 
+SingleSingleDef = Annotated[Literal["sig_c1"], "c0"],
 # fmt: on
 
 # VirtualMuxes can now be created with type annotations to provide the signal map
-muxa = VirtualMux[MuxOneSigDef]()
+# this only works when subclassing
+class MyMux(VirtualMux[MuxOneSigDef]):
+    "A helpful description for my mux that is used in this jig driver"
+
+
+muxa = MyMux()
 
 muxa("sig_a1")
 muxa("sig_a2")
@@ -94,36 +102,35 @@ except ValueError as e:
 else:
     raise ValueError("Should have raised an exception")
 
-# alternatively, the mux definition can be passed in while subclassing
+
+# further generic types can be created by subclassing from VirtualMux using a TypeVar
+# compared to the above way of subclassing, this way lets you reuse the class
+
+from typing import TypeVar
+
+S = TypeVar("S", bound=str)
 
 
-class SubClassed(VirtualMux[MuxTwoSigDef]):
-    """A mux definition used by a few scripts"""
+class MyGenericMux(VirtualMux[S]):
+    ...
 
     def extra_method(self) -> None:
         print("Extra method")
 
 
-muxb = SubClassed()
-muxb.multiplex("sig_b1")
-muxb.multiplex("sig_b2")
+class MyConcreteMux(MyGenericMux[MuxTwoSigDef]):
+    pass
 
-# # further generic types can be created by subclassing from VirtualMux using a TypeVar
-# # compared to the above way of subclassing, this way lets you reuse the class
 
-# from typing import TypeVar
+generic_mux = MyConcreteMux()
+generic_mux("sig_b1")
+generic_mux("sig_b2")
 
-# S = TypeVar("S", bound=str)
-# class MyGenericMux(VirtualMux[S]):
-#     ...
-#     def extra_method(self) -> None:
-#         print("Extra method")
+# RelayMatrixMux is an example of this
+class MyRelayMatrixMux(RelayMatrixMux[MuxOneSigDef]):
+    pass
 
-# generic_mux = MyGenericMux[MuxOneSigDef]()
-# generic_mux("sig_a2")
-# generic_mux("sig_a1")
 
-# # RelayMatrixMux is an example of this
-# rmm = RelayMatrixMux[MuxOneSigDef]()
-# rmm("sig_a1")
-# rmm("sig_a2")
+rmm = MyRelayMatrixMux()
+rmm("sig_a1")
+rmm("sig_a2")
