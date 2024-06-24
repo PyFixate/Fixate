@@ -80,13 +80,14 @@ MuxTwoSigDef = Union[
     Annotated[Literal["sig_b2"], "b1"],
 ]
 
-SingleSingleDef = Annotated[Literal["sig_c1"], "c0"],
+# if defining only a single signal, the Union is omitted in the definition
+SingleSingleDef = Annotated[Literal["sig_c1"], "c0", "c1"]
 # fmt: on
 
 # VirtualMuxes can now be created with type annotations to provide the signal map
 # this only works when subclassing
 class MyMux(VirtualMux[MuxOneSigDef]):
-    "A helpful description for my mux that is used in this jig driver"
+    """A helpful description for my mux that is used in this jig driver"""
 
 
 muxa = MyMux()
@@ -102,6 +103,14 @@ except ValueError as e:
 else:
     raise ValueError("Should have raised an exception")
 
+
+class MultiPinSwitch(VirtualMux[SingleSingleDef]):
+    """This acts like a switch, but has to coordinate two pins"""
+
+
+ls = MultiPinSwitch()
+ls("sig_c1")
+ls("")
 
 # further generic types can be created by subclassing from VirtualMux using a TypeVar
 # compared to the above way of subclassing, this way lets you reuse the class
