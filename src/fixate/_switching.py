@@ -469,7 +469,7 @@ class VirtualMux(Generic[S]):
         """
         print(pin_updates, trigger_update)
 
-    def _digest_type_hints(self):
+    def _digest_type_hints(self) ->None:
         # digest all the typing information if there is any
         bases = get_original_bases(self.__class__)
         resolved_bases = resolve_bases(bases)
