@@ -65,16 +65,11 @@ from typing_extensions import Annotated
 
 from typing import Literal, Union
 
-# maybe we can create aliases to make it easier to understand how to create a MuxDef
-# this doesn't work well because these are instances of type, not instances of object
-SignalName = Literal
-Signal = Annotated
-MuxDef = Union
 
 # fmt: off
-MuxOneSigDef = MuxDef[
-    Signal[SignalName["sig_a1"], "a0", "a2"], 
-    Signal[SignalName["sig_a2"], "a1"]
+MuxOneSigDef = Union[
+    Annotated[Literal["sig_a1"], "a0", "a2"], 
+    Annotated[Literal["sig_a2"], "a1"],
 ]
 # fmt: on
 rmm = RelayMatrixMux[MuxOneSigDef]()
@@ -100,27 +95,14 @@ class MuxC(VirtualMux[S]):
 muxc = MuxC[MuxOneSigDef]()
 muxc("sig_a2")
 muxc("sig_a1")
-muxa("sig_a")
 
 muxb = VirtualMux[MuxOneSigDef]()
 
 muxb.multiplex("sig_a2")
 muxb.multiplex("sig_a1")
-try:
-    muxb.multiplex("1")
-except ValueError:
-    ...
-else:
-    raise ValueError("muxb.multiplex('1') should have raised a ValueError")
 
 # an example of generic subclasses of VirtualMux
 rmm = RelayMatrixMux[MuxOneSigDef]()
 
 rmm("sig_a1")
 
-try:
-    rmm("sig")
-except ValueError:
-    ...
-else:
-    raise ValueError("rmm('sig') should have raised a ValueError")
