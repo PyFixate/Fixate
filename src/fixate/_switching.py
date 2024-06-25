@@ -44,21 +44,13 @@ from typing import (
     FrozenSet,
     Iterable,
     Literal,
+    Annotated,
     get_origin,
     get_args,
-    Any,
 )
 from dataclasses import dataclass
 from functools import reduce
 from operator import or_
-from types import new_class
-
-import sys
-
-if sys.version_info >= (3, 9):
-    from typing import Annotated
-else:
-    from typing_extensions import Annotated
 
 
 Signal = str
@@ -67,7 +59,6 @@ Pin = str
 PinList = Sequence[Pin]
 PinSet = FrozenSet[Pin]
 MapList = Sequence[Sequence[Union[Signal, Pin]]]
-# do we bother to add EmptySignal here?
 SignalMap = Dict[Signal, PinSet]
 TreeDef = Sequence[Union[Optional[Signal], "TreeDef"]]
 
@@ -117,7 +108,7 @@ class VirtualMux(Generic[S]):
     ###########################################################################
     # These methods are the public API for the class
     def __init__(self, update_pins: Optional[PinUpdateCallback] = None):
-        # digest all the typing information if there is any to sete pin_list and map_list
+        # digest all the typing information if there is any to set pin_list and map_list
         self._digest_type_hints()
 
         self._last_update_time = time.monotonic()
@@ -128,15 +119,15 @@ class VirtualMux(Generic[S]):
         else:
             self._update_pins = update_pins
 
-        self._pin_set = frozenset(self.pin_list)
-        self._signal_map: SignalMap = self._map_signals()
-
         # We annotate the pin_list to be an ordered sequence, because if the
         # mux is defined with a map_tree, we need the ordering. But after
         # initialisation, we only need set operations on the pin list, so
         # we convert here and keep a reference to the set for future use.
+        self._pin_set = frozenset(self.pin_list)
 
         self._state = ""
+
+        self._signal_map: SignalMap = self._map_signals()
 
         # Define the implicit signal "" which can be used to turn off all pins.
         # If the signal map already has this defined, raise an error. In the old
@@ -497,8 +488,7 @@ class VirtualMux(Generic[S]):
         map_list: list[tuple[str]] = []
         pin_list: list[str] = []
         for s in signals:
-            # not working, get_origin(Annotated) returns the wrapped type in 3.8
-            # assert get_origin(s) == Annotated, "Signal definition must be annotated"
+            assert get_origin(s) == Annotated, "Signal definition must be Annotated"
             # get_args gives Literal
             sigdef, *pins = get_args(s)
             assert (

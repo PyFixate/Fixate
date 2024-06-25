@@ -135,7 +135,7 @@ generic_mux = MyConcreteMux()
 generic_mux("sig_b1")
 generic_mux("sig_b2")
 
-# RelayMatrixMux is an example of this
+# RelayMatrixMux is an example of a reusable generic class
 class MyRelayMatrixMux(RelayMatrixMux[MuxOneSigDef]):
     pass
 
