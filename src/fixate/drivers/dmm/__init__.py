@@ -1,7 +1,8 @@
 """
-dmm is the digital multimeter driver.
+Digital multimeter driver
+=========================
 
-Use dmm.open to connect to a connected digital multimeter.
+Use `dmm.open()` to connect to a digital multimeter.
 Functions are dictated by the abstract superclass ``DMM`` in helper.py
 
 ::
@@ -22,6 +23,11 @@ from fixate.drivers.dmm.helper import DMM
 def open() -> DMM:
     """
     Connect to a digital multimeter.
+    
+    Searches for a configured instrument and returns the first one found.
+
+    Returns:
+        DMM: open connection to the DMM
     """
     for DMM in (Fluke8846A, Keithley6500):
         instrument = find_instrument_by_id(DMM.REGEX_ID)
