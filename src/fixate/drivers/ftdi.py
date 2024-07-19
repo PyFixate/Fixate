@@ -209,6 +209,12 @@ class FTDI2xx(object):
     def close(self):
         check_return(ftdI2xx.FT_Close(self.handle))
 
+    def set_dtr(self):
+        check_return(ftdI2xx.FT_SetDtr(self.handle))
+
+    def clr_dtr(self):
+        check_return(ftdI2xx.FT_ClrDtr(self.handle))
+
     def __enter__(self):
         return self
 
