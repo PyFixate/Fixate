@@ -38,24 +38,44 @@ class DMM:
         raise NotImplementedError
 
     def voltage_ac(self, _range=None):
+        """
+        Sets the DMM in AC voltage measurement mode and puts it in the range given
+        by the argument _range. Signals expected to be measured must be < _range.
+        """
         raise NotImplementedError
 
     def voltage_dc(self, _range=None, auto_impedance=False):
+        """
+        Sets the DMM in DC voltage measurement mode and puts it in the range given
+        by the argument _range. Signals expected to be measured must be < _range.
+        """
         raise NotImplementedError
 
     def current_ac(self, _range):
         raise NotImplementedError
 
     def current_dc(self, _range):
+        """
+        Sets the DMM in DC current measurement mode and puts it in the range given
+        by the argument _range. Signals expected to be measured must be < _range.
+        """
         raise NotImplementedError
 
     def resistance(self, _range=None):
+        """
+        Sets the DMM in 2-wire resistance measurement mode and puts it in the range 
+        given by the argument _range. Signals expected to be measured must be < _range.
+        """
         raise NotImplementedError
 
     def frequency(self, _range=None):
         raise NotImplementedError
 
     def fresistance(self, _range=None):
+        """
+        Sets the DMM in 4-wire resistance measurement mode and puts it in the range 
+        given by the argument _range. Signals expected to be measured must be < _range.
+        """
         raise NotImplementedError
 
     def period(self, _range=None):
