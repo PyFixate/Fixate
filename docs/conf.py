@@ -15,20 +15,22 @@
 import os
 import sys
 
+import fixate
+
 sys.path.append(
-    os.path.join(os.path.dirname(__file__), '..', '..', 'src')
+    os.path.join(os.path.dirname(__file__), '..', 'src')
 )
 
 # -- Project information -----------------------------------------------------
 
 project = 'Fixate'
-copyright = '2018, Clint Lawrence, Ryan Parry-Jones'
+copyright = '2024, Clint Lawrence, Ryan Parry-Jones'
 author = 'Clint Lawrence'
 
 # The short X.Y version
-version = ''
+version = fixate.__version__
 # The full version, including alpha/beta/rc tags
-release = ''
+release = fixate.__version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -40,11 +42,16 @@ release = ''
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc'
+extensions = [
+    'sphinx.ext.napoleon',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.coverage',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -60,7 +67,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
