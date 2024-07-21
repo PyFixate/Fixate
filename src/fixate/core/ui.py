@@ -1,6 +1,7 @@
 """
 This module details user input api
 """
+
 import time
 from queue import Queue, Empty
 from pubsub import pub

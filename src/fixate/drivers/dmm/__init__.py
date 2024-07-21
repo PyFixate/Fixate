@@ -7,6 +7,7 @@ Functions are dictacted by the metaclass in helper.py
 dmm.measure(*mode, **mode_params)
 dmm.reset()
 """
+
 import pyvisa
 
 import fixate.drivers

@@ -15,6 +15,7 @@ C:\Program Files (x86)\National Instruments\NI-DAQ\DAQmx ANSI C Dev\include\NIDA
 C:\Program Files\National Instruments\NI-DAQ\DAQmx ANSI C Dev\include\NIDAQmx.h
 
 """
+
 from collections import namedtuple
 from fixate.core.common import ExcThread
 from queue import Queue, Empty

@@ -2,6 +2,7 @@
 This file is just a test playground that shows how the update jig classes will
 fit together.
 """
+
 from __future__ import annotations
 from dataclasses import dataclass, field
 from fixate import (

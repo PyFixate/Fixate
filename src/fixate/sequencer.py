@@ -373,7 +373,8 @@ class Sequencer:
         """Prompt the user when something goes wrong.
 
         For retry return True, to fail return False and to abort raise and abort exception. Respect the
-        non_interactive flag, which can be set by the command line option --non-interactive"""
+        non_interactive flag, which can be set by the command line option --non-interactive
+        """
 
         if self.non_interactive:
             return False

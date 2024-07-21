@@ -3,6 +3,7 @@ Tests for opening various instruments without having to manually run test script
 Make sure local_config.json has been configured to include the required instruments
 
 """
+
 from pubsub import pub
 from fixate.drivers import dmm, lcr, dso, funcgen, pps
 import time

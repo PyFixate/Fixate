@@ -1,6 +1,7 @@
 """
 Examples on how to use the programmable power supply driver works
 """
+
 import time
 
 from fixate.core.common import TestClass, TestList
