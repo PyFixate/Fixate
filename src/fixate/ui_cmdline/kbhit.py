@@ -39,8 +39,7 @@ class KBHit:
         if os.name == "nt":
             pass
 
-        else:
-
+        elif os.isatty(sys.stdin.fileno()):
             # Save the terminal settings
             self.fd = sys.stdin.fileno()
             self.new_term = termios.tcgetattr(self.fd)
@@ -59,7 +58,7 @@ class KBHit:
         if os.name == "nt":
             pass
 
-        else:
+        elif hasattr(self, "old_term"):
             termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.old_term)
 
     def getch(self):

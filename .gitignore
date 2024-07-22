@@ -27,5 +27,4 @@ venv37
 .vscode/
 .venv
 .vscode/settings.json
-_venv
-docs/_build
+docs/_build/
