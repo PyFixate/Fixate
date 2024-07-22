@@ -15,13 +15,6 @@ from fixate.reporting import register_csv, unregister_csv
 from fixate.ui_cmdline import register_cmd_line, unregister_cmd_line
 import fixate.sequencer
 
-parser = ArgumentParser(
-    description="""
-Fixate Command Line Interface
-
-""",
-    formatter_class=RawTextHelpFormatter,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -35,90 +28,99 @@ class ReturnCodes(int, Enum):
     ERROR = 12
 
 
-# Optional Arguments
-mutex_group = parser.add_mutually_exclusive_group()
-mutex_group.add_argument(
-    "-p",
-    "--path",
-    help="""Path to the directory where the script file is located. 
-                         This is mutually exclusive with --zip""",
-)
-mutex_group.add_argument(
-    "-z",
-    "--zip",
-    help="""Path to zip file of test scripts. Mutually exclusive with --path""",
-)
-parser.add_argument(
-    "-l",
-    "--local_log",
-    "--local-log",
-    help="""Deprecated. Use the -c config to set up reporting to a different directory
-                    Overrides the logging path to the current working directory""",
-    action="store_true",
-)
-parser.add_argument(
-    "-q",
-    "--qtgui",
-    help="""Argument to select the qt gui mode. This is still in early development""",
-    action="store_true",
-)
-parser.add_argument(
-    "-d",
-    "--dev",
-    help="""Activate Dev Mode for more debug information""",
-    action="store_true",
-)
-parser.add_argument(
-    "-c",
-    "--config",
-    help="""Specify the path to a configuration file.
-                    Configuration files are in yaml format. 
-                    Values in this file take precedence over those in a global config file. 
-                    This argument can be used multiple times with later config files taking precedence over earlier ones
-                    """,
-    action="append",
-    default=[],
-)
-parser.add_argument(
-    "-i",
-    "--index",
-    help="""Selector string that is parsed into test_data.get() hosted in the path or zip_selector file.
-                    This can be used to distinguish between different configurations of tests""",
-    default="default",
-)
-parser.add_argument(
-    "--zip_selector",
-    "--zip-selector",
-    help="""File name in zip that hosts the test_data object to return tests. 
-                    Only used if zip file is parsed in path. Use to override from default of test_variants.py""",
-    default="test_variants.py",
-)
-parser.add_argument(
-    "--script-params",
-    help="""Call this for sequence context information available to the test script and logging services
-                    These values will be split on = and parsed as strings into a dictionary
-                    Eg. --script-params version=1 --script-params foo=bar
-                    output would be
-                    >>>fixate.config.RESOURCES["SEQUENCER"].context_data
-                    {"version": "1", "foo":"bar", "serial_number":<--serial_number value>}
-                    """,
-    action="append",
-    default=[],
-)
-parser.add_argument(
-    "--serial_number", "--serial-number", help=("Serial number of the DUT.")
-)
-parser.add_argument(
-    "--log-file", action="store", help="Specify a file to write the log to"
-)
-parser.add_argument(
-    "--non-interactive",
-    action="store_true",
-    help="The sequencer will not prompt for retries.",
-)
-parser.add_argument(
-    "--disable-logs", action="store_true", help="Turn off diagnostic logs"
-)
+def get_parser():
+    parser = ArgumentParser(
+        description="""
+    Fixate Command Line Interface
+
+    """,
+        formatter_class=RawTextHelpFormatter,
+    )
+
+    # Optional Arguments
+    mutex_group = parser.add_mutually_exclusive_group()
+    mutex_group.add_argument(
+        "-p",
+        "--path",
+        help="""Path to the directory where the script file is located. 
+                            This is mutually exclusive with --zip""",
+    )
+    mutex_group.add_argument(
+        "-z",
+        "--zip",
+        help="""Path to zip file of test scripts. Mutually exclusive with --path""",
+    )
+    parser.add_argument(
+        "-l",
+        "--local_log",
+        "--local-log",
+        help="""Deprecated. Use the -c config to set up reporting to a different directory
+                        Overrides the logging path to the current working directory""",
+        action="store_true",
+    )
+    parser.add_argument(
+        "-q",
+        "--qtgui",
+        help="""Argument to select the qt gui mode. This is still in early development""",
+        action="store_true",
+    )
+    parser.add_argument(
+        "-d",
+        "--dev",
+        help="""Activate Dev Mode for more debug information""",
+        action="store_true",
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        help="""Specify the path to a configuration file.
+                        Configuration files are in yaml format. 
+                        Values in this file take precedence over those in a global config file. 
+                        This argument can be used multiple times with later config files taking precedence over earlier ones
+                        """,
+        action="append",
+        default=[],
+    )
+    parser.add_argument(
+        "-i",
+        "--index",
+        help="""Selector string that is parsed into test_data.get() hosted in the path or zip_selector file.
+                        This can be used to distinguish between different configurations of tests""",
+        default="default",
+    )
+    parser.add_argument(
+        "--zip_selector",
+        "--zip-selector",
+        help="""File name in zip that hosts the test_data object to return tests. 
+                        Only used if zip file is parsed in path. Use to override from default of test_variants.py""",
+        default="test_variants.py",
+    )
+    parser.add_argument(
+        "--script-params",
+        help="""Call this for sequence context information available to the test script and logging services
+                        These values will be split on = and parsed as strings into a dictionary
+                        Eg. --script-params version=1 --script-params foo=bar
+                        output would be
+                        >>>fixate.config.RESOURCES["SEQUENCER"].context_data
+                        {"version": "1", "foo":"bar", "serial_number":<--serial_number value>}
+                        """,
+        action="append",
+        default=[],
+    )
+    parser.add_argument(
+        "--serial_number", "--serial-number", help=("Serial number of the DUT.")
+    )
+    parser.add_argument(
+        "--log-file", action="store", help="Specify a file to write the log to"
+    )
+    parser.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="The sequencer will not prompt for retries.",
+    )
+    parser.add_argument(
+        "--disable-logs", action="store_true", help="Turn off diagnostic logs"
+    )
 
 
 def load_test_suite(script_path: str, zip_path: str, zip_selector: str):
@@ -383,10 +385,17 @@ def exception_hook(exctype, value, tb):
     sys.exit(1)
 
 
-def run_main_program(test_script_path=None):
+def run_main_program(test_script_path=None, main_args=None):
+    """
+    Main entry point.
+
+    :param test_script_path: Path to the test script file
+    :param main_args: If `None`, then use `sys.argv`.
+    """
     sys.excepthook = exception_hook
 
-    args, unknown = parser.parse_known_args()
+    parser = get_parser()
+    args, unknown = parser.parse_known_args(args=main_args)
     if not args.disable_logs:
         fixate.config.LOG_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
