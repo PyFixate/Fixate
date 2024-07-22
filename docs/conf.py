@@ -15,9 +15,9 @@
 import os
 import sys
 
-# sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 #
-# import fixate
+import fixate
 
 # -- Project information -----------------------------------------------------
 
@@ -26,9 +26,9 @@ copyright = "2024, Clint Lawrence, Ryan Parry-Jones"
 author = "Clint Lawrence"
 
 # The short X.Y version
-version = "" #fixate.__version__
+version = fixate.__version__
 # The full version, including alpha/beta/rc tags
-release = "" #fixate.__version__
+release = fixate.__version__
 
 
 # -- General configuration ---------------------------------------------------
