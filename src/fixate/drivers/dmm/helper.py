@@ -69,7 +69,7 @@ class DMM:
 
     def resistance(self, _range=None):
         """
-        Sets the DMM in 2-wire resistance measurement mode and puts it in the range 
+        Sets the DMM in 2-wire resistance measurement mode and puts it in the range
         given by the argument _range. Signals expected to be measured must be < _range.
         """
         raise NotImplementedError
@@ -79,7 +79,7 @@ class DMM:
 
     def fresistance(self, _range=None):
         """
-        Sets the DMM in 4-wire resistance measurement mode and puts it in the range 
+        Sets the DMM in 4-wire resistance measurement mode and puts it in the range
         given by the argument _range. Signals expected to be measured must be < _range.
         """
         raise NotImplementedError

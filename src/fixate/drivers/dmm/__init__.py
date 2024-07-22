@@ -23,7 +23,7 @@ from fixate.drivers.dmm.helper import DMM
 def open() -> DMM:
     """
     Connect to a digital multimeter.
-    
+
     Searches for a configured instrument and returns the first one found.
 
     Returns:
