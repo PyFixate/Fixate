@@ -41,3 +41,9 @@ class ParameterisedTest(TestClass):
 
 
 TEST_SEQUENCE = [SimpleTest(), MyTestList([ParameterisedTest(1), ParameterisedTest(2)])]
+
+if __name__ == "__main__":
+    import fixate
+
+    argv = ["-p", __file__, "--serial_number", "1234567890"]
+    fixate.run(__file__, argv)

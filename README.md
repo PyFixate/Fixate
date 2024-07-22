@@ -39,6 +39,17 @@ python -m fixate -p "path_to_python_installation"/Lib/site-packages/fixate/examp
 Running on Mac is the same as running on Windows with the exception of the path to the examples. The path will be: "path_to_python_installation"/lib/pythonX.Y/site-packages/fixate/examples/
 Where X.Y is the version of python that is installed.
 
+#### Running during development
+
+For easier development, test scripts can be setup to call the fixate main as their own
+ with some default parameters, as in:
+
+python -m fixate.examples.tiny
+
+Using that `__main__` example in your own test script then means you can run it as:
+
+python -m my_test_script
+
 ## Running the tests
 In general, it is recommended to run the "core" set of tests.
 The "drivers" test have a number of dependencies that are not required by default. Tests run using unittest.
