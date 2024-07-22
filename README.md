@@ -60,6 +60,15 @@ https://fixate.readthedocs.io
 
 Contributions are welcome. Get in touch or create a new pull request.
 
+Pull requests will need to pass code checks. You can run these most easily locally via [`pre-commit`](https://pre-commit.com/):
+
+```
+pip install pre-commit
+pre-commit install --install-hooks 
+pre-commit run --all-files # if not run before on your changes, otherwise leave off the flag
+```
+
+
 ## Authors
 
 * **Ryan Parry-Jones** - *Original Developer* - [pazzarpj](https://github.com/pazzarpj)
