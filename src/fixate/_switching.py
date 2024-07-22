@@ -253,36 +253,36 @@ class VirtualMux:
         below, these are the bits for a given input to Mux A, when
         mapping all the nested Mux B signals.
 
-        example:
-        This shows 10 signals, routed through a number of multiplexers.
-        Mux B and Mux B' are distinct, but addressed with common control
-        signals. Mux C and Mux B/B' are nested to various levels into
-        the final multiplexer Mux A.
+        Example:
+            This shows 10 signals, routed through a number of multiplexers.
+            Mux B and Mux B' are distinct, but addressed with common control
+            signals. Mux C and Mux B/B' are nested to various levels into
+            the final multiplexer Mux A.
 
-        The pin_list defines the control signals from least to most significant
-        The map_tree defines the signals into each multiplexer. Nesting containers
-        reflects the nesting of mux's.
-                                          __________
-        a0-------------------------------|          |
-                              ________   |          |
-        a1_b0----------------|        |--|  Mux A   |
-        a1_b1----------------| Mux B  |  |   4:1    |
-        a1_b2----------------|  4:1   |  |          |
-                     (None)--|_x3__x2_|  |          |
-                                         |          |
-                              ________   |          |
-        a2_b0----------------|        |  |          |
-                   _______   |        |--|          |------ Output
-        a2_b1_c0--| Mux C |--| Mux B' |  |          |
-        a2_b1_c1--|  2:1  |  |  4:1   |  |          |
-                  |___x4__|  |        |  |          |
-                             |        |  |          |
-        a2_b2----------------|        |  |          |
-        a2_b3----------------|        |  |          |
-                             |_x3__x2_|  |          |
-                                         |          |
-        a3-------------------------------|          |
-                                         |__x1__x0__|
+            The pin_list defines the control signals from least to most significant
+            The map_tree defines the signals into each multiplexer. Nesting containers
+            reflects the nesting of mux's.
+                                            __________
+            a0-------------------------------|          |
+                                ________   |          |
+            a1_b0----------------|        |--|  Mux A   |
+            a1_b1----------------| Mux B  |  |   4:1    |
+            a1_b2----------------|  4:1   |  |          |
+                        (None)--|_x3__x2_|  |          |
+                                            |          |
+                                ________   |          |
+            a2_b0----------------|        |  |          |
+                    _______   |        |--|          |------ Output
+            a2_b1_c0--| Mux C |--| Mux B' |  |          |
+            a2_b1_c1--|  2:1  |  |  4:1   |  |          |
+                    |___x4__|  |        |  |          |
+                                |        |  |          |
+            a2_b2----------------|        |  |          |
+            a2_b3----------------|        |  |          |
+                                |_x3__x2_|  |          |
+                                            |          |
+            a3-------------------------------|          |
+                                            |__x1__x0__|
 
         class Mux(VirtualMux):
             pin_list = ("x0", "x1", "x2", "x3", "x4")
