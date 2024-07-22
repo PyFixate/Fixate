@@ -3,10 +3,9 @@ This is wrapped privately so it can be ommitted from the documentation build.
 """
 
 import ctypes
-import os
 import sys
 
-if os.name == "nt":
+if sys.platform == "win32":
     try:
         ftdI2xx = ctypes.WinDLL("FTD2XX.dll")
     except Exception as e:
