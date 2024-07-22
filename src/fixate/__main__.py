@@ -122,6 +122,8 @@ def get_parser():
         "--disable-logs", action="store_true", help="Turn off diagnostic logs"
     )
 
+    return parser
+
 
 def load_test_suite(script_path: str, zip_path: str, zip_selector: str):
     """
