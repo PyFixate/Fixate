@@ -15,9 +15,9 @@
 import os
 import sys
 
-import fixate
-
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
+
+import fixate
 
 # -- Project information -----------------------------------------------------
 
@@ -50,6 +50,8 @@ extensions = [
 templates_path = ["_templates"]
 
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+
+autodoc_mock_imports = ["PyQt5", "PyDAQmx", "fixate.drivers._ftdi"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
