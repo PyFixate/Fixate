@@ -51,7 +51,19 @@ templates_path = ["_templates"]
 
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
-autodoc_mock_imports = ["PyQt5", "PyDAQmx", "fixate.drivers._ftdi"]
+# Mock imports of the following packages
+# Comments following are the reason for mocking that particular import
+# All aren't necessary for the docs themselves
+autodoc_mock_imports = [
+    # import a DLL/shared lib and is platform-dependent
+    "fixate.drivers._ftdi",
+    "PyDAQmx",
+    # pulls in platform-dependent libraries
+    "pynput",
+    # large, not needed for docs
+    "PyQt5",
+    "numpy",
+]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
