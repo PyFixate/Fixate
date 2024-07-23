@@ -39,14 +39,14 @@ def get_parser():
     )
 
     # Optional Arguments
-    mutex_group = parser.add_mutually_exclusive_group()
-    mutex_group.add_argument(
+    script_group = parser.add_mutually_exclusive_group(required=True)
+    script_group.add_argument(
         "-p",
         "--path",
         help="""Path to the directory where the script file is located. 
                             This is mutually exclusive with --zip""",
     )
-    mutex_group.add_argument(
+    script_group.add_argument(
         "-z",
         "--zip",
         help="""Path to zip file of test scripts. Mutually exclusive with --path""",
