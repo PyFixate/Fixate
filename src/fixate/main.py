@@ -8,6 +8,7 @@ from functools import partial
 from importlib.machinery import SourceFileLoader
 from zipimport import zipimporter
 from pubsub import pub
+from pathlib import Path
 import fixate.config
 from fixate.core.exceptions import SequenceAbort
 from fixate.core.ui import user_info_important, user_serial, user_ok
@@ -38,14 +39,14 @@ def get_parser():
     )
 
     # Optional Arguments
-    mutex_group = parser.add_mutually_exclusive_group()
-    mutex_group.add_argument(
+    script_group = parser.add_mutually_exclusive_group(required=True)
+    script_group.add_argument(
         "-p",
         "--path",
         help="""Path to the directory where the script file is located. 
                             This is mutually exclusive with --zip""",
     )
-    mutex_group.add_argument(
+    script_group.add_argument(
         "-z",
         "--zip",
         help="""Path to zip file of test scripts. Mutually exclusive with --path""",
@@ -118,8 +119,15 @@ def get_parser():
         action="store_true",
         help="The sequencer will not prompt for retries.",
     )
-    parser.add_argument(
+    diagnostic_group = parser.add_mutually_exclusive_group()
+    diagnostic_group.add_argument(
         "--disable-logs", action="store_true", help="Turn off diagnostic logs"
+    )
+    diagnostic_group.add_argument(
+        "--diagnostic-log-dir",
+        default=fixate.config.LOG_DIRECTORY,
+        type=Path,
+        help="Directory to store the diagnostic log",
     )
 
     return parser
@@ -399,10 +407,10 @@ def run_main_program(test_script_path=None, main_args=None):
     parser = get_parser()
     args, unknown = parser.parse_known_args(args=main_args)
     if not args.disable_logs:
-        fixate.config.LOG_DIRECTORY.mkdir(parents=True, exist_ok=True)
+        args.diagnostic_log_dir.mkdir(parents=True, exist_ok=True)
 
         handler = RotateEachInstanceHandler(
-            fixate.config.LOG_DIRECTORY / "fixate.log", backupCount=10
+            args.diagnostic_log_dir / "fixate.log", backupCount=10
         )
         handler.setFormatter(
             logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
