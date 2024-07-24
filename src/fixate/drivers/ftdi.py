@@ -8,6 +8,7 @@ import fixate.drivers
 from fixate.core.common import bits
 from fixate.core.exceptions import InstrumentNotConnected
 
+from fixate.drivers._ftdi import ftdI2xx
 
 # Definitions
 UCHAR = ctypes.c_ubyte
@@ -111,21 +112,6 @@ class PARITY(object):
     FT_PARITY_MARK = UCHAR(3)
     FT_PARITY_SPACE = UCHAR(4)
 
-
-if os.name == "nt":
-    try:
-        ftdI2xx = ctypes.WinDLL("FTD2XX.dll")
-    except Exception as e:
-        raise ImportError(
-            "Unable to find FTD2XX.dll.\nPlugging in an FTDI device will install the DLL."
-        ) from e
-else:
-    try:
-        ftdI2xx = ctypes.cdll.LoadLibrary("/usr/local/lib/libftd2xx.so")
-    except Exception as e:
-        raise ImportError(
-            "Unable to find libftd2xx.so.\nInstall as per https://www.ftdichip.com/Drivers/D2XX/Linux/ReadMe-linux.txt"
-        ) from e
 
 _ipdwNumDevs = DWORD(0)
 _p_ipdwNumDevs = LPDWORD(_ipdwNumDevs)

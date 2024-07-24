@@ -68,16 +68,19 @@ class DriverMeta(type):
 class Driver(metaclass=DriverMeta):
     """
     Driver base class for creating self connecting drivers.
-    connect is called whenever a public method api call is made and is_connected = False
-    ie.
-    def _my_func(self):
-        pass
-    will not call connect as it is a private function by convention whereas
-    def my_func(self):
-        pass
-    will.
-    Exceptions to this rule are connect, disconnect and function strings as can be defined by creating a list called
-    _connect_ignore on class definition
+
+    `connect()` is called whenever a public method api call is made and `is_connected = False`::
+
+        def _my_func(self):
+            pass
+
+    will not call connect, as it is a private function by convention. Whereas this will::
+
+        def my_func(self):
+            pass
+
+    Exceptions to this rule are `connect()`, `disconnect()` and function strings as can be defined
+    by creating a list called `_connect_ignore` on the class definition
     """
 
     is_connected = False
@@ -85,17 +88,15 @@ class Driver(metaclass=DriverMeta):
     # _connect_ignore = ['ignored_func1','ignored_func2'] # Set this parameter in derived class definition if required
     def connect(self):
         """
-        Override connect function but ensure that self.is_connected is set if connected or an exception occurs if
-        connection could not be established
-        :return:
+        Override `connect()` function, but ensure that `self.is_connected` is set if connected
+        or an exception occurs if connection could not be established
         """
         print("Connected to {}".format(self.__class__.__name__))
         self.is_connected = True
 
     def disconnect(self):
         """
-        Override disconnect function but ensure that self.is_connect is set to False
-        :return:
+        Override disconnect function, but ensure that `self.is_connected` is set to `False`
         """
         print("Disconnected from {}".format(self.__class__.__name__))
         self.is_connected = False
@@ -104,11 +105,14 @@ class Driver(metaclass=DriverMeta):
 class DriverManager:
     """
     Driver manager allows for multiple drivers to be collated and managed from a central location.
-    Drivers must be either derived from the driver class or must implement a the functions
-    def connect(self): # No Parameters
-    def disconnect(self): # No Parameters
-    and have an attribute
-    is_connected (Boolean)
+    Drivers must be either derived from the driver class or must implement the functions::
+
+        def connect(self): # No Parameters
+        def disconnect(self): # No Parameters
+
+    and have an attribute::
+
+        is_connected (Boolean)
     """
 
     def __init__(self, **kwargs):
@@ -118,32 +122,40 @@ class DriverManager:
 
     def add_drivers(self, **kwargs):
         """
-        :param kwargs: kwargs of <id>=<driver>.
-        Eg.
-        >>>class MyDmm(Driver):
-        >>>    def hello(self):
-        >>>        print("World")
-        >>>dm = DriverManager(dmm=MyDmm())
-        >>>dm.dmm.hello()
-        World
-        :return:
+        Args:
+            kwargs (dict): kwargs of <id>=<driver>.
+
+        Returns:
+            None
+
+        Example:
+            >>> class MyDmm(Driver):
+            >>>     def hello(self):
+            >>>         print("World")
+            >>> dm = DriverManager(dmm=MyDmm())
+            >>> dm.dmm.hello()
+            World
         """
         self.drivers.update(kwargs)
 
     def remove_drivers(self, *ids):
         """
-        :param ids: Drivers to be removed
-        eg.
-        >>>class MyDmm(Driver):
-        >>>    def hello(self):
-        >>>        print("Hello World")
-        >>>dm = DriverManager(dmm=MyDmm(), dmm2=MyDmm())
-        >>>dm.dmm.hello()
-        Hello World
-        >>>dm.remove_drivers('dmm', 'dmm2')
-        >>>dm.dmm.hello()
-        AttributeError: 'DriverManager' object has no attribute 'dmm'
-        :return:
+        Args:
+            ids: Drivers to be removed
+
+        Returns:
+            None
+
+        Example:
+            >>> class MyDmm(Driver):
+            >>>     def hello(self):
+            >>>         print("Hello World")
+            >>> dm = DriverManager(dmm=MyDmm(), dmm2=MyDmm())
+            >>> dm.dmm.hello()
+            Hello World
+            >>> dm.remove_drivers('dmm', 'dmm2')
+            >>> dm.dmm.hello()
+            AttributeError: 'DriverManager' object has no attribute 'dmm'
         """
         for id in ids:
             drv = self.drivers.get(id)
@@ -159,11 +171,15 @@ class DriverManager:
         """
         Registers a cleanup function to be executed on cleanup_execute call.
         The registered functions are executed in the order they are added via this function.
-        Use the cleanup_clear to remove all the registered cleanup functions
-        :param func: function as directly refrenced. eg. dm.dmm.disconnect
-        :param args: The arguments that should be called with the func
-        :param kwargs: The keyword arguments that should be called with the func
-        :return: None
+        Use `cleanup_clear()` to remove all the registered cleanup functions
+
+        Args:
+            func: function as directly refrenced. eg. `dm.dmm.disconnect`
+            *args: The arguments that should be called with the func
+            **kwargs: The keyword arguments that should be called with the func
+
+        Returns:
+            None
         """
         self._cleanup.append(partial(func, *args, **kwargs))
 

@@ -82,7 +82,7 @@ class FxConfigCmd(cmd2.Cmd):
         self.complete_open = self.path_complete
 
     def postloop(self):
-        # Print a new line so the shell prompt get printed on a it's own line after we exit
+        """Print a new line so the shell prompt get printed on its own line after we exit"""
         self.poutput("")
 
     @cmd2.with_argparser(add_parser)
@@ -349,10 +349,13 @@ class FxConfigCmd(cmd2.Cmd):
 # but I want to avoid messing with the internals for now.
 def visa_id_query(visa_resource_name):
     """
-    Attempt to open `visa_resource_name` and if successful, send an *IDN? command. Return
-    the result of the idn command as a string.
-    :param visa_resource_name:
-    :return:
+    Attempt to open `visa_resource_name` and if successful, send an `*IDN?` command.
+
+    Args:
+        visa_resource_name:
+
+    Returns:
+        str: result of the idn command
     """
     instr = pyvisa.ResourceManager().open_resource(visa_resource_name, query_delay=0.1)
     # 1 s timeout is overly conservative. But if we call clear() that can take a while for some instruments
