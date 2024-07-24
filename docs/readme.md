@@ -25,10 +25,9 @@ Currently we have the following:
 
 # Building
 
-- Uses [Sphinx](https://www.sphinx-doc.org/)
-- `tox -e docs` will build, see `tox.ini::[testenv:docs]` section
-    - underneath it, with an appropriate venv: `fixate/docs > sphinx-build . _build`
-- `docs/conf.py` has the configuration for build
+The documentation build uses the Python-standard [Sphinx](https://www.sphinx-doc.org/), with configuration contained in `docs/conf.py`.
+
+`tox -e docs` will run the docs build. See the `[testenv:docs]` section in `tox.ini` for configuration. Under the hood, it's essentially running `fixate/docs > sphinx-build <doc_src> <doc_dest>` in a venv with the requirements from docs/requirements.
 
 # Docs from code
 
