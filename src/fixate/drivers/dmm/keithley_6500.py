@@ -7,23 +7,26 @@ from logging import getLogger
 
 logger = getLogger(__name__)
 
+
 @dataclass
 class DMMRanges:
     """
     Class to store DMM range definitions. These are taken from the DMM User Manual / Specifications.
     """
+
     # Overrange is 20% on all ranges except 1000 VDC which is 1%
-    current_dc = (10e-6, 100e-6, 1e-3, 10e-3, 100e-3, 1, 3, 10) # Not all of these ranges are available. Modified to match Fluke DMM in some cases. 
+    # fmt: off
+    current_dc = ( 10e-6, 100e-6, 1e-3, 10e-3, 100e-3, 1, 3, 10,)  # Not all of these ranges are available. Modified to match Fluke DMM in some cases.
     current_ac = (100e-3, 1e-3, 10e-3, 100e-3, 1, 3, 10)
-    voltage_dc = (0.1, 1, 10, 100, 1000) 
+    voltage_dc = (0.1, 1, 10, 100, 1000)
     voltage_ac = (100e-3, 1, 10, 100, 750)
     resistance = (1, 10, 100, 1e3, 10e3, 100e3, 1e6, 10e6, 100e6)
-    temperature = () # Empty. No ranges for temperature
-    frequency = (300e-3,) # No adjustable range for frequency. Just put maximum range here.
-    period = (3.3e-6,) # No adjustable range for period. Just put maximum range here.
-    continuity = (1e3,) # No selectable range for continuity. Put maximum range here.
+    temperature = ()  # Empty. No ranges for temperature
+    frequency = ( 300e-3,)  # No adjustable range for frequency. Just put maximum range here.
+    period = (3.3e-6,)  # No adjustable range for period. Just put maximum range here.
+    continuity = (1e3,)  # No selectable range for continuity. Put maximum range here.
     capacitance = (1e-9, 10e-9, 100e-9, 1e-6, 10e-6, 100e-6)
-    diode = (10,) # No selectable range for diode. Default is 10V
+    diode = (10,)  # No selectable range for diode. Default is 10V
 
     # Helper to map a mode to a range
     # Note: This means we have to keep self._modes and this dictionary in sync. Maybe there is a better way to do this?
@@ -33,14 +36,15 @@ class DMMRanges:
         "voltage_dc": voltage_dc,
         "voltage_ac": voltage_ac,
         "resistance": resistance,
-        "fresistance": resistance, # Four wire resistance uses the same ranges as two wire
-        "temperature": temperature, # Not currently implemented in the driver.
+        "fresistance": resistance,  # Four wire resistance uses the same ranges as two wire
+        "temperature": temperature,  # Not currently implemented in the driver.
         "frequency": frequency,
         "period": period,
         "continuity": continuity,
         "capacitance": capacitance,
-        "diode": diode
+        "diode": diode,
     }
+    # fmt: on
 
 
 class Keithley6500(DMM):
@@ -80,7 +84,7 @@ class Keithley6500(DMM):
             "diode": "DIOD",
         }
 
-        self.range = None # Currently selected range. Can be None if the mode does not have a range.
+        self.range = None  # Currently selected range. Can be None if the mode does not have a range.
         self._init_string = ""  # Unchanging
 
     # Adapted for different DMM behaviour
@@ -187,7 +191,7 @@ class Keithley6500(DMM):
         self._write("*RST")
         self._CLEAN_UP_FLAG = False
         self._is_error()
-        self.instrument.clear() # Clear buffer after reset
+        self.instrument.clear()  # Clear buffer after reset
 
     def __enter__(self):
         return self
@@ -285,7 +289,7 @@ class Keithley6500(DMM):
         :param _range:
         :return:
         """
-        self.mode = mode # Update the mode.
+        self.mode = mode  # Update the mode.
         self._manual_trigger = False
         self.range = self._select_range(_range)
 
@@ -298,23 +302,25 @@ class Keithley6500(DMM):
         self._write(mode_str)
         self._write(f":COUN {self.samples}")
         self._is_error()
-        
+
     def _select_range(self, value):
         """
         Selects the appropriate range for the DMM to measure "value"
-        
+
         return: Range value to set on the DMM
         raise: ParameterError if the range is not valid for the mode (over range)
         """
-        # Some modes don't have a range. Return None if this is the case.
+        # Some modes don't have adjustable range. Return None if this is the case.
         if value is None:
             return None
 
-        ranges = self._get_ranges() # Get ranges for the current mode
+        ranges = self._get_ranges()  # Get ranges for the current mode
         for i in ranges:
             if abs(value) <= i:
                 return i
-        raise ParameterError(f"Requested range '{value}' is too large for mode '{self.mode}'")
+        raise ParameterError(
+            f"Requested range '{value}' is too large for mode '{self.mode}'"
+        )
 
     def _get_ranges(self):
         """
@@ -322,9 +328,8 @@ class Keithley6500(DMM):
         """
         if self.mode is None:
             raise InstrumentError("DMM mode is not set. Cannot return range")
-        
+
         return DMMRanges.mode_to_range[self.mode]
-            
 
     def voltage_ac(self, _range=None):
         self._set_measurement_mode("voltage_ac", _range)
@@ -340,13 +345,13 @@ class Keithley6500(DMM):
     def current_ac(self, _range=None):
         if _range >= 400e-3:
             # Modify the range to match the Fluke DMM port ranges
-            _range = 10 # 10A range will use the 10A port
+            _range = 10  # 10A range will use the 10A port
         self._set_measurement_mode("current_ac", _range)
 
     def current_dc(self, _range=None):
         if _range >= 400e-3:
             # Modify the range to match the Fluke DMM port ranges
-            _range = 10 # 10A range will use the 10A port
+            _range = 10  # 10A range will use the 10A port
         self._set_measurement_mode("current_dc", _range)
 
     def resistance(self, _range=None):
