@@ -301,8 +301,7 @@ class Keithley6500(DMM):
         
     def _select_range(self, value):
         """
-        Translates the range value given to a mode function for the DMM
-        selects the appropriate range for the DMM to measure "value"
+        Selects the appropriate range for the DMM to measure "value"
         
         return: Range value to set on the DMM
         raise: ParameterError if the range is not valid for the mode (over range)
