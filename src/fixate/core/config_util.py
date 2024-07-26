@@ -32,8 +32,6 @@ fx> new <path>                              # like open, but creates a new file 
 
 """
 
-# TODO: Prevent writing duplicate to the config.
-
 
 choices = ["existing", "updated", "visa"]
 # create the top-level parser for the base command
