@@ -99,9 +99,7 @@ class FxConfigCmd(cmd2.Cmd):
             self.perror("instrument not found")
             self.perror(e)
         else:
-            self.updated_config_dict["INSTRUMENTS"]["visa"].append(
-                [idn.strip(), resource_name]
-            )
+            self._add_visa_to_config(idn, resource_name)
 
     def _do_add_visa_serial(self, args):
         resource_name = "ASRL{}::INSTR".format(args.port)
@@ -113,9 +111,7 @@ class FxConfigCmd(cmd2.Cmd):
             self.perror("instrument not found")
             self.perror(e)
         else:
-            self.updated_config_dict["INSTRUMENTS"]["visa"].append(
-                [idn.strip(), resource_name]
-            )
+            self._add_visa_to_config(idn, resource_name)
 
     def _do_add_usb(self, args):
         rm = pyvisa.ResourceManager()
@@ -128,9 +124,8 @@ class FxConfigCmd(cmd2.Cmd):
             selection = int(selection) - 1
             if 0 <= selection < len(resource_list):
                 resource_name = resource_list[selection]
-                self.updated_config_dict["INSTRUMENTS"]["visa"].append(
-                    [visa_id_query(resource_name).strip(), resource_name]
-                )
+                idn = visa_id_query(resource_name).strip()
+                self._add_visa_to_config(idn, resource_name)
                 self.poutput("'{}' added to config.".format(resource_name))
             else:
                 self.poutput("Selection not valid")
@@ -139,10 +134,21 @@ class FxConfigCmd(cmd2.Cmd):
 
     def _do_add_serial(self, args):
         idn = serial_id_query(args.port, args.baudrate)
-        self.updated_config_dict["INSTRUMENTS"]["serial"][args.port] = [
-            idn,
-            args.baudrate,
-        ]
+        try:
+            self.updated_config_dict["INSTRUMENTS"]["serial"][args.port]
+        except KeyError:
+            self.updated_config_dict["INSTRUMENTS"]["serial"][args.port] = [
+                idn,
+                args.baudrate,
+            ]
+        else:
+            self.poutput("Serial port already in config")
+
+    def _add_visa_to_config(self, idn, resource_name):
+        if idn in [x[0] for x in self.updated_config_dict["INSTRUMENTS"]["visa"]]:
+            self.poutput("Instrument already in config")
+        else:
+            self.updated_config_dict["INSTRUMENTS"]["visa"].append([idn, resource_name])
 
     add_visa_tcp_parser.set_defaults(func=_do_add_visa_tcp)
     add_visa_serial_parser.set_defaults(func=_do_add_visa_serial)
