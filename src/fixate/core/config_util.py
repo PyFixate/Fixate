@@ -3,7 +3,6 @@ import argparse
 import pyvisa
 import json
 import copy
-import platformdirs
 from shutil import copy2
 from pathlib import Path
 from cmd2.ansi import style, Fg
