@@ -140,7 +140,7 @@ class FxConfigCmd(cmd2.Cmd):
                 args.baudrate,
             ]
         else:
-            self.poutput("Serial port already in config")
+            self.poutput(f"Serial port {args.port} already in config")
 
     def _add_visa_to_config(self, idn, resource_name):
         if idn in [x[0] for x in self.updated_config_dict["INSTRUMENTS"]["visa"]]:
