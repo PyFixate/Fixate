@@ -68,8 +68,8 @@ class FxConfigError(Exception):
 class FxConfigCmd(cmd2.Cmd):
     prompt = "fx>"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.config_file_path = None
         self.existing_config_dict = None
         self.updated_config_dict = None
