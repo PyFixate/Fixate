@@ -29,10 +29,29 @@ def test_open_fxconfig_no_file(test_app):
         test_app.do_open("")
 
 
-def test_new_config_file(test_app, config_file_dir):
+def test_new_config_file(test_app, config_file_dir, capfd):
     # don't want to use the default path.
     # the default path (based on `INSTRUMENT_CONFIG_FILE`) on mac apparently doesn't work because of permissions.
-    out = test_app.do_new(config_file_dir + "/test_config.json")
+    test_app.do_new(config_file_dir + "/test_config.json")
+    out = capfd.readouterr()
     assert (
         out.out
     ).strip() == f"Config loaded: {config_file_dir + '/test_config.json'}"
+
+
+def test_new_config_file_exists(test_app, config_file_dir):
+    # create an empty file, could also just call do_new twice.
+    with open(config_file_dir + "/test_config.json", "w") as f:
+        f.write("")
+
+    with pytest.raises(Exception):
+        test_app.do_new(config_file_dir + "/test_config.json")
+
+
+def test_open_fxconfig(test_app, config_file_dir, capfd):
+    # use the template config file to test the open command.
+    test_app.do_open("src/fixate/config/local_config.json.tmpl")
+    out = capfd.readouterr()
+    assert (
+        out.out
+    ).strip() == f"Config loaded: {'src/fixate/config/local_config.json.tmpl'}"
