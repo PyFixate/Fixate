@@ -48,7 +48,7 @@ def test_new_config_file_exists(test_app, config_file_dir):
         test_app.do_new(config_file_dir + "/test_config.json")
 
 
-def test_open_fxconfig(test_app, config_file_dir, capfd):
+def test_open_fxconfig(test_app, capfd):
     # use the template config file to test the open command.
     test_app.do_open("src/fixate/config/local_config.json.tmpl")
     out = capfd.readouterr()
