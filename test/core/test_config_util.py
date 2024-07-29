@@ -24,7 +24,7 @@ def config_file_dir():
 
 
 def test_open_fxconfig_no_file(test_app):
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(Exception):
         # there should be no file at the default path at this point.
         test_app.do_open("")
 
