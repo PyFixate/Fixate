@@ -1,5 +1,6 @@
 import pytest
 from fixate.core import config_util
+from fixate import config
 import cmd2_ext_test
 
 
@@ -22,7 +23,10 @@ def open_config_file(test_app):
     yield test_app
 
 
-def test_open_fxconfig_no_file(test_app):
+def test_open_fxconfig_no_file(test_app, monkeypatch):
+    # for local testing we don't want the tests picking up the default config file.
+    # So patch it to simulate no file.
+    monkeypatch.setattr(config, "INSTRUMENT_CONFIG_FILE", "")
     with pytest.raises(Exception):
         # there should be no file at the default path at this point.
         test_app.do_open("")
