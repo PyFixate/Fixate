@@ -19,7 +19,7 @@ def test_app():
 
 @pytest.fixture
 def open_config_file(test_app):
-    test_app.do_open("src/fixate/config/local_config.json.tmpl")
+    test_app.do_open("test/config/instruments.json")
     yield test_app
 
 
