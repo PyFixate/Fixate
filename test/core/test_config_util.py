@@ -18,12 +18,6 @@ def test_app():
 
 
 @pytest.fixture
-def config_file_dir():
-    with TemporaryDirectory() as tmpdir:
-        yield tmpdir
-
-
-@pytest.fixture
 def open_config_file(test_app):
     test_app.do_open("src/fixate/config/local_config.json.tmpl")
     yield test_app
@@ -44,19 +38,19 @@ def test_new_config_file_default(test_app, capfd):
     assert (out.out).strip() == f"Config loaded: {config_util.INSTRUMENT_CONFIG_FILE}"
 
 
-def test_new_config_file(test_app, config_file_dir, capfd):
+def test_new_config_file(test_app, tmp_path, capfd):
     # don't want to use the default path.
     # the default path (based on `INSTRUMENT_CONFIG_FILE`) on mac apparently doesn't work because of permissions.
-    test_app.do_new(config_file_dir + "/test_config.json")
+    test_app.do_new(tmp_path + "/test_config.json")
     out = capfd.readouterr()
     assert (
         out.out
     ).strip() == f"Config loaded: {config_file_dir + '/test_config.json'}"
 
 
-def test_new_config_file_exists(test_app, config_file_dir):
+def test_new_config_file_exists(test_app, temp_path):
     # create an empty file, could also just call do_new twice.
-    with open(config_file_dir + "/test_config.json", "w") as f:
+    with open(temp_path + "/test_config.json", "w") as f:
         f.write("")
 
     with pytest.raises(Exception):
