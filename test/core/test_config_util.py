@@ -32,13 +32,12 @@ def test_open_fxconfig_no_file(test_app, monkeypatch):
         test_app.do_open("")
 
 
-@pytest.mark.windows
-def test_new_config_file_default(test_app, capfd):
-    # on windows, the default path should work without elevation.
-    # on mac, the default path required fxconfig to be run with elevated permissions.
+def test_new_config_file_default(test_app, monkeypatch, tmp_path, capfd):
+    # monkeypath the default path to 1: avoid the default path and 2: avoid permissions issues on mac.
+    monkeypatch.setattr(config, "INSTRUMENT_CONFIG_FILE", tmp_path / "test_config.json")
     test_app.do_new("")
     out = capfd.readouterr()
-    assert (out.out).strip() == f"Config loaded: {config_util.INSTRUMENT_CONFIG_FILE}"
+    assert (out.out).strip() == f"Config loaded: {config.INSTRUMENT_CONFIG_FILE}"
 
 
 def test_new_config_file(test_app, tmp_path, capfd):
