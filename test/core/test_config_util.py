@@ -42,18 +42,16 @@ def test_new_config_file(test_app, tmp_path, capfd):
     # the default path (based on `INSTRUMENT_CONFIG_FILE`) on mac apparently doesn't work because of permissions.
     test_app.do_new(tmp_path + "/test_config.json")
     out = capfd.readouterr()
-    assert (
-        out.out
-    ).strip() == f"Config loaded: {config_file_dir + '/test_config.json'}"
+    assert (out.out).strip() == f"Config loaded: {tmp_path + '/test_config.json'}"
 
 
-def test_new_config_file_exists(test_app, temp_path):
+def test_new_config_file_exists(test_app, tmp_path):
     # create an empty file, could also just call do_new twice.
-    with open(temp_path + "/test_config.json", "w") as f:
+    with open(tmp_path + "/test_config.json", "w") as f:
         f.write("")
 
     with pytest.raises(Exception):
-        test_app.do_new(config_file_dir + "/test_config.json")
+        test_app.do_new(tmp_path + "/test_config.json")
 
 
 def test_open_fxconfig(test_app, capfd):
