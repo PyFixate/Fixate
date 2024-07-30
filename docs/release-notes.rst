@@ -2,6 +2,27 @@
 Release Notes
 ==================================
 *************
+Version 0.6.3
+*************
+Release Date xx/xx/xx
+
+New Features
+############
+- API docs are not auto generated. However, work is still ongoing to update
+  them and to clarify public APIs vs internal implementation details.
+- A new jig switching manager is added. Similar to fixate.core.jig_mapping, but
+  easier to use and much improved implementation details.
+- ``--diagnostic-log-dir`` cli argument control the log file location, instead of
+  always using the platform default
+- A new function, ``fixate.run()``, which can be used to make a script self executing.
+
+
+Improvements
+############
+- Test now run on MacOS
+- Developer workflow improvements by adding pre-commit tool
+
+*************
 Version 0.6.2
 *************
 Release Date 05/06/24
