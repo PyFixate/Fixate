@@ -51,7 +51,7 @@ def test_new_config_file(test_app, tmp_path, capfd):
 
 def test_new_config_file_exists(test_app, tmp_path):
     # create an empty file, could also just call do_new twice.
-    with open(tmp_path + "/test_config.json", "w") as f:
+    with open(tmp_path / "test_config.json", "w") as f:
         f.write("")
 
     with pytest.raises(Exception):
