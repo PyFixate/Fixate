@@ -49,7 +49,6 @@ extensions = [
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # Mock imports of the following packages
 # Comments following are the reason for mocking that particular import
@@ -84,7 +83,11 @@ language = "en"
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None

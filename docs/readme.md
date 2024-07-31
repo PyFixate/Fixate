@@ -55,6 +55,8 @@ If the package structure changes, then the sphinx-apidocs call above will need t
 
 While the apidoc potentially could be re-run on every build, at least for now I think better to commit in the original run, and then the structure of the api reference can be tweaked to best surface the most important info.
 
+Note: The auto-generated template has been manually modified. Re-running sphinx-apidoc in the future will need to preserve those changes, or incorporate them into the source somehow.
+
 ## docstring style
 
 Autodoc originally used ReStructured Text docstring style, but the [sphix.ext.napoleon](https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html) extension allows [Google](https://www.sphinx-doc.org/en/master/usage/extensions/example_google.html#example-google)/NumPy style.
