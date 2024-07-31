@@ -13,14 +13,15 @@ New Features
 - A new jig switching manager is added. Similar to fixate.core.jig_mapping, but
   easier to use and much improved implementation details.
 - ``--diagnostic-log-dir`` cli argument control the log file location, instead of
-  always using the platform default
+  always using the platform default.
 - A new function, ``fixate.run()``, which can be used to make a script self executing.
 
 
 Improvements
 ############
 - Test now run on MacOS
-- Developer workflow improvements by adding pre-commit tool
+- Developer workflow improvements by adding pre-commit tool.
+- Move the examples folder out of the package so they are easier to run.
 
 *************
 Version 0.6.2
