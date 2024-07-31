@@ -8,7 +8,7 @@ Release Date xx/xx/xx
 
 New Features
 ############
-- API docs are not auto generated. However, work is still ongoing to update
+- API docs are now generated for the source docstrings. However, work is still ongoing to update
   them and to clarify public APIs vs internal implementation details.
 - A new jig switching manager is added. Similar to fixate.core.jig_mapping, but
   easier to use and much improved implementation details.
