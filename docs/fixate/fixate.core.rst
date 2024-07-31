@@ -25,14 +25,6 @@ fixate.core.common module
    :undoc-members:
    :show-inheritance:
 
-fixate.core.config\_util module
--------------------------------
-
-.. automodule:: fixate.core.config_util
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 fixate.core.control module
 --------------------------
 
@@ -45,14 +37,6 @@ fixate.core.exceptions module
 -----------------------------
 
 .. automodule:: fixate.core.exceptions
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-fixate.core.jig\_mapping module
--------------------------------
-
-.. automodule:: fixate.core.jig_mapping
    :members:
    :undoc-members:
    :show-inheritance:

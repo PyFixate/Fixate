@@ -6,27 +6,36 @@ fixate package
    :undoc-members:
    :show-inheritance:
 
+.. autoclass:: VirtualMux
+   :members:
+
+.. autoclass:: VirtualSwitch
+   :members:
+
+.. autoclass:: RelayMatrixMux
+   :members:
+
+.. autoclass:: AddressHandler
+   :members:
+
+.. autoclass:: PinValueAddressHandler
+   :members:
+
+.. autoclass:: MuxGroup
+   :members:
+
+.. autoclass:: JigDriver
+   :members:
+
+.. autofunction:: generate_pin_group
+
+.. autofunction:: generate_relay_matrix_pin_list
+
 Subpackages
 -----------
 
 .. toctree::
    :maxdepth: 4
 
-   fixate.config
    fixate.core
    fixate.drivers
-   fixate.examples
-   fixate.reporting
-   fixate.ui_cmdline
-   fixate.ui_gui_qt
-
-Submodules
-----------
-
-fixate.sequencer module
------------------------
-
-.. automodule:: fixate.sequencer
-   :members:
-   :undoc-members:
-   :show-inheritance:

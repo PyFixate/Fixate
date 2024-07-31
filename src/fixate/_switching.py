@@ -535,7 +535,7 @@ class AddressHandler:
         open it.
 
         :param pins: is a collection of pins that should be made active. All other
-        pins defined by the AddressHandler should be cleared.
+            pins defined by the AddressHandler should be cleared.
         """
         raise NotImplementedError
 
@@ -660,12 +660,12 @@ class MuxGroup:
     Group multiple VirtualMux's, for use in a single Jig Driver.
 
     If a test script, it is expected that MuxGroup will be subclassed, with attributes
-    being each required VirtualMux subclass. This can be done using a dataclass:
+    being each required VirtualMux subclass. This can be done using a dataclass::
 
-    @dataclass
-    class JigMuxGroup(MuxGroup):
-        mux_one: MuxOne = field(default_factory=MuxOne)
-        mux_two: MuxTwo = field(default_factory=MuxTwo)
+        @dataclass
+        class JigMuxGroup(MuxGroup):
+            mux_one: MuxOne = field(default_factory=MuxOne)
+            mux_two: MuxTwo = field(default_factory=MuxTwo)
     """
 
     def get_multiplexers(self) -> list[VirtualMux]:
@@ -817,12 +817,13 @@ def generate_relay_matrix_pin_list(
     """
     Create a pin list for multiple relay matrix modules.
 
-    Each module is allocated 16 pins
-    generate_relay_matrix_pin_list([1,2,3]) ->
-        ("1K1", "1K2", ..., "1K16", "2K1", ..., "2K16", "3K1", ..., "3K16")
+    Each module is allocated 16 pins. For example::
+        generate_relay_matrix_pin_list([1,2,3]) ->
+            ("1K1", "1K2", ..., "1K16", "2K1", ..., "2K16", "3K1", ..., "3K16")
 
-    generate_relay_matrix_pin_list([2,3,1], prefix="RM") ->
-        ("RM2K1", "RM2K2", ..., "RM2K16", "RM3K1", ..., "RM3K16", "RM1K1", ..., "RM1K16")
+    You can add a prefix. For example, we ofter use 'RM' for Relay Matrix::
+        generate_relay_matrix_pin_list([2,3,1], prefix="RM") ->
+            ("RM2K1", "RM2K2", ..., "RM2K16", "RM3K1", ..., "RM3K16", "RM1K1", ..., "RM1K16")
 
     Combination generate_relay_matrix_pin_list and generate_pin_group to create pins
     as needed for a specific jig configuration.
