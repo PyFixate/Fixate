@@ -60,9 +60,7 @@ def test_new_config_file_exists(test_app, tmp_path):
 def test_open_fxconfig(test_app, capfd):
     test_app.do_open("test/config/instruments.json")
     out = capfd.readouterr()
-    assert (
-        out.out
-    ).strip() == f"Config loaded: {'src/fixate/config/local_config.json.tmpl'}"
+    assert (out.out).strip() == f"Config loaded: {'test/config/instruments.json'}"
 
 
 def test_list_existing(test_app, open_config_file, capfd):
