@@ -267,10 +267,10 @@ class FTDI2xx(object):
 
     def write_bit_mode(self, mask, validate=False):
         """
-        :param mask: value to write for the mask
-            for BIT_MODE.FT_BITMODE_CBUS_BITBANG
-            upper nibble is input (0) output (1)
-            lower nibble is pin value low (0) high (1)
+        :param mask: value to write for the mask for ``BIT_MODE.FT_BITMODE_CBUS_BITBANG``
+
+            * upper nibble is input (0) output (1)
+            * lower nibble is pin value low (0) high (1)
         """
         check_return(ftdI2xx.FT_SetBitMode(self.handle, UCHAR(mask), self.bit_mode))
         data_bus = UCHAR()
@@ -387,8 +387,9 @@ class FTDI2xx(object):
         :param latch_mask: CBUS Pin for latch. 1 Default for Relay Matrix
         :param clk_mask: CBUS Pin for clock. 2 Default for Relay Matrix
         :param data_mask: CBUS Pin for data. 4 Default for Relay Matrix
-        :param invert_mask: Mask for inverting. 0b111 For all inverted 0b000 for all non inverted
-            based on MSB 0b<latch><clock><data> LSB
+        :param invert_mask: Mask for inverting. Based on ``0b<latch><clock><data>``
+
+            e.g. ``0b100`` Would mean the latch bit is inverted. ``0b011`` would mean the clock and data bits are inverted.
         :return:
         """
         self.bb_bytes = bytes_required

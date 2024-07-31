@@ -818,10 +818,12 @@ def generate_relay_matrix_pin_list(
     Create a pin list for multiple relay matrix modules.
 
     Each module is allocated 16 pins. For example::
+
         generate_relay_matrix_pin_list([1,2,3]) ->
             ("1K1", "1K2", ..., "1K16", "2K1", ..., "2K16", "3K1", ..., "3K16")
 
     You can add a prefix. For example, we ofter use 'RM' for Relay Matrix::
+
         generate_relay_matrix_pin_list([2,3,1], prefix="RM") ->
             ("RM2K1", "RM2K2", ..., "RM2K16", "RM3K1", ..., "RM3K16", "RM1K1", ..., "RM1K16")
 
