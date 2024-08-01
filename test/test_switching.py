@@ -15,6 +15,8 @@ from fixate._switching import (
     JigDriver,
 )
 
+from typing import Literal, Union, TypeVar, get_args, get_origin, Annotated
+
 import pytest
 
 ################################################################
@@ -592,3 +594,157 @@ def test_pin_update_or():
         2.0,
     )
     assert expected == a | b
+
+
+# fmt: off
+MuxASigDef = Union[
+    Annotated[Literal["sig_a1"], "a0", "a1"], 
+    Annotated[Literal["sig_a2"], "a1"]
+]
+# fmt: on
+
+
+def test_typed_mux_using_subclass():
+    class SubMux(VirtualMux[MuxASigDef]):
+        pass
+
+    sm = SubMux(update_pins=print)
+    assert sm._signal_map == MuxA()._signal_map
+    assert sm._pin_set == MuxA()._pin_set
+
+
+def test_typed_relaymux_using_subclass():
+    class SubRelayMux(RelayMatrixMux[MuxASigDef]):
+        pass
+
+    srm = SubRelayMux()
+    assert srm._signal_map == MuxA()._signal_map
+    assert srm._pin_set == MuxA()._pin_set
+
+
+def test_typed_mux_generic_subclass():
+    T = TypeVar("T", bound=str)
+
+    class GenericSubMux(VirtualMux[T]):
+        pass
+
+    class ConcreteMux(GenericSubMux[MuxASigDef]):
+        pass
+
+    gsm = ConcreteMux()
+    assert gsm._signal_map == MuxA()._signal_map
+    assert gsm._pin_set == MuxA()._pin_set
+
+
+def test_typed_mux_one_signal():
+
+    muxbdef = Annotated[Literal["sig1"], "a0"]
+
+    class MuxB(VirtualMux[muxbdef]):
+        ...
+
+    clear = PinSetState(off=frozenset({"a0"}))
+    a1 = PinSetState(on=frozenset({"a0"}))
+
+    updates = []
+    muxb = MuxB(update_pins=lambda x, y: updates.append((x, y)))
+    muxb("sig1")
+    assert updates.pop() == (PinUpdate(PinSetState(), a1), True)
+
+    muxb("")
+    assert updates.pop() == (PinUpdate(PinSetState(), clear), True)
+
+
+def test_annotated_preserve_pin_defs():
+    annotated = Annotated[Literal["sig_a1"], "a0", "a1"]
+    sigdef, *pins = get_args(annotated)
+
+
+def test_annotated_raises_on_missing_pin_def():
+    with pytest.raises(TypeError):
+        annotated = Annotated[Literal["sig_a1"]]
+
+
+def test_annotation_bad_pindefs():
+    BadMuxDef = Union[
+        Annotated[Literal["sig_a1"], "a0", "a1"],
+        Annotated[Literal["sig_a1"], "a0", 1],
+    ]
+
+    class BadMux(VirtualMux[BadMuxDef]):
+        pass
+
+    with pytest.raises(AssertionError):
+        mux = BadMux()
+
+
+def test_annotation_bad_brackets():
+    """
+    We put the brackets in the wrong spot and accidentally defined
+    one of the signals as one of the pins of the previous signal
+    """
+    BadMuxDef = Union[
+        Annotated[Literal["sig_a1"], "a0", "a1", Annotated[Literal["sig_a2"], "a1"]],
+        Annotated[Literal["sig_a1"], "a0", "a1"],
+    ]
+
+    class BadMux(VirtualMux[BadMuxDef]):
+        pass
+
+    with pytest.raises(AssertionError):
+        mux = BadMux()
+
+
+def test_annotated_get_origin():
+    # Annotated behaviour is different between python versions
+    # fails 3.8, passes >=3.9
+    assert get_origin(Annotated[Literal["sig_a1"], "a0", "a1"]) == Annotated
+
+
+def test_annotated_get_args():
+    assert get_args(Annotated[Literal["sig_a1"], "a0", "a1"]) == (
+        Literal["sig_a1"],
+        "a0",
+        "a1",
+    )
+
+
+@pytest.mark.skip(
+    reason="Revisit this idea once we have a way to stop Generic breaking getattr"
+)
+def test_typed_mux_class_getitem():
+    clear = PinSetState(off=frozenset({"a0", "a1"}))
+    a1 = PinSetState(on=frozenset({"a0", "a1"}))
+    a2 = PinSetState(on=frozenset({"a1"}), off=frozenset({"a0"}))
+
+    updates_class_mux = []
+    updates_mux_a = []
+
+    class_mux = VirtualMux[MuxASigDef](lambda x, y: updates_class_mux.append((x, y)))
+    mux_a = MuxA(lambda x, y: updates_mux_a.append((x, y)))
+    assert mux_a._signal_map == class_mux._signal_map
+    assert mux_a._pin_set == class_mux._pin_set
+
+    class_mux("sig_a1")
+    mux_a("sig_a1")
+    assert (
+        updates_class_mux.pop()
+        == updates_mux_a.pop()
+        == (PinUpdate(PinSetState(), a1), True)
+    )
+
+    class_mux.multiplex("sig_a2", trigger_update=False)
+    mux_a.multiplex("sig_a2", trigger_update=False)
+    assert (
+        updates_class_mux.pop()
+        == updates_mux_a.pop()
+        == (PinUpdate(PinSetState(), a2), False)
+    )
+
+    class_mux("")
+    mux_a("")
+    assert (
+        updates_class_mux.pop()
+        == updates_mux_a.pop()
+        == (PinUpdate(PinSetState(), clear), True)
+    )

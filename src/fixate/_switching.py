@@ -43,17 +43,24 @@ from typing import (
     Dict,
     FrozenSet,
     Iterable,
+    Literal,
+    Annotated,
+    get_origin,
+    get_args,
 )
 from dataclasses import dataclass
 from functools import reduce
 from operator import or_
 
+
 Signal = str
+EmptySignal = Literal[""]
 Pin = str
 PinList = Sequence[Pin]
 PinSet = FrozenSet[Pin]
+MapList = Sequence[Sequence[Union[Signal, Pin]]]
 SignalMap = Dict[Signal, PinSet]
-TreeDef = Sequence[Union[Signal, "TreeDef"]]
+TreeDef = Sequence[Union[Optional[Signal], "TreeDef"]]
 
 
 @dataclass(frozen=True)
@@ -87,15 +94,23 @@ class PinUpdate:
 
 PinUpdateCallback = Callable[[PinUpdate, bool], None]
 
+S = TypeVar("S", bound=str)
 
-class VirtualMux:
+from types import get_original_bases, resolve_bases
+
+
+class VirtualMux(Generic[S]):
+    map_tree: Optional[TreeDef] = None
+    map_list: Optional[Sequence[Sequence[str]]] = None
     pin_list: PinList = ()
     clearing_time: float = 0.0
 
     ###########################################################################
     # These methods are the public API for the class
-
     def __init__(self, update_pins: Optional[PinUpdateCallback] = None):
+        # digest all the typing information if there is any to set pin_list and map_list
+        self._digest_type_hints()
+
         self._last_update_time = time.monotonic()
 
         self._update_pins: PinUpdateCallback
@@ -129,7 +144,9 @@ class VirtualMux:
         if hasattr(self, "default_signal"):
             raise ValueError("'default_signal' should not be set on a VirtualMux")
 
-    def __call__(self, signal: Signal, trigger_update: bool = True) -> None:
+    def __call__(
+        self, signal: Union[S, EmptySignal], trigger_update: bool = True
+    ) -> None:
         """
         Convenience to avoid having to type jig.mux.<MuxName>.multiplex.
 
@@ -138,7 +155,9 @@ class VirtualMux:
         """
         self.multiplex(signal, trigger_update)
 
-    def multiplex(self, signal: Signal, trigger_update: bool = True) -> None:
+    def multiplex(
+        self, signal: Union[S, EmptySignal], trigger_update: bool = True
+    ) -> None:
         """
         Update the multiplexer state to signal.
 
@@ -230,13 +249,13 @@ class VirtualMux:
         Avoid subclassing. Consider creating helper functions to build
         map_tree or map_list.
         """
-        if hasattr(self, "map_tree"):
+        if self.map_tree is not None:
             return self._map_tree(self.map_tree, self.pin_list, fixed_pins=frozenset())
-        elif hasattr(self, "map_list"):
+        elif self.map_list is not None:
             return {sig: frozenset(pins) for sig, *pins in self.map_list}
         else:
             raise ValueError(
-                "VirtualMux subclass must define either map_tree or map_list"
+                "VirtualMux subclass must define either map_tree or map_list or provide a type to VirtualMux"
             )
 
     def _map_tree(self, tree: TreeDef, pins: PinList, fixed_pins: PinSet) -> SignalMap:
@@ -441,6 +460,49 @@ class VirtualMux:
         """
         print(pin_updates, trigger_update)
 
+    def _digest_type_hints(self) -> None:
+        # digest all the typing information if there is any
+        bases = get_original_bases(self.__class__)
+        resolved_bases = resolve_bases(bases)
+        first_resolved_base = resolved_bases[0]
+        assert issubclass(
+            first_resolved_base, VirtualMux
+        ), f"{first_resolved_base} should be VirtualMux subclass"
+        if bases != resolved_bases:
+            args = get_args(bases[0])
+            plist, mlist = self._unpack_muxdef(args[0])
+            self.pin_list = plist
+            self.map_list = mlist
+
+    @staticmethod
+    def _unpack_muxdef(muxdef: type) -> tuple[PinList, MapList]:
+        # muxdef is the signal definition
+        if get_origin(muxdef) == Union:
+            signals = get_args(muxdef)
+        elif get_origin(muxdef) == Annotated:
+            # Union FORCES you to have two or more types, so this handles the case of only one pin
+            signals = (muxdef,)
+        else:
+            raise TypeError("Signal definition must be Union or Annotated")
+
+        map_list: list[tuple[str]] = []
+        pin_list: list[str] = []
+        for s in signals:
+            assert get_origin(s) == Annotated, "Signal definition must be Annotated"
+            # get_args gives Literal
+            sigdef, *pins = get_args(s)
+            assert (
+                get_origin(sigdef) == Literal
+            ), "Signal definition must be string literal"
+            # get_args gives members of Literal
+            (signame,) = get_args(sigdef)
+            assert isinstance(signame, Signal), "Signal name must be signal type"
+            assert all(isinstance(p, Pin) for p in pins), "Pins must be pin type"
+            pin_list.extend(pins)
+            map_list.append((signame, *pins))
+
+        return pin_list, map_list
+
 
 class VirtualSwitch(VirtualMux):
     """
@@ -482,7 +544,7 @@ class VirtualSwitch(VirtualMux):
         super().__init__(update_pins)
 
 
-class RelayMatrixMux(VirtualMux):
+class RelayMatrixMux(VirtualMux[S]):
     clearing_time = 0.01
 
     def _calculate_pins(
