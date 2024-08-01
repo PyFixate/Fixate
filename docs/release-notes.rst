@@ -4,7 +4,9 @@ Release Notes
 *************
 Version 0.6.3
 *************
-Release Date xx/xx/xx
+Release Date 02/08/24
+
+Minimum supported Python version is now 3.8.
 
 New Features
 ############
@@ -22,6 +24,8 @@ Improvements
 - Test now run on MacOS
 - Developer workflow improvements by adding pre-commit tool.
 - Move the examples folder out of the package so they are easier to run.
+- Add a tox env to build docs
+- Add the ``-W error`` flag to pytest runs, to flag deprecation and other runtime warnings.
 
 *************
 Version 0.6.2
