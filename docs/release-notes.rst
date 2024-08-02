@@ -21,7 +21,6 @@ New Features
 
 Improvements
 ############
-- Test now run on MacOS
 - Developer workflow improvements by adding pre-commit tool.
 - Move the examples folder out of the package so they are easier to run.
 - Add a tox env to build docs
