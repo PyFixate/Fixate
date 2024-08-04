@@ -94,3 +94,19 @@ def test_add_visa_to_config(test_app, open_config_file):
         == "FLUKE,8846A,3821015,08/02/10-11:55\r\n"
     )
     assert test_app.updated_config_dict["INSTRUMENTS"]["visa"][-1][1] == "ASRL39::INSTR"
+
+
+def test_add_serial_error(test_app, open_config_file):
+    with pytest.raises(Exception):
+        test_app.do_add("serial com38")
+
+
+def test_add_serial_duplicate(test_app, monkeypatch, open_config_file, capfd):
+    monkeypatch.setattr(
+        config_util,
+        "serial_id_query",
+        lambda x, y: "address: 0,checksum: 28,command: 49,model: 6823,serial_number: 3697210019,software_version: 29440,start: 170,",
+    )
+    test_app.do_add("serial COM37 9600")
+    out = capfd.readouterr()
+    assert out.out.strip() == "Serial port COM37 already in config"
