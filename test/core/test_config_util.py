@@ -73,3 +73,24 @@ def test_list_existing(test_app, open_config_file, capfd):
         "VISA || USB0::0x0957::0x17A8::MY52160892::INSTR || AGILENT TECHNOLOGIES,MSO-X 3014A,MY52160892,02.41.2015102200\r\n"
         "SERIAL || COM37 || ['address: 0,checksum: 28,command: 49,model: 6823,serial_number: 3697210019,software_version: 29440,start: 170,', 9600]"
     )
+
+
+# testing the _add_visa_to_config method directly since there is too much reliance on the ResourceManager
+# which would need to be monkeypatched or mocked.
+def test_add_visa_to_config_duplicate(test_app, open_config_file, capfd):
+    test_app._add_visa_to_config(
+        "FLUKE,8846A,3821015,08/02/10-11:53\r\n", "ASRL38::INSTR"
+    )
+    out = capfd.readouterr()
+    assert (out.out).strip() == "Instrument already in config"
+
+
+def test_add_visa_to_config(test_app, open_config_file):
+    test_app._add_visa_to_config(
+        "FLUKE,8846A,3821015,08/02/10-11:55\r\n", "ASRL39::INSTR"
+    )
+    assert (
+        test_app.updated_config_dict["INSTRUMENTS"]["visa"][-1][0]
+        == "FLUKE,8846A,3821015,08/02/10-11:55\r\n"
+    )
+    assert test_app.updated_config_dict["INSTRUMENTS"]["visa"][-1][1] == "ASRL39::INSTR"
