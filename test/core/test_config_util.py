@@ -67,5 +67,9 @@ def test_list_existing(test_app, open_config_file, capfd):
     test_app.do_list("existing")
     out = capfd.readouterr()
     assert (
-        out.out
-    ).strip() == "VISA || USB0::0x09C4::0x0400::DG1D144904270::INSTR || RIGOL TECHNOLOGIES,DG1022 ,DG1D144904270,,00.03.00.09.00.02.11\nVISA || ASRL38::INSTR || FLUKE,8846A,3821015,08/02/10-11:53\nVISA || USB0::0x0957::0x17A8::MY52160892::INSTR || AGILENT TECHNOLOGIES,MSO-X 3014A,MY52160892,02.41.2015102200\nSERIAL || COM37 || ['address: 0,checksum: 28,command: 49,model: 6823,serial_number: 3697210019,software_version: 29440,start: 170,', 9600]"
+        (out.out).strip()
+        == "VISA || USB0::0x09C4::0x0400::DG1D144904270::INSTR || RIGOL TECHNOLOGIES,DG1022 ,DG1D144904270,,00.03.00.09.00.02.11\r\n"
+        "VISA || ASRL38::INSTR || FLUKE,8846A,3821015,08/02/10-11:53\r\n"
+        "VISA || USB0::0x0957::0x17A8::MY52160892::INSTR || AGILENT TECHNOLOGIES,MSO-X 3014A,MY52160892,02.41.2015102200\r\n"
+        "SERIAL || COM37 || ['address: 0,checksum: 28,command: 49,model: 6823,serial_number: 3697210019,software_version: 29440,start: 170,', 9600]"
+    )
