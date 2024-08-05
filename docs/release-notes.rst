@@ -2,6 +2,31 @@
 Release Notes
 ==================================
 *************
+Version 0.6.3
+*************
+Release Date 02/08/24
+
+Minimum supported Python version is now 3.8.
+
+New Features
+############
+- API docs are now generated for the source docstrings. However, work is still ongoing to update
+  them and to clarify public APIs vs internal implementation details.
+- A new jig switching manager is added. Similar to fixate.core.jig_mapping, but
+  easier to use and much improved implementation details.
+- ``--diagnostic-log-dir`` cli argument control the log file location, instead of
+  always using the platform default.
+- A new function, ``fixate.run()``, which can be used to make a script self executing.
+
+
+Improvements
+############
+- Developer workflow improvements by adding pre-commit tool.
+- Move the examples folder out of the package so they are easier to run.
+- Add a tox env to build docs
+- Add the ``-W error`` flag to pytest runs, to flag deprecation and other runtime warnings.
+
+*************
 Version 0.6.2
 *************
 Release Date 05/06/24
