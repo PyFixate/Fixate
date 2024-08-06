@@ -36,20 +36,15 @@ py -m pip install .
 py -m fixate -p examples\tiny.py
 ```
 
-#### Running during development
+#### Make a script directly executable
 
-For easier development, test scripts can be setup to call the fixate main as their own
- with some default parameters, as in:
+For easier development, test scripts can be setup to call the fixate main as their own with some default parameters, as in:
 
 python examples/tiny.py
 
-Using that `__main__` example in your own test script then means you can run it as:
-
-python -m my_test_script
-
 ## Running the tests
 In general, it is recommended to run the "core" set of tests.
-The "drivers" test have a number of dependencies that are not required by default.
+The "drivers" tests have a number of dependencies that are not required by default.
 Tests are run using pytest.
 The easiest way to run the test is using tox.
 To run the tests manually using pytest, excluding tests that required instruments, you can run `pytest -m "not drivertest"`. 
