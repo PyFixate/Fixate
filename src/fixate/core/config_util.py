@@ -232,8 +232,12 @@ class FxConfigCmd(cmd2.Cmd):
 
     def _load_config_into_dict(self, config_file_path):
 
-        with open(config_file_path, "r") as config_file:
-            self.existing_config_dict = json.load(config_file)
+        try:
+            with open(config_file_path, "r") as config_file:
+                self.existing_config_dict = json.load(config_file)
+        except FileNotFoundError:
+            self.perror(f"File '{config_file_path}' not found")
+            return
 
         # Ensure our config has the bare minimum { "INSTRUMENTS": {"visa":[], "serial":{}}}
         instruments_dict = self.existing_config_dict.setdefault("INSTRUMENTS", {})
