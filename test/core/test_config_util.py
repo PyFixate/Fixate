@@ -1,20 +1,22 @@
 import pytest
 from fixate.core import config_util
 from fixate import config
-import cmd2_ext_test
 
 
-class FxConfigTester(cmd2_ext_test.ExternalTestMixin, config_util.FxConfigCmd):
+# Ideally these tests would be done with the cmd2 test plugin (https://pypi.org/project/cmd2-ext-test/)
+# by the people who made CMD2, however it have proved to be more work than it is worth.
+# So the tests will focus on the internal methods of the FxConfigCmd class.
+
+
+class FxConfigTester(config_util.FxConfigCmd):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
 
 @pytest.fixture
 def test_app():
-    app = FxConfigTester()
-    app.fixture_setup()
+    app = config_util.FxConfigCmd()
     yield app
-    app.fixture_teardown()
 
 
 @pytest.fixture
