@@ -34,20 +34,18 @@ def test_open_fxconfig_no_file(test_app, monkeypatch):
         test_app.do_open("")
 
 
-def test_new_config_file_default(test_app, monkeypatch, tmp_path, capfd):
+def test_new_config_file_default(test_app, monkeypatch, tmp_path):
     # monkeypath the default path to 1: avoid the default path and 2: avoid permissions issues on mac.
     monkeypatch.setattr(config, "INSTRUMENT_CONFIG_FILE", tmp_path / "test_config.json")
     test_app.do_new("")
-    out = capfd.readouterr()
-    assert (out.out).strip() == f"Config loaded: {config.INSTRUMENT_CONFIG_FILE}"
+    assert test_app.config_file_path == config.INSTRUMENT_CONFIG_FILE
+    assert test_app.updated_config_dict == {"INSTRUMENTS": {"visa": [], "serial": {}}}
 
 
-def test_new_config_file(test_app, tmp_path, capfd):
-    # don't want to use the default path.
-    # the default path (based on `INSTRUMENT_CONFIG_FILE`) on mac apparently doesn't work because of permissions.
+def test_new_config_file_with_path(test_app, tmp_path):
     test_app.do_new(tmp_path / "test_config.json")
-    out = capfd.readouterr()
-    assert (out.out).strip() == f"Config loaded: {tmp_path / 'test_config.json'}"
+    assert test_app.config_file_path == tmp_path / "test_config.json"
+    assert test_app.updated_config_dict == {"INSTRUMENTS": {"visa": [], "serial": {}}}
 
 
 def test_new_config_file_exists(test_app, tmp_path):
