@@ -259,7 +259,7 @@ class FxConfigCmd(cmd2.Cmd):
             config_file_path = fixate.config.INSTRUMENT_CONFIG_FILE
 
         if config_file_path.exists():
-            raise Exception(f"Path '{config_file_path}' already exists")
+            raise FileExistsError(f"Path '{config_file_path}' already exists")
         else:
             config_file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(config_file_path, "w") as config_file:

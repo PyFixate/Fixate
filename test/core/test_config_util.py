@@ -53,7 +53,7 @@ def test_new_config_file_exists(test_app, tmp_path):
     with open(tmp_path / "test_config.json", "w") as f:
         f.write("")
 
-    with pytest.raises(Exception):
+    with pytest.raises(FileExistsError):
         test_app.do_new(tmp_path / "test_config.json")
 
 
