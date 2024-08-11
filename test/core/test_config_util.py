@@ -118,3 +118,21 @@ def test_add_serial_duplicate(test_app, monkeypatch, open_config_file):
     before_add = test_app.updated_config_dict["INSTRUMENTS"]["serial"]
     test_app.do_add("serial COM37 9600")
     assert before_add == test_app.updated_config_dict["INSTRUMENTS"]["serial"]
+
+
+def test_do_save_new_path(test_app, open_config_file, tmp_path):
+    test_app.do_open("test/config/instruments.json")
+    open_data = test_app.updated_config_dict
+    test_app.do_save(tmp_path / "instruments.json")
+    test_app.do_open(tmp_path / "instruments.json")
+    assert open_data == test_app.updated_config_dict
+
+
+def test_do_save_same_path_backup_created(test_app, open_config_file, tmp_path):
+    # don't want to polute the test directory.
+    # so save to a new path and then save to the same path.
+    test_app.do_open("test/config/instruments.json")
+    test_app.do_save(tmp_path / "instruments.json")
+    test_app.do_save(tmp_path / "instruments.json")
+    # ensure backup file is created
+    assert (tmp_path / "instruments.json.bak").exists()
