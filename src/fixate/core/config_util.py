@@ -193,7 +193,7 @@ class FxConfigCmd(cmd2.Cmd):
             raise Exception("we shouldn't have gotten here")
 
     def do_save(self, line=None):
-        """Save over the existing config file with updated."""
+        """Save over the existing config file with updated or save to a new file if a path is supplied"""
         if line:
             config_file_path = line
         elif self.config_file_path:
