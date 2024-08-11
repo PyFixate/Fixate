@@ -1,6 +1,20 @@
 ==================================
 Release Notes
 ==================================
+
+*************
+Version 0.6.4
+*************
+Release Date xx/xx/24
+
+New Features
+############
+
+Improvements
+############
+
+- fxconfig now prevents duplicate entries from being added to the config file.
+
 *************
 Version 0.6.3
 *************

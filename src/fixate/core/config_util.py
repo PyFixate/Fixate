@@ -3,7 +3,6 @@ import argparse
 import pyvisa
 import json
 import copy
-import platformdirs
 from shutil import copy2
 from pathlib import Path
 from cmd2.ansi import style, Fg
@@ -32,8 +31,6 @@ fx> open <path>                             # default to the path for the active
 fx> new <path>                              # like open, but creates a new file that didn't exist. Error if file exists
 
 """
-
-# TODO: Prevent writing duplicate to the config.
 
 
 choices = ["existing", "updated", "visa"]
@@ -71,8 +68,8 @@ class FxConfigError(Exception):
 class FxConfigCmd(cmd2.Cmd):
     prompt = "fx>"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.config_file_path = None
         self.existing_config_dict = None
         self.updated_config_dict = None
@@ -91,8 +88,8 @@ class FxConfigCmd(cmd2.Cmd):
 
     def _do_add_visa_tcp(self, args):
         # TODO: Extend the optional parameter to allow port & SOCKET mode to be specified
-        resource_name = "TCPIP0::{}::INSTR".format(args.ipaddr)
-        self.poutput("Adding '{}'.".format(resource_name))
+        resource_name = f"TCPIP0::{args.ipaddr}::INSTR"
+        self.poutput(f"Attempting to add '{resource_name}'.")
 
         try:
             idn = visa_id_query(resource_name)
@@ -100,13 +97,11 @@ class FxConfigCmd(cmd2.Cmd):
             self.perror("instrument not found")
             self.perror(e)
         else:
-            self.updated_config_dict["INSTRUMENTS"]["visa"].append(
-                [idn.strip(), resource_name]
-            )
+            self._add_visa_to_config(idn, resource_name)
 
     def _do_add_visa_serial(self, args):
-        resource_name = "ASRL{}::INSTR".format(args.port)
-        self.poutput("Attempting to add '{}'.".format(resource_name))
+        resource_name = f"ASRL{args.port}::INSTR"
+        self.poutput(f"Attempting to add '{resource_name}'.")
 
         try:
             idn = visa_id_query(resource_name)
@@ -114,25 +109,22 @@ class FxConfigCmd(cmd2.Cmd):
             self.perror("instrument not found")
             self.perror(e)
         else:
-            self.updated_config_dict["INSTRUMENTS"]["visa"].append(
-                [idn.strip(), resource_name]
-            )
+            self._add_visa_to_config(idn, resource_name)
 
     def _do_add_usb(self, args):
         rm = pyvisa.ResourceManager()
         resource_list = [x for x in rm.list_resources() if x.startswith("USB")]
         if len(resource_list) > 0:
             for i, resource_name in enumerate(resource_list):
-                self.poutput("{}: {}".format(i + 1, resource_name))
+                self.poutput(f"{i + 1}: {resource_name}")
             self.poutput("Select an interface to add")
             selection = input()
             selection = int(selection) - 1
             if 0 <= selection < len(resource_list):
                 resource_name = resource_list[selection]
-                self.updated_config_dict["INSTRUMENTS"]["visa"].append(
-                    [visa_id_query(resource_name).strip(), resource_name]
-                )
-                self.poutput("'{}' added to config.".format(resource_name))
+                idn = visa_id_query(resource_name).strip()
+                self._add_visa_to_config(idn, resource_name)
+                self.poutput(f"'{resource_name}' added to config.")
             else:
                 self.poutput("Selection not valid")
         else:
@@ -140,10 +132,21 @@ class FxConfigCmd(cmd2.Cmd):
 
     def _do_add_serial(self, args):
         idn = serial_id_query(args.port, args.baudrate)
-        self.updated_config_dict["INSTRUMENTS"]["serial"][args.port] = [
-            idn,
-            args.baudrate,
-        ]
+        try:
+            self.updated_config_dict["INSTRUMENTS"]["serial"][args.port]
+        except KeyError:
+            self.updated_config_dict["INSTRUMENTS"]["serial"][args.port] = [
+                idn,
+                args.baudrate,
+            ]
+        else:
+            self.poutput(f"Serial port {args.port} already in config")
+
+    def _add_visa_to_config(self, idn, resource_name):
+        if idn in [x[0] for x in self.updated_config_dict["INSTRUMENTS"]["visa"]]:
+            self.poutput("Instrument already in config")
+        else:
+            self.updated_config_dict["INSTRUMENTS"]["visa"].append([idn, resource_name])
 
     add_visa_tcp_parser.set_defaults(func=_do_add_visa_tcp)
     add_visa_serial_parser.set_defaults(func=_do_add_visa_serial)
@@ -190,7 +193,7 @@ class FxConfigCmd(cmd2.Cmd):
             raise Exception("we shouldn't have gotten here")
 
     def do_save(self, line=None):
-        """Save over the existing config file with updated."""
+        """Save over the existing config file with updated or save to a new file if a path is supplied"""
         if line:
             config_file_path = line
         elif self.config_file_path:
@@ -201,7 +204,7 @@ class FxConfigCmd(cmd2.Cmd):
         if not config_file_path:
             self.perror("No existing config loaded or path to save supplied")
         else:
-            print("saving to {}".format(config_file_path))
+            print(f"saving to {config_file_path}")
             backup_path = backup_file(config_file_path)
 
             try:
@@ -229,8 +232,12 @@ class FxConfigCmd(cmd2.Cmd):
 
     def _load_config_into_dict(self, config_file_path):
 
-        with open(config_file_path, "r") as config_file:
-            self.existing_config_dict = json.load(config_file)
+        try:
+            with open(config_file_path, "r") as config_file:
+                self.existing_config_dict = json.load(config_file)
+        except FileNotFoundError:
+            self.perror(f"File '{config_file_path}' not found")
+            return
 
         # Ensure our config has the bare minimum { "INSTRUMENTS": {"visa":[], "serial":{}}}
         instruments_dict = self.existing_config_dict.setdefault("INSTRUMENTS", {})
@@ -240,7 +247,7 @@ class FxConfigCmd(cmd2.Cmd):
         # create a copy of the config that can be edited
         self.updated_config_dict = copy.deepcopy(self.existing_config_dict)
         self.config_file_path = config_file_path
-        self.poutput("Config loaded: {}".format(self.config_file_path))
+        self.poutput(f"Config loaded: {self.config_file_path}")
 
     def do_new(self, line):
         """
@@ -252,7 +259,7 @@ class FxConfigCmd(cmd2.Cmd):
             config_file_path = fixate.config.INSTRUMENT_CONFIG_FILE
 
         if config_file_path.exists():
-            raise Exception("Path '{}' already exists".format(config_file_path))
+            raise FileExistsError(f"Path '{config_file_path}' already exists")
         else:
             config_file_path.parent.mkdir(parents=True, exist_ok=True)
             with open(config_file_path, "w") as config_file:
@@ -267,17 +274,13 @@ class FxConfigCmd(cmd2.Cmd):
         delete_index = 1
         for i, visa_instrument in enumerate(config_dict["INSTRUMENTS"]["visa"]):
             self.poutput(
-                "{}: VISA || {} || {}".format(
-                    delete_index, visa_instrument[1].strip(), visa_instrument[0].strip()
-                )
+                f"{delete_index}: VISA || {visa_instrument[1].strip()} || {visa_instrument[0].strip()}"
             )
             delete_list.append(("visa", i))
             delete_index += 1
 
         for com_port, parameters in config_dict["INSTRUMENTS"]["serial"].items():
-            self.poutput(
-                "{}: SERIAL || {} || {}".format(delete_index, com_port, str(parameters))
-            )
+            self.poutput(f"{delete_index}: SERIAL || {com_port} || {str(parameters)}")
             delete_list.append(("serial", com_port))
             delete_index += 1
 
@@ -302,12 +305,12 @@ class FxConfigCmd(cmd2.Cmd):
     def _test_print_error(self, name, msg):
         self.poutput(style("ERROR: ", fg=Fg.RED), end="")
         self.poutput(style(str(name), fg=Fg.CYAN), end="")
-        self.poutput(" - {}".format(msg))
+        self.poutput(f" - {msg}")
 
     def _test_print_ok(self, name, msg):
         self.poutput(style("OK: ", fg=Fg.GREEN), end="")
         self.poutput(style(str(name), fg=Fg.CYAN), end="")
-        self.poutput(" - {}".format(msg))
+        self.poutput(f" - {msg}")
 
     def _test_config_dict(self, config_dict):
         visa_resources = config_dict["INSTRUMENTS"]["visa"]
@@ -335,13 +338,13 @@ class FxConfigCmd(cmd2.Cmd):
                 new_id = serial_id_query(port, baudrate)
             except Exception as e:
                 self._test_print_error(
-                    e, "Error opening port '{}' or responding to ID query".format(port)
+                    e, f"Error opening port '{port}' or responding to ID query"
                 )
             else:
                 if new_id.strip() == idn.strip():
                     self._test_print_ok(port, str(params))
                 else:
-                    self.pfeedback("{} || {}".format(new_id, idn))
+                    self.pfeedback(f"{new_id} || {idn}")
                     self._test_print_error(port, "ID query does not match")
 
 
@@ -378,7 +381,7 @@ def visa_id_query(visa_resource_name):
         return resp.strip()
 
     raise FxConfigError(
-        "Resource '{}' didn't respond to an IDN command".format(visa_resource_name)
+        f"Resource '{visa_resource_name}' didn't respond to an IDN command"
     )
 
 
