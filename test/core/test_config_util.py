@@ -29,9 +29,9 @@ def test_open_fxconfig_no_file(test_app, monkeypatch):
     # for local testing we don't want the tests picking up the default config file.
     # So patch it to simulate no file.
     monkeypatch.setattr(config, "INSTRUMENT_CONFIG_FILE", "")
-    with pytest.raises(Exception):
-        # there should be no file at the default path at this point.
-        test_app.do_open("")
+    test_app.do_open("")
+    assert test_app.config_file_path is None
+    assert test_app.updated_config_dict is None
 
 
 def test_new_config_file_default(test_app, monkeypatch, tmp_path):
