@@ -105,7 +105,7 @@ def unregister_cmd_line():
     return
 
 
-def reformat_text(text_str, first_line_fill="", subsequent_line_fill=""):
+def _reformat_text(text_str, first_line_fill="", subsequent_line_fill=""):
     lines = []
     wrapper.initial_indent = first_line_fill
     wrapper.subsequent_indent = subsequent_line_fill
@@ -133,7 +133,7 @@ def _user_action(msg, callback_obj):
     None
     """
     print("\a")
-    print(reformat_text(msg))
+    print(_reformat_text(msg))
     print('Press escape or "f" to fail')
     cancel_queue = Queue()
     callback_obj.set_user_cancel_queue(cancel_queue)
@@ -153,7 +153,7 @@ def _user_ok(msg, q):
      The result queue of type queue.Queue
     :return:
     """
-    msg = reformat_text(msg + "\n\nPress Enter to continue...")
+    msg = _reformat_text(msg + "\n\nPress Enter to continue...")
     print("\a")
     input(msg)
     q.put("Result", None)
@@ -182,7 +182,7 @@ def _user_choices(msg, q, choices, target, attempts=5):
     for _ in range(attempts):
         # This will change based on the interface
         print("\a")
-        ret_val = input(reformat_text(msg + choicesstr))
+        ret_val = input(_reformat_text(msg + choicesstr))
         ret_val = target(ret_val, choices)
         if ret_val:
             q.put(("Result", ret_val))
@@ -216,7 +216,7 @@ def _user_input(msg, q, target=None, attempts=5, kwargs=None):
     subsequent_indent = "    "
     # additional space added due to wrapper.drop_white_space being True, need to
     # drop white spaces, but keep the white space to separate the cursor from input message
-    msg = reformat_text(msg, initial_indent, subsequent_indent) + "\n>>> "
+    msg = _reformat_text(msg, initial_indent, subsequent_indent) + "\n>>> "
     wrapper.initial_indent = ""
     wrapper.subsequent_indent = ""
     for _ in range(attempts):
@@ -242,7 +242,7 @@ def _user_display(msg):
     :param important: creates a line of "!" either side of the message
     :return:
     """
-    print(reformat_text(msg))
+    print(_reformat_text(msg))
 
 
 def _user_display_important(msg):
@@ -254,14 +254,14 @@ def _user_display_important(msg):
     print("")
     print("!" * wrapper.width)
     print("")
-    print(reformat_text(msg))
+    print(_reformat_text(msg))
     print("")
     print("!" * wrapper.width)
 
 
 def _print_sequence_end(status, passed, failed, error, skipped, sequence_status):
     print("#" * wrapper.width)
-    print(reformat_text("Sequence {}".format(sequence_status)))
+    print(_reformat_text("Sequence {}".format(sequence_status)))
     # print("Sequence {}".format(sequence_status))
     post_sequence_info = RESOURCES["SEQUENCER"].context_data.get(
         "_post_sequence_info", {}
@@ -272,13 +272,13 @@ def _print_sequence_end(status, passed, failed, error, skipped, sequence_status)
         for msg, state in post_sequence_info.items():
             if status == "PASSED":
                 if state == "PASSED" or state == "ALL":
-                    print(reformat_text(msg))
+                    print(_reformat_text(msg))
             elif state != "PASSED":
-                print(reformat_text(msg))
+                print(_reformat_text(msg))
 
     print("-" * wrapper.width)
     # reformat_text
-    print(reformat_text("Status: {}".format(status)))
+    print(_reformat_text("Status: {}".format(status)))
     # print("Status: {}".format(status))
     print("#" * wrapper.width)
     print("\a")
@@ -286,7 +286,7 @@ def _print_sequence_end(status, passed, failed, error, skipped, sequence_status)
 
 def _print_test_start(data, test_index):
     print("*" * wrapper.width)
-    print(reformat_text("Test {}: {}".format(test_index, data.test_desc)))
+    print(_reformat_text("Test {}: {}".format(test_index, data.test_desc)))
     # print("Test {}: {}".format(test_index, data.test_desc))
     print("-" * wrapper.width)
 
@@ -295,14 +295,14 @@ def _print_test_complete(data, test_index, status):
     sequencer = RESOURCES["SEQUENCER"]
     print("-" * wrapper.width)
     print(
-        reformat_text(
+        _reformat_text(
             "Checks passed: {}, Checks failed: {}".format(
                 sequencer.chk_pass, sequencer.chk_fail
             )
         )
     )
     # print("Checks passed: {}, Checks failed: {}".format(sequencer.chk_pass, sequencer.chk_fail))
-    print(reformat_text("Test {}: {}".format(test_index, status.upper())))
+    print(_reformat_text("Test {}: {}".format(test_index, status.upper())))
     # print("Test {}: {}".format(test_index, status.upper()))
     print("-" * wrapper.width)
 
@@ -312,14 +312,14 @@ def _print_test_skip(data, test_index):
 
 
 def _print_test_retry(data, test_index):
-    print(reformat_text("\nTest {}: Retry".format(test_index)))
+    print(_reformat_text("\nTest {}: Retry".format(test_index)))
 
 
 def _print_errors(exception, test_index):
     print("")
     print("!" * wrapper.width)
     print(
-        reformat_text(
+        _reformat_text(
             "Test {}: Exception Occurred, {} {}".format(
                 test_index, type(exception), exception
             )
@@ -334,4 +334,4 @@ def _print_errors(exception, test_index):
 
 def _print_comparisons(passes: bool, chk: CheckResult, chk_cnt: int, context: str):
     msg = f"\nCheck {chk_cnt}: " + chk.check_string
-    print(reformat_text(msg))
+    print(_reformat_text(msg))
