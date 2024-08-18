@@ -35,6 +35,7 @@ from fixate._ui import (
     user_input_float as user_input_float,
     user_serial as user_serial,
     Validator as Validator,
+    user_yes_no as user_yes_no,
 )
 
 from fixate.main import run_main_program as run
