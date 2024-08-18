@@ -10,6 +10,7 @@ from pubsub import pub
 
 # going to honour the post sequence info display from `ui.py`
 from fixate.config import RESOURCES
+from fixate.core.exceptions import UserInputError
 from collections import OrderedDict
 
 
@@ -86,7 +87,7 @@ def user_input_float(msg: str, attempts: int = 5) -> float:
                 "UI_display_important", msg="Invalid input, please enter a number"
             )
             resp = _user_request_input(msg)
-    raise ValueError("User failed to enter a number")
+    raise UserInputError("User failed to enter a number")
 
 
 def _ten_digit_int_serial(serial: str) -> bool:
@@ -123,4 +124,4 @@ def user_serial(
             return return_type(resp)
         pub.sendMessage("UI_display_important", msg=f"Invalid input: {validator}")
         resp = _user_request_input(msg)
-    raise ValueError("User failed to enter the correct format serial number")
+    raise UserInputError("User failed to enter the correct format serial number")
