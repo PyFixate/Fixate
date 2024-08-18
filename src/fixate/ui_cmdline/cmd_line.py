@@ -167,9 +167,9 @@ def _user_ok(msg, q):
 
 
 def _user_choices_(msg, q, choices):
-    choicesstr = "\n" + ", ".join(choices[:-1]) + " or " + choices[-1] + " "
+    choicesstr = "\n" + ", ".join(choices[:-1]) + " or " + choices[-1]
     print("\a")
-    ret_val = input(_reformat_text(msg + choicesstr))
+    ret_val = input(_reformat_text(msg + choicesstr) + " ")
     q.put(ret_val)
 
 
