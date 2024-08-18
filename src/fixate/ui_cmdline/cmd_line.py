@@ -89,6 +89,7 @@ def register_cmd_line():
     pub.subscribe(_print_sequence_end, "Sequence_Complete")
     pub.subscribe(_user_ok, "UI_req")
     pub.subscribe(_user_choices, "UI_req_choices")
+    pub.subscribe(_user_choices_, "UI_req_choices_")
     pub.subscribe(_user_input, "UI_req_input")
     pub.subscribe(_user_input_, "UI_req_input_")
     pub.subscribe(_user_display, "UI_display")
@@ -163,6 +164,13 @@ def _user_ok(msg, q):
     print("\a")
     input(msg)
     q.put("Result", None)
+
+
+def _user_choices_(msg, q, choices):
+    choicesstr = "\n" + ", ".join(choices[:-1]) + " or " + choices[-1] + " "
+    print("\a")
+    ret_val = input(_reformat_text(msg + choicesstr))
+    q.put(ret_val)
 
 
 def _user_choices(msg, q, choices, target, attempts=5):
