@@ -192,6 +192,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         pub.subscribe(self._topic_UI_req, "UI_req")
         pub.subscribe(self._topic_UI_req_choices, "UI_req_choices")
         pub.subscribe(self._topic_UI_req_input, "UI_req_input")
+        pub.subscribe(self._topic_UI_req_input_, "UI_req_input_")
         pub.subscribe(self._topic_UI_display, "UI_display")
         pub.subscribe(self._topic_UI_display_important, "UI_display_important")
         pub.subscribe(self._topic_UI_action, "UI_action")
@@ -787,6 +788,11 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             "Exception",
             UserInputError("Maximum number of attempts {} reached".format(attempts)),
         )
+
+    def _topic_UI_req_input_(self, msg, q):
+        msg = self.reformat_text(msg)
+        ret_val = self.gui_user_input(msg, None)
+        q.put(ret_val)
 
     def _topic_UI_req_input(self, msg, q, target=None, attempts=5, kwargs=None):
         """

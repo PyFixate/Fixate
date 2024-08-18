@@ -30,6 +30,13 @@ from fixate._switching import (
     generate_relay_matrix_pin_list as generate_relay_matrix_pin_list,
 )
 
+from fixate._ui import (
+    user_input as user_input,
+    user_input_float as user_input_float,
+    user_serial as user_serial,
+    Validator as Validator,
+)
+
 from fixate.main import run_main_program as run
 
 __version__ = "0.6.3"

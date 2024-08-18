@@ -90,6 +90,7 @@ def register_cmd_line():
     pub.subscribe(_user_ok, "UI_req")
     pub.subscribe(_user_choices, "UI_req_choices")
     pub.subscribe(_user_input, "UI_req_input")
+    pub.subscribe(_user_input_, "UI_req_input_")
     pub.subscribe(_user_display, "UI_display")
     pub.subscribe(_user_display_important, "UI_display_important")
     pub.subscribe(_print_test_skip, "Test_Skip")
@@ -107,12 +108,17 @@ def unregister_cmd_line():
 
 def _reformat_text(text_str, first_line_fill="", subsequent_line_fill=""):
     lines = []
+    _wrapper_initial_indent = wrapper.initial_indent
+    _wrapper_subsequent_indent = wrapper.subsequent_indent
     wrapper.initial_indent = first_line_fill
     wrapper.subsequent_indent = subsequent_line_fill
     for ind, line in enumerate(text_str.splitlines()):
         if ind != 0:
             wrapper.initial_indent = subsequent_line_fill
         lines.append(wrapper.fill(line))
+    # reset the indents, calls to this method should not affect the global state
+    wrapper.initial_indent = _wrapper_initial_indent
+    wrapper.subsequent_indent = _wrapper_subsequent_indent
     return "\n".join(lines)
 
 
@@ -193,6 +199,17 @@ def _user_choices(msg, q, choices, target, attempts=5):
     )
 
 
+def _user_input_(msg, q):
+    """
+    Get raw user input and put in on the queue.
+    """
+    initial_indent = ">>> "
+    subsequent_indent = "    "  # TODO - determine is this is needed
+    print("\a")
+    resp = input(_reformat_text(msg, initial_indent, subsequent_indent) + "\n>>> ")
+    q.put(resp)
+
+
 def _user_input(msg, q, target=None, attempts=5, kwargs=None):
     """
     This can be replaced anywhere in the project that needs to implement the user driver
@@ -217,8 +234,6 @@ def _user_input(msg, q, target=None, attempts=5, kwargs=None):
     # additional space added due to wrapper.drop_white_space being True, need to
     # drop white spaces, but keep the white space to separate the cursor from input message
     msg = _reformat_text(msg, initial_indent, subsequent_indent) + "\n>>> "
-    wrapper.initial_indent = ""
-    wrapper.subsequent_indent = ""
     for _ in range(attempts):
         # This will change based on the interface
         print("\a")
