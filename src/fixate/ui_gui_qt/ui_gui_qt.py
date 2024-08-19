@@ -635,7 +635,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     """User IO handlers, emit signals to trigger main thread updates via slots.
        These are run in the sequencer thread"""
 
-    def gui_user_input(self, message, choices=None):
+    def _gui_user_input(self, message, choices=None):
         if choices is not None:  # Button Prompt
             self.sig_choices_input.emit(message, choices)
         else:  # Text Prompt
@@ -753,7 +753,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.closing:
             q.put("Result", None)
             return
-        self.gui_user_input(msg, ("Continue",))
+        self._gui_user_input(msg, ("Continue",))
         q.put("Result", None)
 
     def _topic_UI_req_choices(self, msg, q, choices, target, attempts=5):
@@ -779,7 +779,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         for _ in range(attempts):
             # This will change based on the interface
-            ret_val = self.gui_user_input(self.reformat_text(msg), choices)
+            ret_val = self._gui_user_input(self.reformat_text(msg), choices)
             ret_val = target(ret_val, choices)
             if ret_val:
                 q.put(("Result", ret_val))
@@ -791,7 +791,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
     def _topic_UI_req_input_(self, msg, q):
         msg = self.reformat_text(msg)
-        ret_val = self.gui_user_input(msg, None)
+        ret_val = self._gui_user_input(msg, None)
         q.put(ret_val)
 
     def _topic_UI_req_input(self, msg, q, target=None, attempts=5, kwargs=None):
@@ -822,7 +822,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         wrapper.subsequent_indent = ""
         for _ in range(attempts):
             # This will change based on the interface
-            ret_val = self.gui_user_input(msg, None)
+            ret_val = self._gui_user_input(msg, None)
             if target is None or ret_val == "ABORT_FORCE":
                 q.put(ret_val)
                 return
