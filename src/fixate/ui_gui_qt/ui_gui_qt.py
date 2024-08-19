@@ -190,6 +190,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     def register_events(self):
         pub.subscribe(self._topic_Sequence_Abort, "Sequence_Abort")
         pub.subscribe(self._topic_UI_req, "UI_req")
+        pub.subscribe(self._topic_UI_req_, "UI_req_")
         pub.subscribe(self._topic_UI_req_choices, "UI_req_choices")
         pub.subscribe(self._topic_UI_req_choices_, "UI_req_choices_")
         pub.subscribe(self._topic_UI_req_input, "UI_req_input")
@@ -739,6 +740,12 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             # in the GUI thread.
             callback_obj.set_target_finished_callback(self.sig_button_reset.emit)
             self.sig_choices_input.emit(msg, ("Fail",))
+
+    def _topic_UI_req_(self, msg):
+        if self.closing:
+            return
+
+        self._gui_user_input(msg, ("Continue",))
 
     def _topic_UI_req(self, msg, q):
         """

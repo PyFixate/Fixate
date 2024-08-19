@@ -88,6 +88,7 @@ def register_cmd_line():
     pub.subscribe(_print_errors, "Test_Exception")
     pub.subscribe(_print_sequence_end, "Sequence_Complete")
     pub.subscribe(_user_ok, "UI_req")
+    pub.subscribe(_user_ok_, "UI_req_")
     pub.subscribe(_user_choices, "UI_req_choices")
     pub.subscribe(_user_choices_, "UI_req_choices_")
     pub.subscribe(_user_input, "UI_req_input")
@@ -147,6 +148,12 @@ def _user_action(msg, callback_obj):
     callback_obj.set_target_finished_callback(key_hook.stop_monitor)
 
     key_hook.start_monitor(cancel_queue, {b"\x1b": False, b"f": False})
+
+
+def _user_ok_(msg):
+    msg = _reformat_text(msg + "\n\nPress Enter to continue...")
+    print("\a")
+    input(msg)
 
 
 def _user_ok(msg, q):

@@ -38,6 +38,7 @@ from fixate._ui import (
     user_yes_no as user_yes_no,
     user_info as user_info,
     user_info_important as user_info_important,
+    user_ok as user_ok,
 )
 
 from fixate.main import run_main_program as run

@@ -185,3 +185,12 @@ def user_info(msg):
 
 def user_info_important(msg):
     pub.sendMessage("UI_display_important", msg=msg)
+
+
+def user_ok(msg):
+    """
+    A blocking function that asks the UI to display a message and waits for the user to press OK/Enter.
+    """
+    pub.sendMessage("UI_block_start")
+    pub.sendMessage("UI_req_", msg=msg)
+    pub.sendMessage("UI_block_end")
