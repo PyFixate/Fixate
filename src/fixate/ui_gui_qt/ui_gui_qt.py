@@ -866,13 +866,14 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         self.sig_history_update.emit("")
         self.sig_history_update.emit("!" * wrapper.width)
-        self.sig_active_update.emit("!" * wrapper.width)
+        txt = "!" * wrapper.width
+        self.sig_active_update.emit(f"<span style='color:red;'>{txt}</span>")
         self.sig_history_update.emit("")
         self.sig_history_update.emit(self.reformat_text(msg))
         self.sig_active_update.emit(self.reformat_text(msg))
         self.sig_history_update.emit("")
         self.sig_history_update.emit("!" * wrapper.width)
-        self.sig_active_update.emit("!" * wrapper.width)
+        self.sig_active_update.emit(f"<span style='color:red;'>{txt}</span>")
 
     def _topic_Sequence_Complete(
         self, status, passed, failed, error, skipped, sequence_status
