@@ -177,3 +177,11 @@ def user_yes_no(msg: str, attempts: int = 1) -> str:
 def _user_retry_abort_fail(msg: str, attempts: int = 1) -> str:
     CHOICES = ("RETRY", "ABORT", "FAIL")
     return _user_choices(msg, CHOICES, attempts)
+
+
+def user_info(msg):
+    pub.sendMessage("UI_display", msg=msg)
+
+
+def user_info_important(msg):
+    pub.sendMessage("UI_display_important", msg=msg)
