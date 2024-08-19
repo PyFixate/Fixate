@@ -191,6 +191,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         pub.subscribe(self._topic_Sequence_Abort, "Sequence_Abort")
         pub.subscribe(self._topic_UI_req, "UI_req")
         pub.subscribe(self._topic_UI_req_choices, "UI_req_choices")
+        pub.subscribe(self._topic_UI_req_choices_, "UI_req_choices_")
         pub.subscribe(self._topic_UI_req_input, "UI_req_input")
         pub.subscribe(self._topic_UI_req_input_, "UI_req_input_")
         pub.subscribe(self._topic_UI_display, "UI_display")
@@ -755,6 +756,16 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             return
         self._gui_user_input(msg, ("Continue",))
         q.put("Result", None)
+
+    def _topic_UI_req_choices_(self, msg, q, choices):
+        if self.closing:
+            # I don't think the result of this code ever gets used, nothing looking for "ABORT_FORCE"
+            # unpacks from a tuple. This can probably be deleted.
+            q.put(("Result", "ABORT_FORCE"))
+            return
+
+        ret_val = self._gui_user_input(msg, choices)
+        q.put(ret_val)
 
     def _topic_UI_req_choices(self, msg, q, choices, target, attempts=5):
         """

@@ -4,7 +4,7 @@ import re
 from pubsub import pub
 from fixate.core.common import TestList, TestClass
 from fixate.core.exceptions import SequenceAbort, CheckFail
-from fixate.core.ui import user_retry_abort_fail
+from fixate._ui import _user_retry_abort_fail
 from fixate.core.checks import CheckResult
 
 STATUS_STATES = ["Idle", "Running", "Paused", "Finished", "Restart", "Aborted"]
@@ -377,7 +377,7 @@ class Sequencer:
 
         if self.non_interactive:
             return False
-        status, resp = user_retry_abort_fail(msg="")
+        resp = _user_retry_abort_fail(msg="")
         if resp == "ABORT":
             raise SequenceAbort("Sequence Aborted By User")
         else:
