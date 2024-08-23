@@ -180,15 +180,15 @@ def _user_retry_abort_fail(msg: str, attempts: int = 1) -> str:
     return _user_choices(msg, CHOICES, attempts)
 
 
-def user_info(msg):
+def user_info(msg: str):
     pub.sendMessage("UI_display", msg=msg)
 
 
-def user_info_important(msg):
+def user_info_important(msg: str):
     pub.sendMessage("UI_display_important", msg=msg)
 
 
-def user_ok(msg):
+def user_ok(msg: str):
     """
     A blocking function that asks the UI to display a message and waits for the user to press OK/Enter.
     """
