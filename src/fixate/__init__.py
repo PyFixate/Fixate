@@ -39,6 +39,7 @@ from fixate._ui import (
     user_info as user_info,
     user_info_important as user_info_important,
     user_ok as user_ok,
+    user_action as user_action,
 )
 
 from fixate.main import run_main_program as run
