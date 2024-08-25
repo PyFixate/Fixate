@@ -40,6 +40,9 @@ from fixate._ui import (
     user_info_important as user_info_important,
     user_ok as user_ok,
     user_action as user_action,
+    user_image as user_image,
+    user_image_clear as user_image_clear,
+    user_gif as user_gif,
 )
 
 from fixate.main import run_main_program as run

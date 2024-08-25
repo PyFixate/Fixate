@@ -249,3 +249,21 @@ def user_action(msg: str, action_monitor: Callable[[], bool]) -> bool:
     finally:
         # No matter what, if we exit, we want to reset the UI
         callback_obj.target_finished_callback()
+
+
+def user_image(path: str):
+    """
+    Display an image to the user
+
+    Args:
+        path (str): The path to the image file. The underlying library does not take a pathlib.Path object.
+    """
+    pub.sendMessage("UI_image", path=path)
+
+
+def user_image_clear():
+    pub.sendMessage("UI_image_clear")
+
+
+def user_gif(path: str):
+    pub.sendMessage("UI_gif", path=path)
