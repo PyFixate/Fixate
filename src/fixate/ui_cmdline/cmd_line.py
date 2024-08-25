@@ -292,7 +292,7 @@ def _user_display_important(msg):
 
 def _user_image(path):
     print("\a")
-    print("Image display not supported in command line")
+    _user_display_important("Image display not supported in command line")
     print(_reformat_text(f"This image would have been displayed in the GUI: {path}"))
 
 
