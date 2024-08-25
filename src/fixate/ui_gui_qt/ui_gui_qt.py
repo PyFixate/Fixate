@@ -272,7 +272,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         except (FileNotFoundError, OSError):
             # When running direct from the file system, if an image isn't found we
             # get FileNotFoundError. When running from a zip file, we get OSError
-            logger.exception("Image path specific in the test script was invalid")
+            logger.exception("Image path specified in the test script was invalid")
             # message dialog so the user knows the image didn't load
             self.file_not_found(path)
         else:
