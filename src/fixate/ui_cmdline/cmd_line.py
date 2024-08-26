@@ -98,7 +98,8 @@ def register_cmd_line():
     pub.subscribe(_print_test_skip, "Test_Skip")
     pub.subscribe(_print_test_retry, "Test_Retry")
     pub.subscribe(_user_action, "UI_action")
-    pub.subscribe(_user_image, "UI_image")
+    pub.subscribe(_user_image_or_gif, "UI_image", caller="UI_image")
+    pub.subscribe(_user_image_or_gif, "UI_gif", caller="UI_gif")
     key_hook.install()
 
     return
@@ -290,10 +291,16 @@ def _user_display_important(msg):
     print("!" * wrapper.width)
 
 
-def _user_image(path):
+def _user_image_or_gif(path, caller):
+    if caller == "UI_image":
+        disp_str = "image"
+    else:
+        disp_str = "GIF"
     print("\a")
-    _user_display_important("Image display not supported in command line")
-    print(_reformat_text(f"This image would have been displayed in the GUI: {path}"))
+    _user_display_important(f"Oh oh, {disp_str} display not supported in command line")
+    print(
+        _reformat_text(f"This {disp_str} would have been displayed in the GUI: {path}")
+    )
 
 
 def _print_sequence_end(status, passed, failed, error, skipped, sequence_status):
