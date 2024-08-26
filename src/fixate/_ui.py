@@ -276,3 +276,51 @@ def user_gif(path: str):
         path (str): The path to the gif file. The underlying library does not take a pathlib.Path object.
     """
     pub.sendMessage("UI_gif", path=path)
+
+
+def _user_post_sequence_info(msg: str, status: str):
+    if "_post_sequence_info" not in RESOURCES["SEQUENCER"].context_data:
+        RESOURCES["SEQUENCER"].context_data["_post_sequence_info"] = OrderedDict()
+    RESOURCES["SEQUENCER"].context_data["_post_sequence_info"][msg] = status
+
+
+def user_post_sequence_info_pass(msg: str):
+    """
+    Adds information to be displayed to the user at the end if the sequence passes
+    This information will be displayed in the order that this function is called.
+    Multiple calls with the same message will result in the previous being overwritten.
+
+    This is useful for providing a summary of the sequence to the user at the end.
+
+    Args:
+        msg (str): The message to display.
+    """
+    _user_post_sequence_info(msg, "PASSED")
+
+
+def user_post_sequence_info_fail(msg: str):
+    """
+    Adds information to be displayed to the user at the end if the sequence fails.
+    This information will be displayed in the order that this function is called.
+    Multiple calls with the same message will result in the previous being overwritten.
+
+    This is useful for providing a summary of the sequence to the user at the end.
+
+    Args:
+        msg (str): The message to display.
+    """
+    _user_post_sequence_info(msg, "FAILED")
+
+
+def user_post_sequence_info(msg: str):
+    """
+    Adds information to be displayed to the user at the end of the sequence.
+    This information will be displayed in the order that this function is called.
+    Multiple calls with the same message will result in the previous being overwritten.
+
+    This is useful for providing a summary of the sequence to the user at the end.
+
+    Args:
+        msg (str): The message to display.
+    """
+    _user_post_sequence_info(msg, "ALL")

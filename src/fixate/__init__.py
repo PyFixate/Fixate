@@ -43,6 +43,9 @@ from fixate._ui import (
     user_image as user_image,
     user_image_clear as user_image_clear,
     user_gif as user_gif,
+    user_post_sequence_info_pass as user_post_sequence_info_pass,
+    user_post_sequence_info_fail as user_post_sequence_info_fail,
+    user_post_sequence_info as user_post_sequence_info,
 )
 
 from fixate.main import run_main_program as run
