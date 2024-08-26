@@ -262,8 +262,17 @@ def user_image(path: str):
 
 
 def user_image_clear():
+    """
+    Clear the image canvas
+    """
     pub.sendMessage("UI_image_clear")
 
 
 def user_gif(path: str):
+    """
+    Display a gif to the user
+
+    Args:
+        path (str): The path to the gif file. The underlying library does not take a pathlib.Path object.
+    """
     pub.sendMessage("UI_gif", path=path)
