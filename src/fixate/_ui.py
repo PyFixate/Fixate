@@ -46,7 +46,7 @@ class Validator:
 def _user_request_input(msg: str):
     q = Queue()
     pub.sendMessage("UI_block_start")
-    pub.sendMessage("UI_req_input_", msg=msg, q=q)
+    pub.sendMessage("UI_req_input", msg=msg, q=q)
     resp = q.get()
     pub.sendMessage("UI_block_end")
     return resp
@@ -134,7 +134,7 @@ def _user_req_choices(msg: str, choices: tuple):
         raise ValueError(f"Requires at least two choices to work, {choices} provided")
     q = Queue()
     pub.sendMessage("UI_block_start")
-    pub.sendMessage("UI_req_choices_", msg=msg, q=q, choices=choices)
+    pub.sendMessage("UI_req_choices", msg=msg, q=q, choices=choices)
     resp = q.get()
     pub.sendMessage("UI_block_end")
     return resp
@@ -193,7 +193,7 @@ def user_ok(msg: str):
     A blocking function that asks the UI to display a message and waits for the user to press OK/Enter.
     """
     pub.sendMessage("UI_block_start")
-    pub.sendMessage("UI_req_", msg=msg)
+    pub.sendMessage("UI_req", msg=msg)
     pub.sendMessage("UI_block_end")
 
 

@@ -190,11 +190,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     def register_events(self):
         pub.subscribe(self._topic_Sequence_Abort, "Sequence_Abort")
         pub.subscribe(self._topic_UI_req, "UI_req")
-        pub.subscribe(self._topic_UI_req_, "UI_req_")
         pub.subscribe(self._topic_UI_req_choices, "UI_req_choices")
-        pub.subscribe(self._topic_UI_req_choices_, "UI_req_choices_")
         pub.subscribe(self._topic_UI_req_input, "UI_req_input")
-        pub.subscribe(self._topic_UI_req_input_, "UI_req_input_")
         pub.subscribe(self._topic_UI_display, "UI_display")
         pub.subscribe(self._topic_UI_display_important, "UI_display_important")
         pub.subscribe(self._topic_UI_action, "UI_action")
@@ -741,30 +738,13 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             callback_obj.set_target_finished_callback(self.sig_button_reset.emit)
             self.sig_choices_input.emit(msg, ("Fail",))
 
-    def _topic_UI_req_(self, msg):
+    def _topic_UI_req(self, msg):
         if self.closing:
             return
 
         self._gui_user_input(msg, ("Continue",))
 
-    def _topic_UI_req(self, msg, q):
-        """
-        This can be replaced anywhere in the project that needs to implement the user driver
-        The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the
-        second part is the exception object or response object
-        :param msg:
-         Message for the user to understand what to do
-        :param q:
-         The result queue of type queue.Queue
-        :return:
-        """
-        if self.closing:
-            q.put("Result", None)
-            return
-        self._gui_user_input(msg, ("Continue",))
-        q.put("Result", None)
-
-    def _topic_UI_req_choices_(self, msg, q, choices):
+    def _topic_UI_req_choices(self, msg, q, choices):
         if self.closing:
             # I don't think the result of this code ever gets used, nothing looking for "ABORT_FORCE"
             # unpacks from a tuple. This can probably be deleted.
@@ -774,84 +754,16 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         ret_val = self._gui_user_input(msg, choices)
         q.put(ret_val)
 
-    def _topic_UI_req_choices(self, msg, q, choices, target, attempts=5):
-        """
-        This can be replaced anywhere in the project that needs to implement the user driver
-        Temporarily a simple input function.
-        The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the
-        second part is the exception object or response object
-        This needs to be compatible with forced exit. Look to user action for how it handles a forced exit
-        :param msg:
-         Message for the user to understand what to input
-        :param q:
-         The result queue of type queue.Queue
-        :param target:
-         Optional
-         Validation function to check if the user response is valid
-        :param attempts:
-        :return:
-        """
+    def _topic_UI_req_input(self, msg, q):
         if self.closing:
+            # I don't think the result of this code ever gets used, nothing looking for "ABORT_FORCE"
+            # unpacks from a tuple. This can probably be deleted.
             q.put(("Result", "ABORT_FORCE"))
             return
 
-        for _ in range(attempts):
-            # This will change based on the interface
-            ret_val = self._gui_user_input(self.reformat_text(msg), choices)
-            ret_val = target(ret_val, choices)
-            if ret_val:
-                q.put(("Result", ret_val))
-                return
-        q.put(
-            "Exception",
-            UserInputError("Maximum number of attempts {} reached".format(attempts)),
-        )
-
-    def _topic_UI_req_input_(self, msg, q):
         msg = self.reformat_text(msg)
         ret_val = self._gui_user_input(msg, None)
         q.put(ret_val)
-
-    def _topic_UI_req_input(self, msg, q, target=None, attempts=5, kwargs=None):
-        """
-        This can be replaced anywhere in the project that needs to implement the user driver
-        Temporarily a simple input function.
-        The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the
-        second part is the exception object or response object
-        This needs to be compatible with forced exit. Look to user action for how it handles a forced exit
-        :param msg:
-         Message for the user to understand what to input
-        :param q:
-         The result queue of type queue.Queue
-        :param target:
-         Optional
-         Validation function to check if the user response is valid
-        :param attempts:
-
-        :param kwargs:
-        :return:
-        """
-        if self.closing:
-            q.put(("Result", "ABORT_FORCE"))
-            return
-
-        msg = self.reformat_text(msg)
-        wrapper.initial_indent = ""
-        wrapper.subsequent_indent = ""
-        for _ in range(attempts):
-            # This will change based on the interface
-            ret_val = self._gui_user_input(msg, None)
-            if target is None or ret_val == "ABORT_FORCE":
-                q.put(ret_val)
-                return
-            ret_val = target(ret_val, **kwargs)
-            if ret_val:
-                q.put(("Result", ret_val))
-                return
-        # Display failure of target and send exception
-        error_str = f"Maximum number of attempts {attempts} reached. {target.__doc__}"
-        self._topic_UI_display(error_str)
-        q.put(("Exception", UserInputError(error_str)))
 
     def _topic_UI_display(self, msg):
         """

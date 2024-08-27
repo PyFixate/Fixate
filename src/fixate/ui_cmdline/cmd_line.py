@@ -88,11 +88,8 @@ def register_cmd_line():
     pub.subscribe(_print_errors, "Test_Exception")
     pub.subscribe(_print_sequence_end, "Sequence_Complete")
     pub.subscribe(_user_ok, "UI_req")
-    pub.subscribe(_user_ok_, "UI_req_")
     pub.subscribe(_user_choices, "UI_req_choices")
-    pub.subscribe(_user_choices_, "UI_req_choices_")
     pub.subscribe(_user_input, "UI_req_input")
-    pub.subscribe(_user_input_, "UI_req_input_")
     pub.subscribe(_user_display, "UI_display")
     pub.subscribe(_user_display_important, "UI_display_important")
     pub.subscribe(_print_test_skip, "Test_Skip")
@@ -152,71 +149,20 @@ def _user_action(msg, callback_obj):
     key_hook.start_monitor(cancel_queue, {b"\x1b": False, b"f": False})
 
 
-def _user_ok_(msg):
+def _user_ok(msg):
     msg = _reformat_text(msg + "\n\nPress Enter to continue...")
     print("\a")
     input(msg)
 
 
-def _user_ok(msg, q):
-    """
-    This can be replaced anywhere in the project that needs to implement the user driver
-    The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the second
-    part is the exception object or response object
-    :param msg:
-     Message for the user to understand what to do
-    :param q:
-     The result queue of type queue.Queue
-    :return:
-    """
-    msg = _reformat_text(msg + "\n\nPress Enter to continue...")
-    print("\a")
-    input(msg)
-    q.put("Result", None)
-
-
-def _user_choices_(msg, q, choices):
+def _user_choices(msg, q, choices):
     choicesstr = "\n" + ", ".join(choices[:-1]) + " or " + choices[-1]
     print("\a")
     ret_val = input(_reformat_text(msg + choicesstr) + " ")
     q.put(ret_val)
 
 
-def _user_choices(msg, q, choices, target, attempts=5):
-    """
-    This can be replaced anywhere in the project that needs to implement the user driver
-    Temporarily a simple input function.
-    The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the second
-    part is the exception object or response object
-    This needs to be compatible with forced exit. Look to user action for how it handles a forced exit
-    :param msg:
-     Message for the user to understand what to input
-    :param q:
-     The result queue of type queue.Queue
-    :param target:
-     Optional
-     Validation function to check if the user response is valid
-    :param attempts:
-    :param args:
-    :param kwargs:
-    :return:
-    """
-    choicesstr = "\n" + ", ".join(choices[:-1]) + " or " + choices[-1] + " "
-    for _ in range(attempts):
-        # This will change based on the interface
-        print("\a")
-        ret_val = input(_reformat_text(msg + choicesstr))
-        ret_val = target(ret_val, choices)
-        if ret_val:
-            q.put(("Result", ret_val))
-            return
-    q.put(
-        "Exception",
-        UserInputError("Maximum number of attempts {} reached".format(attempts)),
-    )
-
-
-def _user_input_(msg, q):
+def _user_input(msg, q):
     """
     Get raw user input and put in on the queue.
     """
@@ -225,47 +171,6 @@ def _user_input_(msg, q):
     print("\a")
     resp = input(_reformat_text(msg, initial_indent, subsequent_indent) + "\n>>> ")
     q.put(resp)
-
-
-def _user_input(msg, q, target=None, attempts=5, kwargs=None):
-    """
-    This can be replaced anywhere in the project that needs to implement the user driver
-    Temporarily a simple input function.
-    The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the second
-    part is the exception object or response object
-    This needs to be compatible with forced exit. Look to user action for how it handles a forced exit
-    :param msg:
-     Message for the user to understand what to input
-    :param q:
-     The result queue of type queue.Queue
-    :param target:
-     Optional
-     Validation function to check if the user response is valid
-    :param attempts:
-    :param args:
-    :param kwargs:
-    :return:
-    """
-    initial_indent = ">>> "
-    subsequent_indent = "    "
-    # additional space added due to wrapper.drop_white_space being True, need to
-    # drop white spaces, but keep the white space to separate the cursor from input message
-    msg = _reformat_text(msg, initial_indent, subsequent_indent) + "\n>>> "
-    for _ in range(attempts):
-        # This will change based on the interface
-        print("\a")
-        ret_val = input(msg)
-        if target is None:
-            q.put(ret_val)
-            return
-        ret_val = target(ret_val, **kwargs)
-        if ret_val:
-            q.put(("Result", ret_val))
-            return
-    # Display failure of target and send exception
-    error_str = f"Maximum number of attempts {attempts} reached. {target.__doc__}"
-    _user_display(error_str)
-    q.put(("Exception", UserInputError(error_str)))
 
 
 def _user_display(msg):
