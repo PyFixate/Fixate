@@ -27,7 +27,7 @@ class TestUserRequest(unittest.TestCase):
 
     def test_read_from_queue(self):
         self.mock.test_value = "World"
-        self.assertEqual(self.test_method("message"), ("Result", "World"))
+        self.assertEqual(self.test_method("message"), "World")
 
     def test_target_check(self):
         self.mock.return_value = "World"
