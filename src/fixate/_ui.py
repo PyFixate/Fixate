@@ -77,7 +77,7 @@ def user_input_float(msg: str, attempts: int = 5) -> float:
         resp (float): The converted user response from the UI
 
     Raises:
-        ValueError: If the user fails to enter a number after the specified number of attempts
+        UserInputError: If the user fails to enter a number after the specified number of attempts
     """
     resp = _user_request_input(msg)
     for _ in range(attempts):
