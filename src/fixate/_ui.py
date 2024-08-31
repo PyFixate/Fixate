@@ -103,7 +103,7 @@ _ten_digit_int_serial_v = Validator(
 def user_serial(
     msg: str,
     validator: Validator = _ten_digit_int_serial_v,
-    return_type: Any = int,
+    return_type: int | str = int,
     attempts: int = 5,
 ) -> Any:
     """
@@ -113,8 +113,8 @@ def user_serial(
         msg (str): A message that will be shown to the user
         validator (Validator): An optional function to validate the serial number,
             defaults to checking for a 10 digit integer. This function shall return
-            True if the serial number is valid, False otherwise
-        return_type (Any): The type to return the serial number as, defaults to int
+            True if the serial number is valid, False otherwise.
+        return_type (int | str): The type to return the serial number as, defaults to int
 
     Returns:
         resp (str): The user response from the UI
