@@ -1,4 +1,3 @@
-from unittest import mock
 import pytest
 import pubsub
 
@@ -12,7 +11,7 @@ from fixate import (
 )
 
 # Mock the UI interface
-class MockUserInterface(mock.MagicMock):
+class MockUserInterface:
     def execute_target(self, msg, q):
         q.put(self.test_value)
 
@@ -24,7 +23,7 @@ def mock_user_interface():
     return mock
 
 
-class MockUserInterfaceChoices(mock.MagicMock):
+class MockUserInterfaceChoices:
     def execute_target(self, msg, q, choices):
         q.put(self.test_value)
 
