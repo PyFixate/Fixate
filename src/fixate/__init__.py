@@ -31,10 +31,11 @@ from fixate._switching import (
 )
 
 from fixate._ui import (
+    Validator as Validator,
+    UiColour as UiColour,
     user_input as user_input,
     user_input_float as user_input_float,
     user_serial as user_serial,
-    Validator as Validator,
     user_yes_no as user_yes_no,
     user_info as user_info,
     user_info_important as user_info_important,

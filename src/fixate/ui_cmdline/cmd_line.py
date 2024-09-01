@@ -182,12 +182,13 @@ def _user_display(msg):
     print(_reformat_text(msg))
 
 
-def _user_display_important(msg):
+def _user_display_important(msg, colour=None, bg_colour=None):
     """
     :param msg:
     :param important: creates a line of "!" either side of the message
     :return:
     """
+    # ignore the colours that are used in the GUI
     print("")
     print("!" * wrapper.width)
     print("")

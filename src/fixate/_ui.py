@@ -6,6 +6,7 @@ to obtain or display information from/to the user.
 
 from typing import Callable, Any
 from queue import Queue, Empty
+from enum import StrEnum
 import time
 from pubsub import pub
 
@@ -41,6 +42,18 @@ class Validator:
 
     def __str__(self) -> str:
         return self.error_msg
+
+
+class UiColour(StrEnum):
+    RED = "red"
+    GREEN = "green"
+    BLUE = "blue"
+    YELLOW = "yellow"
+    WHITE = "white"
+    BLACK = "black"
+    CYAN = "cyan"
+    MAGENTA = "magenta"
+    GREY = "grey"
 
 
 def _user_request_input(msg: str):
@@ -184,8 +197,10 @@ def user_info(msg: str):
     pub.sendMessage("UI_display", msg=msg)
 
 
-def user_info_important(msg: str):
-    pub.sendMessage("UI_display_important", msg=msg)
+def user_info_important(
+    msg: str, colour: UiColour = UiColour.RED, bg_colour: UiColour = UiColour.WHITE
+):
+    pub.sendMessage("UI_display_important", msg=msg, colour=colour, bg_colour=bg_colour)
 
 
 def user_ok(msg: str):

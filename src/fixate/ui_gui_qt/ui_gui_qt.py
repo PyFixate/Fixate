@@ -775,7 +775,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_active_update.emit(self.reformat_text(msg))
         self.sig_history_update.emit(self.reformat_text(msg))
 
-    def _topic_UI_display_important(self, msg):
+    def _topic_UI_display_important(self, msg, colour="red", bg_colour="white"):
         """
         :param msg:
         :return:
@@ -794,9 +794,13 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_history_update.emit(txt_fill)
 
         # Active window
-        self.sig_active_update.emit(f"<span style='color:red;'>{txt_fill}</span>")
+        self.sig_active_update.emit(
+            f"<span style='color:{colour};background-color:{bg_colour}'>{txt_fill}</span>"
+        )
         self.sig_active_update.emit(self.reformat_text(msg))
-        self.sig_active_update.emit(f"<span style='color:red;'>{txt_fill}</span>")
+        self.sig_active_update.emit(
+            f"<span style='color:{colour};background-color:{bg_colour}'>{txt_fill}</span>"
+        )
 
     def _topic_Sequence_Complete(
         self, status, passed, failed, error, skipped, sequence_status
