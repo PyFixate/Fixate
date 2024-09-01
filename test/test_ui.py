@@ -47,6 +47,13 @@ def test_user_input_float(mock_user_interface):
     assert resp == 1.23
 
 
+def test_user_input_float_0(mock_user_interface):
+    # test that 0 is a valid float, prevent issue #213 from recurring
+    mock_user_interface.test_value = "0"
+    resp = user_input_float("message")
+    assert resp == 0.0
+
+
 def test_user_input_float_fails(mock_user_interface):
     mock_user_interface.test_value = "abc"
     with pytest.raises(UserInputError):
