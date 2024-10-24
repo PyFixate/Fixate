@@ -233,7 +233,7 @@ def user_action(msg: str, action_monitor: Callable[[], bool]) -> bool:
             # in the q and cancel the target call.
             self.user_cancel_queue = None
 
-            # In the case that the target exists the user action instead
+            # In the case that the target exits the user action instead
             # of the user, we need to tell the UI to do any clean up that
             # might be required. (e.g. return GUI buttons to the default state
             # Does not need to be implemented by the UI.
