@@ -243,9 +243,9 @@ class Fluke8846A(DMM):
             nplc = self._default_nplc
 
         mode_str = f"{self._modes[self._mode]}"
-        mode_str = mode_str.replace(
-            "CONF:", ""
-        )  # Remove the CONF: from the start of the string
+
+        # Remove the CONF: from the start of the string
+        mode_str = mode_str.replace("CONF:", "")
 
         self._write(f"{mode_str}:NPLC {nplc}")  # e.g. VOLT:DC:NPLC 10
 

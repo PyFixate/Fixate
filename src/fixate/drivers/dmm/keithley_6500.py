@@ -40,7 +40,16 @@ class Keithley6500(DMM):
             "continuity": "CONT",
             "diode": "DIOD",
         }
-
+        self._nplc_modes = [
+            "voltage_dc",
+            "current_dc",
+            "resistance",
+            "fresistance",
+            "diode",
+            "temperature",
+        ]
+        self._nplc_min = 0.0005  # Minimum NPLC setting for the DMM
+        self._nplc_max = 12  # Maximum NPLC setting for the DMM
         self._init_string = ""  # Unchanging
 
     # Adapted for different DMM behaviour
@@ -254,6 +263,19 @@ class Keithley6500(DMM):
         self._write(mode_str)
         self._write(f":COUN {self.samples}")
         self._is_error()
+
+    def set_nplc(self, nplc=None, reset=False):
+        if nplc <= self._nplc_min or nplc >= self._nplc_max:
+            raise ParameterError(f"NPLC setting out of range for Keithley 6500")
+
+        if self._mode not in self._nplc_modes:
+            raise ParameterError(f"NPLC setting not available for mode {self._mode}")
+
+        if reset is True or nplc is None:
+            nplc = "DEF"  # keithley supports sending the "DEF" string to reset the NPLC value
+
+        mode_str = f"{self._modes[self._mode]}"
+        self._write(f":SENS:{mode_str}:NPLC {nplc}")
 
     def voltage_ac(self, _range=None):
         self._set_measurement_mode("voltage_ac", _range)
