@@ -42,6 +42,16 @@ class Fluke8846A(DMM):
             "continuity": "CONF:CONTinuity",
             "diode": "CONF:DIODe",
         }
+        self._nplc_modes = [
+            "resistance",
+            "fresistance",
+            "voltage_dc",
+            "current_dc",
+            "temperature",
+            "ftemperature",
+        ]
+        self._nplc_settings = [0.02, 0.2, 1, 10, 100]
+        self._default_nplc = 10  # Default NPLC setting as per Fluke 8846A manual
         self._init_string = ""  # Unchanging
 
     @property
@@ -221,6 +231,23 @@ class Fluke8846A(DMM):
             ]
         )
         self._is_error()
+
+    def set_nplc(self, nplc=None, reset=False):
+        if nplc not in self._nplc_settings:
+            raise ParameterError(f"Invalid NPLC setting {nplc}")
+
+        if self._mode not in self._nplc_modes:
+            raise ParameterError(f"NPLC setting not available for mode {self._mode}")
+
+        if reset is True or nplc is None:
+            nplc = self._default_nplc
+
+        mode_str = f"{self._modes[self._mode]}"
+        mode_str = mode_str.replace(
+            "CONF:", ""
+        )  # Remove the CONF: from the start of the string
+
+        self._write(f"{mode_str}:NPLC {nplc}")  # e.g. VOLT:DC:NPLC 10
 
     def voltage_ac(self, _range=None):
         self._set_measurement_mode("voltage_ac", _range)
