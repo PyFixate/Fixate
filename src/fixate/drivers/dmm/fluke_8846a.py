@@ -111,6 +111,25 @@ class Fluke8846A(DMM):
         with self.lock:
             return self._read_measurements()
 
+    def min_avg_max(self, samples=1, sample_time=1):
+        """
+        automatically samples the DMM for a given number of samples and returns the min, max, and average values
+        :param samples: number of samples to take
+        :param sample_time: time to wait for the DMM to take the samples
+        return: min, avg, max values as floats
+        """
+
+        self._write(f"SAMP:COUN {samples}")
+        self._write("CALC:FUNC AVER")
+        self._write("CALC:STAT ON")
+        self._write("INIT")
+        time.sleep(sample_time)
+        _min = self.instrument.query_ascii_values("CALC:AVER:MIN?")[0]
+        _avg = self.instrument.query_ascii_values("CALC:AVER:AVER?")[0]
+        _max = self.instrument.query_ascii_values("CALC:AVER:MAX?")[0]
+
+        return _min, _avg, _max
+
     def reset(self):
         """
         Checks for errors and then returns DMM to power up state
@@ -233,14 +252,13 @@ class Fluke8846A(DMM):
         self._is_error()
 
     def set_nplc(self, nplc=None, reset=False):
-        if nplc not in self._nplc_settings:
+        if reset is True or nplc is None:
+            nplc = self._default_nplc
+        elif nplc not in self._nplc_settings:
             raise ParameterError(f"Invalid NPLC setting {nplc}")
 
         if self._mode not in self._nplc_modes:
             raise ParameterError(f"NPLC setting not available for mode {self._mode}")
-
-        if reset is True or nplc is None:
-            nplc = self._default_nplc
 
         mode_str = f"{self._modes[self._mode]}"
 

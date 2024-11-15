@@ -147,6 +147,31 @@ class Keithley6500(DMM):
         with self.lock:
             return self._read_measurements()
 
+    def min_avg_max(self, samples=1, sample_time=1):
+        """
+        automatically samples the DMM for a given number of samples and returns the min, max, and average values
+        :param samples: number of samples to take
+        :param sample_time: time to wait for the DMM to take the samples
+        return: min, avg, max values as floats
+        """
+
+        self._write(f'TRAC:MAKE "TempTable", {samples}')
+        self._write(f"SENS:COUNt {samples}")
+
+        # we don't actually want the results, this is just to tell the DMM to start sampling
+        _tmp = self.instrument.query_ascii_values('READ? "TempTable"')[0]
+        time.sleep(sample_time)
+
+        _avg = self.instrument.query_ascii_values('TRAC:STAT:AVER? "TempTable"')[0]
+        _min = self.instrument.query_ascii_values('TRAC:STAT:MIN? "TempTable"')[0]
+        _max = self.instrument.query_ascii_values('TRAC:STAT:MAX? "TempTable"')[0]
+
+        # cleanup
+        self._write("SENS:COUNt 1")
+        self._write('TRAC:DEL "TempTable"')
+
+        return _min, _avg, _max
+
     def reset(self):
         """
         Checks for errors and then returns DMM to power up state
@@ -265,14 +290,13 @@ class Keithley6500(DMM):
         self._is_error()
 
     def set_nplc(self, nplc=None, reset=False):
-        if nplc <= self._nplc_min or nplc >= self._nplc_max:
+        if reset is True or nplc is None:
+            nplc = "DEF"  # keithley supports sending the "DEF" string to reset the NPLC value
+        elif nplc <= self._nplc_min or nplc >= self._nplc_max:
             raise ParameterError(f"NPLC setting out of range for Keithley 6500")
 
         if self._mode not in self._nplc_modes:
             raise ParameterError(f"NPLC setting not available for mode {self._mode}")
-
-        if reset is True or nplc is None:
-            nplc = "DEF"  # keithley supports sending the "DEF" string to reset the NPLC value
 
         mode_str = f"{self._modes[self._mode]}"
         self._write(f":SENS:{mode_str}:NPLC {nplc}")
