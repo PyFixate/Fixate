@@ -115,36 +115,7 @@ class CSVWriter:
     def __init__(self):
         self.csv_queue = Queue()
         self.csv_writer = None
-        self.reporting = CsvReporting()
 
-    def install(self):
-        self.csv_writer = ExcThread(
-            target=self._csv_write, args=(self.csv_queue,), name="csv-writer"
-        )
-        self.csv_writer.start()
-
-    def uninstall(self):
-        if self.csv_writer:
-            self.csv_queue.put(None)
-            self.csv_writer.join()
-        self.csv_writer = None
-
-    def _csv_write(self, cmd_q):
-        while True:
-            line = cmd_q.get()
-            if line is None:
-                break  # Command send to close csv_writer
-            try:
-                os.makedirs(os.path.dirname(self.reporting.csv_path))
-            except OSError as e:
-                pass
-            with open(self.reporting.csv_path, "a+", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
-                writer.writerow(line)
-
-
-class CsvReporting:
-    def __init__(self):
         self.exception_in_test = False
         self.failed = False
         self.chk_cnt = 0
@@ -154,6 +125,43 @@ class CsvReporting:
         self.current_test = None
         self.data = fixate.config.get_config_dict()
         self.data.update(fixate.config.get_plugin_data("plg_csv"))
+
+    def install(self):
+        self.csv_writer = ExcThread(
+            target=self._csv_write, args=(self.csv_queue,), name="csv-writer"
+        )
+        self.csv_writer.start()
+
+        pub.subscribe(self.test_start, "Test_Start")
+        pub.subscribe(self.test_comparison, "Check")
+        pub.subscribe(self.test_exception, "Test_Exception")
+        pub.subscribe(self.test_complete, "Test_Complete")
+        pub.subscribe(self.sequence_update, "Sequence_Update")
+        pub.subscribe(self.sequence_complete, "Sequence_Complete")
+        pub.subscribe(self.user_wait_start, "UI_block_start")
+        pub.subscribe(self.user_wait_end, "UI_block_end")
+        pub.subscribe(self.driver_open, "driver_open")
+
+    def uninstall(self):
+        pub.unsubscribe(self.test_start, "Test_Start")
+        pub.unsubscribe(self.test_comparison, "Check")
+        pub.unsubscribe(self.test_exception, "Test_Exception")
+        pub.unsubscribe(self.test_complete, "Test_Complete")
+        pub.unsubscribe(self.sequence_update, "Sequence_Update")
+        pub.unsubscribe(self.sequence_complete, "Sequence_Complete")
+        pub.unsubscribe(self.user_wait_start, "UI_block_start")
+        pub.unsubscribe(self.user_wait_end, "UI_block_end")
+
+        if self.csv_writer:
+            self.csv_queue.put(None)
+            self.csv_writer.join()
+        self.csv_writer = None
+
+    def is_alive(self):
+        if self.csv_writer is None:
+            return False
+
+        return self.csv_writer.is_alive()
 
     def sequence_update(self, status):
         # Do Start Sequence Reporting
@@ -336,59 +344,23 @@ class CsvReporting:
         keys = sorted(set(test_cls.__dict__) - set(comp.__dict__))
         return [(key, test_cls.__dict__[key]) for key in keys]
 
+    def _csv_write(self, cmd_q):
+        while True:
+            line = cmd_q.get()
+            if line is None:
+                break  # Command send to close csv_writer
+            try:
+                os.makedirs(os.path.dirname(self.csv_path))
+            except OSError as e:
+                pass
+            with open(self.csv_path, "a+", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
+                writer.writerow(line)
+
     def _write_line_to_csv(self, line):
         """
         :param line:
          single line of data with each column as an element in the list
         :return:
         """
-        global writer
-        writer.csv_queue.put(line)
-        # try:
-        #     os.makedirs(self.csv_dir)
-        # except OSError:
-        #     pass
-        # with open(self.csv_path, 'a+', newline='') as f:
-        #     writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
-        #     writer.writerow(line)
-
-
-writer = None
-
-
-def register_csv():
-    """
-    :param csv_dir: Base directory for for csv file
-    :param args: Args as parsed into the command line interface
-    :return:
-    """
-    global writer
-    writer = CSVWriter()
-    writer.install()
-    pub.subscribe(writer.reporting.test_start, "Test_Start")
-    pub.subscribe(writer.reporting.test_comparison, "Check")
-    pub.subscribe(writer.reporting.test_exception, "Test_Exception")
-    pub.subscribe(writer.reporting.test_complete, "Test_Complete")
-    pub.subscribe(writer.reporting.sequence_update, "Sequence_Update")
-    pub.subscribe(writer.reporting.sequence_complete, "Sequence_Complete")
-    pub.subscribe(writer.reporting.user_wait_start, "UI_block_start")
-    pub.subscribe(writer.reporting.user_wait_end, "UI_block_end")
-    pub.subscribe(writer.reporting.driver_open, "driver_open")
-
-
-def unregister_csv():
-    """
-    Note, will disable the final result eg. Unit Passed
-    :return:
-    """
-    global writer
-    if writer is not None:
-        pub.unsubscribe(writer.reporting.test_start, "Test_Start")
-        pub.unsubscribe(writer.reporting.test_comparison, "Check")
-        pub.unsubscribe(writer.reporting.test_exception, "Test_Exception")
-        pub.unsubscribe(writer.reporting.test_complete, "Test_Complete")
-        pub.unsubscribe(writer.reporting.sequence_update, "Sequence_Update")
-        pub.unsubscribe(writer.reporting.sequence_complete, "Sequence_Complete")
-        pub.unsubscribe(writer.reporting.user_wait_start, "UI_block_start")
-        pub.unsubscribe(writer.reporting.user_wait_end, "UI_block_end")
-        writer.uninstall()
+        self.csv_queue.put(line)
