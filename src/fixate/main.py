@@ -410,7 +410,7 @@ def run_main_program(test_script_path=None, main_args=None):
         args.diagnostic_log_dir.mkdir(parents=True, exist_ok=True)
 
         handler = RotateEachInstanceHandler(
-            args.diagnostic_log_dir / "fixate.log", backupCount=10
+            args.diagnostic_log_dir / "fixate.log", backupCount=10, encoding='utf-8'
         )
         handler.setFormatter(
             logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")

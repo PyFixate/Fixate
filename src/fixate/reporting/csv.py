@@ -138,7 +138,7 @@ class CSVWriter:
                 os.makedirs(os.path.dirname(self.reporting.csv_path))
             except OSError as e:
                 pass
-            with open(self.reporting.csv_path, "a+", newline="") as f:
+            with open(self.reporting.csv_path, "a+", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
                 writer.writerow(line)
 
