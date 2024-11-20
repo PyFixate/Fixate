@@ -246,9 +246,7 @@ class Sequencer:
                     exception=e,
                     test_index=self.levels(),
                 )
-                pub.sendMessage(
-                    "Sequence_Abort", exception=e
-                )
+                pub.sendMessage("Sequence_Abort", exception=e)
                 self._handle_sequence_abort()
                 return
 
