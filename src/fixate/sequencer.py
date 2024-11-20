@@ -237,15 +237,17 @@ class Sequencer:
         Once finished sets the status to Finished
         """
         while self.context:
-            if not self.reporting_service.is_alive():
+            try:
+                self.reporting_service.is_alive()
+            except Exception as e:
                 # We cannot log to file. Abort testing and exit
                 pub.sendMessage(
                     "Test_Exception",
-                    exception=SequenceAbort("Cannot write to log file"),
+                    exception=e,
                     test_index=self.levels(),
                 )
                 pub.sendMessage(
-                    "Sequence_Abort", exception=SequenceAbort("Logging Error")
+                    "Sequence_Abort", exception=e
                 )
                 self._handle_sequence_abort()
                 return

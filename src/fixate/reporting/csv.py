@@ -125,11 +125,10 @@ class CSVWriter:
         self.current_test = None
         self.data = fixate.config.get_config_dict()
         self.data.update(fixate.config.get_plugin_data("plg_csv"))
+        self.exception = None
 
     def install(self):
-        self.csv_writer = ExcThread(
-            target=self._csv_write, args=(self.csv_queue,), name="csv-writer"
-        )
+        self.csv_writer = ExcThread(target=self._csv_write, name="csv-writer")
         self.csv_writer.start()
 
         pub.subscribe(self.test_start, "Test_Start")
@@ -158,10 +157,12 @@ class CSVWriter:
         self.csv_writer = None
 
     def is_alive(self):
-        if self.csv_writer is None:
-            return False
+        if self.exception:
+            raise self.exception
 
-        return self.csv_writer.is_alive()
+        if not self.csv_writer.is_alive():
+            # If thread has exited without throwing an exception
+            raise Exception("csv-writer thread not active")
 
     def sequence_update(self, status):
         # Do Start Sequence Reporting
@@ -344,9 +345,9 @@ class CSVWriter:
         keys = sorted(set(test_cls.__dict__) - set(comp.__dict__))
         return [(key, test_cls.__dict__[key]) for key in keys]
 
-    def _csv_write(self, cmd_q):
+    def _csv_write(self):
         while True:
-            line = cmd_q.get()
+            line = self.csv_queue.get()
             if line is None:
                 break  # Command send to close csv_writer
             try:
@@ -355,7 +356,10 @@ class CSVWriter:
                 pass
             with open(self.csv_path, "a+", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
-                writer.writerow(line)
+                try:
+                    writer.writerow(line)
+                except Exception as e:
+                    self.exception = e
 
     def _write_line_to_csv(self, line):
         """
