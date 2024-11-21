@@ -158,11 +158,13 @@ class CSVWriter:
 
     def is_alive(self):
         if self.exception:
-            raise self.exception
+            raise RuntimeError(
+                f"Exception in {self.csv_writer.name} thread"
+            ) from self.exception
 
         if not self.csv_writer.is_alive():
             # If thread has exited without throwing an exception
-            raise Exception("csv-writer thread not active")
+            raise RuntimeError("csv-writer thread not active")
 
     def sequence_update(self, status):
         # Do Start Sequence Reporting
