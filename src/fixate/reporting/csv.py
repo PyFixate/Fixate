@@ -127,36 +127,34 @@ class CSVWriter:
         self.data.update(fixate.config.get_plugin_data("plg_csv"))
         self.exception = None
 
+        self._topics = [
+            (self.test_start, "Test_Start"),
+            (self.test_comparison, "Check"),
+            (self.test_exception, "Test_Exception"),
+            (self.test_complete, "Test_Complete"),
+            (self.sequence_update, "Sequence_Update"),
+            (self.sequence_complete, "Sequence_Complete"),
+            (self.user_wait_start, "UI_block_start"),
+            (self.user_wait_end, "UI_block_end"),
+        ]
+
     def install(self):
         self.csv_writer = ExcThread(target=self._csv_write, name="csv-writer")
         self.csv_writer.start()
 
-        pub.subscribe(self.test_start, "Test_Start")
-        pub.subscribe(self.test_comparison, "Check")
-        pub.subscribe(self.test_exception, "Test_Exception")
-        pub.subscribe(self.test_complete, "Test_Complete")
-        pub.subscribe(self.sequence_update, "Sequence_Update")
-        pub.subscribe(self.sequence_complete, "Sequence_Complete")
-        pub.subscribe(self.user_wait_start, "UI_block_start")
-        pub.subscribe(self.user_wait_end, "UI_block_end")
-        pub.subscribe(self.driver_open, "driver_open")
+        for callback, topic in self._topics:
+            pub.subscribe(callback, topic)
 
     def uninstall(self):
-        pub.unsubscribe(self.test_start, "Test_Start")
-        pub.unsubscribe(self.test_comparison, "Check")
-        pub.unsubscribe(self.test_exception, "Test_Exception")
-        pub.unsubscribe(self.test_complete, "Test_Complete")
-        pub.unsubscribe(self.sequence_update, "Sequence_Update")
-        pub.unsubscribe(self.sequence_complete, "Sequence_Complete")
-        pub.unsubscribe(self.user_wait_start, "UI_block_start")
-        pub.unsubscribe(self.user_wait_end, "UI_block_end")
+        for callback, topic in self._topics:
+            pub.unsubscribe(callback, topic)
 
         if self.csv_writer:
             self.csv_queue.put(None)
             self.csv_writer.join()
         self.csv_writer = None
 
-    def is_alive(self):
+    def ensure_alive(self):
         if self.exception:
             raise RuntimeError(
                 f"Exception in {self.csv_writer.name} thread"

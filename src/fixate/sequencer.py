@@ -238,7 +238,7 @@ class Sequencer:
         """
         while self.context:
             try:
-                self.reporting_service.is_alive()
+                self.reporting_service.ensure_alive()
             except Exception as e:
                 # We cannot log to file. Abort testing and exit
                 pub.sendMessage(
