@@ -14,6 +14,8 @@ Improvements
 ############
 
 - fxconfig now prevents duplicate entries from being added to the config file.
+- csv-writer thread crash will now abort the test. 
+- UTF-8 encoding is now explicitly used for the csv test log and the debug log file. Improves reliability.
 
 *************
 Version 0.6.3
