@@ -136,6 +136,7 @@ class CSVWriter:
             (self.sequence_complete, "Sequence_Complete"),
             (self.user_wait_start, "UI_block_start"),
             (self.user_wait_end, "UI_block_end"),
+            (self.driver_open, "driver_open"),
         ]
 
     def install(self):
