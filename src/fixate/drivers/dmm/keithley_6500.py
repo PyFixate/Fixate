@@ -48,8 +48,7 @@ class Keithley6500(DMM):
             "diode",
             "temperature",
         ]
-        self._nplc_min = 0.0005  # Minimum NPLC setting for the DMM
-        self._nplc_max = 12  # Maximum NPLC setting for the DMM
+        self._nplc_settings = [0.02, 0.2, 1, 10]
         self._init_string = ""  # Unchanging
 
     # Adapted for different DMM behaviour
@@ -159,7 +158,7 @@ class Keithley6500(DMM):
         self._write(f"SENS:COUNt {samples}")
 
         # we don't actually want the results, this is just to tell the DMM to start sampling
-        _tmp = self.instrument.query_ascii_values('READ? "TempTable"')[0]
+        _ = self.instrument.query_ascii_values('READ? "TempTable"')
         time.sleep(sample_time)
 
         _avg = self.instrument.query_ascii_values('TRAC:STAT:AVER? "TempTable"')[0]
@@ -292,8 +291,8 @@ class Keithley6500(DMM):
     def set_nplc(self, nplc=None, reset=False):
         if reset is True or nplc is None:
             nplc = "DEF"  # keithley supports sending the "DEF" string to reset the NPLC value
-        elif nplc <= self._nplc_min or nplc >= self._nplc_max:
-            raise ParameterError(f"NPLC setting out of range for Keithley 6500")
+        elif nplc not in self._nplc_settings:
+            raise ParameterError(f"Invalid NPLC setting {nplc}")
 
         if self._mode not in self._nplc_modes:
             raise ParameterError(f"NPLC setting not available for mode {self._mode}")

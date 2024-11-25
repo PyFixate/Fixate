@@ -50,7 +50,7 @@ class Fluke8846A(DMM):
             "temperature",
             "ftemperature",
         ]
-        self._nplc_settings = [0.02, 0.2, 1, 10, 100]
+        self._nplc_settings = [0.02, 0.2, 1, 10]
         self._default_nplc = 10  # Default NPLC setting as per Fluke 8846A manual
         self._init_string = ""  # Unchanging
 
