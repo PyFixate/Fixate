@@ -161,15 +161,15 @@ class Keithley6500(DMM):
         _ = self.instrument.query_ascii_values('READ? "TempTable"')
         time.sleep(sample_time)
 
-        _avg = self.instrument.query_ascii_values('TRAC:STAT:AVER? "TempTable"')[0]
-        _min = self.instrument.query_ascii_values('TRAC:STAT:MIN? "TempTable"')[0]
-        _max = self.instrument.query_ascii_values('TRAC:STAT:MAX? "TempTable"')[0]
+        avg_ = self.instrument.query_ascii_values('TRAC:STAT:AVER? "TempTable"')[0]
+        min_ = self.instrument.query_ascii_values('TRAC:STAT:MIN? "TempTable"')[0]
+        max_ = self.instrument.query_ascii_values('TRAC:STAT:MAX? "TempTable"')[0]
 
         # cleanup
         self._write("SENS:COUNt 1")
         self._write('TRAC:DEL "TempTable"')
 
-        return _min, _avg, _max
+        return min_, avg_, max_
 
     def reset(self):
         """
@@ -288,18 +288,6 @@ class Keithley6500(DMM):
         self._write(f":COUN {self.samples}")
         self._is_error()
 
-    def set_nplc(self, nplc=None, reset=False):
-        if reset is True or nplc is None:
-            nplc = "DEF"  # keithley supports sending the "DEF" string to reset the NPLC value
-        elif nplc not in self._nplc_settings:
-            raise ParameterError(f"Invalid NPLC setting {nplc}")
-
-        if self._mode not in self._nplc_modes:
-            raise ParameterError(f"NPLC setting not available for mode {self._mode}")
-
-        mode_str = f"{self._modes[self._mode]}"
-        self._write(f":SENS:{mode_str}:NPLC {nplc}")
-
     def voltage_ac(self, _range=None):
         self._set_measurement_mode("voltage_ac", _range)
 
@@ -393,3 +381,39 @@ class Keithley6500(DMM):
             (example: FLUKE, 45, 9080025, 2.0, D2.0)
         """
         return self.instrument.query("*IDN?").strip()
+
+    def set_nplc(self, nplc=None, reset=False):
+        if reset is True or nplc is None:
+            nplc = "DEF"  # keithley supports sending the "DEF" string to reset the NPLC value
+        elif nplc not in self._nplc_settings:
+            raise ParameterError(f"Invalid NPLC setting {nplc}")
+
+        if self._mode not in self._nplc_modes:
+            raise ParameterError(f"NPLC setting not available for mode {self._mode}")
+
+        mode_str = f"{self._modes[self._mode]}"
+        self._write(f":SENS:{mode_str}:NPLC {nplc}")
+
+    def get_nplc(self):
+        return float(self.instrument.query(f":SENS:{self._modes[self._mode]}:NPLC?"))
+
+    # context manager for setting NPLC
+    class _nplc_context_manager(object):
+        def __init__(self, dmm, nplc=None):
+            self.dmm = dmm
+            self.nplc = nplc
+            self.original_nplc = dmm.get_nplc()
+
+        def __enter__(self):
+            self.dmm.set_nplc(self.nplc)
+
+        # return to default NPLC setting
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            # check if an exception was raised
+            if exc_type is not None or exc_val is not None or exc_tb is not None:
+                return False  # re-raise the exception
+            # continue with the exit process
+            self.dmm.set_nplc(self.original_nplc)
+
+    def nplc(self, nplc=None):
+        return self._nplc_context_manager(self, nplc)
