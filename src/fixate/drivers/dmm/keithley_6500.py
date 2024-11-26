@@ -151,7 +151,7 @@ class Keithley6500(DMM):
         automatically samples the DMM for a given number of samples and returns the min, max, and average values
         :param samples: number of samples to take
         :param sample_time: time to wait for the DMM to take the samples
-        return: min, avg, max values as floats
+        return: min, avg, max values as floats in a dictionary
         """
 
         self._write(f'TRAC:MAKE "TempTable", {samples}')
@@ -169,7 +169,9 @@ class Keithley6500(DMM):
         self._write("SENS:COUNt 1")
         self._write('TRAC:DEL "TempTable"')
 
-        return min_, avg_, max_
+        values = {"min": min_, "avg": avg_, "max": max_}
+
+        return values
 
     def reset(self):
         """
@@ -396,24 +398,3 @@ class Keithley6500(DMM):
 
     def get_nplc(self):
         return float(self.instrument.query(f":SENS:{self._modes[self._mode]}:NPLC?"))
-
-    # context manager for setting NPLC
-    class _nplc_context_manager(object):
-        def __init__(self, dmm, nplc=None):
-            self.dmm = dmm
-            self.nplc = nplc
-            self.original_nplc = dmm.get_nplc()
-
-        def __enter__(self):
-            self.dmm.set_nplc(self.nplc)
-
-        # return to default NPLC setting
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            # check if an exception was raised
-            if exc_type is not None or exc_val is not None or exc_tb is not None:
-                return False  # re-raise the exception
-            # continue with the exit process
-            self.dmm.set_nplc(self.original_nplc)
-
-    def nplc(self, nplc=None):
-        return self._nplc_context_manager(self, nplc)

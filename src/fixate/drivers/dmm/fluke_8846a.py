@@ -116,7 +116,7 @@ class Fluke8846A(DMM):
         automatically samples the DMM for a given number of samples and returns the min, max, and average values
         :param samples: number of samples to take
         :param sample_time: time to wait for the DMM to take the samples
-        return: min, avg, max values as floats
+        return: min, avg, max values as floats in a dictionary
         """
 
         self._write(f"SAMP:COUN {samples}")
@@ -128,7 +128,9 @@ class Fluke8846A(DMM):
         avg_ = self.instrument.query_ascii_values("CALC:AVER:AVER?")[0]
         max_ = self.instrument.query_ascii_values("CALC:AVER:MAX?")[0]
 
-        return min_, avg_, max_
+        values = {"min": min_, "avg": avg_, "max": max_}
+
+        return values
 
     def reset(self):
         """
@@ -359,24 +361,3 @@ class Fluke8846A(DMM):
         # Remove the CONF: from the start of the string
         mode_str = mode_str.replace("CONF:", "")
         return float(self.instrument.query(f"{mode_str}:NPLC?"))
-
-    # context manager for setting NPLC
-    class _nplc_context_manager(object):
-        def __init__(self, dmm, nplc=None):
-            self.dmm = dmm
-            self.nplc = nplc
-            self.original_nplc = self.dmm.get_nplc()
-
-        def __enter__(self):
-            self.dmm.set_nplc(self.nplc)
-
-        # return to default NPLC setting
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            # check if an exception was raised
-            if exc_type is not None or exc_val is not None or exc_tb is not None:
-                return False  # re-raise the exception
-            # continue with the exit process
-            self.dmm.set_nplc(self.original_nplc)
-
-    def nplc(self, nplc=None):
-        return self._nplc_context_manager(self, nplc)
