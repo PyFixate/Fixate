@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+
+
 class DMM:
     REGEX_ID = "DMM"
     is_connected = False
@@ -101,3 +104,30 @@ class DMM:
 
     def get_identity(self):
         raise NotImplementedError
+
+    @dataclass
+    class MeasurementStats:
+        min: float
+        max: float
+        avg: float
+
+    # context manager for setting NPLC
+    class _nplc_context_manager(object):
+        def __init__(self, dmm, nplc=None):
+            self.dmm = dmm
+            self.nplc = nplc
+            self.original_nplc = dmm.get_nplc()
+
+        def __enter__(self):
+            self.dmm.set_nplc(self.nplc)
+
+        # return to default NPLC setting
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            # check if an exception was raised
+            if exc_type is not None or exc_val is not None or exc_tb is not None:
+                return False  # re-raise the exception
+            # continue with the exit process
+            self.dmm.set_nplc(self.original_nplc)
+
+    def nplc(self, nplc=None):
+        return self._nplc_context_manager(self, nplc)

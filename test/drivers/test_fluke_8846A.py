@@ -317,6 +317,78 @@ def test_measurement_diode(funcgen, dmm, rm):
 
 
 @pytest.mark.drivertest
+def test_get_nplc(dmm):
+    query = dmm.get_nplc()
+    assert query == pytest.approx(10)
+
+
+@pytest.mark.drivertest
+def test_set_nplc(dmm):
+    dmm.voltage_dc()
+    dmm.set_nplc(nplc=1)
+    query = dmm.get_nplc()
+    assert query == pytest.approx(1)
+
+    dmm.set_nplc(reset=True)  # Set to default
+    query = dmm.get_nplc()
+    assert query == pytest.approx(10)
+
+    # invalid nplc value
+    with pytest.raises(ParameterError):
+        dmm.set_nplc(nplc=999)
+
+    # invalid mode
+    dmm.voltage_ac()
+    with pytest.raises(ParameterError):
+        dmm.set_nplc(nplc=1)
+
+
+@pytest.mark.drivertest
+def test_nplc_context_manager(dmm):
+    dmm.voltage_dc()
+    dmm.set_nplc(nplc=0.02)
+    with dmm.nplc(1):
+        query = dmm.get_nplc()
+        assert query == pytest.approx(1)
+    query = dmm.get_nplc()
+    assert query == pytest.approx(0.02)
+
+    with pytest.raises(ZeroDivisionError):
+        with dmm.nplc(1):
+            _ = 1 / 0  # make sure exception is not swallowed
+
+
+@pytest.mark.drivertest
+def test_min_avg_max(dmm, rm, funcgen):
+    dmm.voltage_dc()
+    dmm.set_nplc(nplc=0.02)
+    values = dmm.min_avg_max(995, 1.1)
+    min_val = values.min
+    avg_val = values.avg
+    max_val = values.max
+
+    # does not guarantee that there is any input to the DMM so we can't guarantee that the min, avg, max are different
+    assert min_val <= avg_val <= max_val
+
+    v = 50e-3
+    f = 50
+    rm.mux.connectionMap("DMM_SIG")
+    funcgen.channel1.waveform.sin()
+    funcgen.channel1.vrms(v)
+    funcgen.channel1.frequency(f)
+    funcgen.channel1(True)
+
+    time.sleep(0.5)
+
+    values = dmm.min_avg_max(995, 1.1)
+    min_val = values.min
+    avg_val = values.avg
+    max_val = values.max
+
+    assert min_val < avg_val < max_val
+
+
+@pytest.mark.drivertest
 def test_get_identity(dmm):
     iden = dmm.get_identity()
     assert "FLUKE,8846A" in iden
