@@ -49,6 +49,7 @@ class Keithley6500(DMM):
             "temperature",
         ]
         self._nplc_settings = [0.02, 0.2, 1, 10]
+        self._nplc_default = 1
         self._init_string = ""  # Unchanging
 
     # Adapted for different DMM behaviour
@@ -386,7 +387,11 @@ class Keithley6500(DMM):
 
     def set_nplc(self, nplc=None, reset=False):
         if reset is True or nplc is None:
-            nplc = "DEF"  # keithley supports sending the "DEF" string to reset the NPLC value
+            nplc = self._nplc_default
+            # note: keithley 6500 supports using "DEF" to reset to default NPLC setting
+            # however this sets the NPLC to 0.02 which is not the default setting
+            # the datasheet specifies 1 as the default (and this has been confirmed by resetting the dmm)
+            # so this behaviour is confusing. So we just manually set the default value to 1
         elif nplc not in self._nplc_settings:
             raise ParameterError(f"Invalid NPLC setting {nplc}")
 

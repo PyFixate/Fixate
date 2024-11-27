@@ -359,13 +359,33 @@ def test_nplc_context_manager(dmm):
 
 
 @pytest.mark.drivertest
-def test_min_avg_max(dmm):
+def test_min_avg_max(dmm, rm, funcgen):
     dmm.voltage_dc()
     dmm.set_nplc(nplc=0.02)
-    min_, avg_, max_ = dmm.min_avg_max(995, 1.1)
+    values = dmm.min_avg_max(995, 1.1)
+    min_ = values["min"]
+    avg_ = values["avg"]
+    max_ = values["max"]
 
     # does not guarantee that there is any input to the DMM so we can't guarantee that the min, avg, max are different
     assert min_ <= avg_ <= max_
+
+    v = 50e-3
+    f = 50
+    rm.mux.connectionMap("DMM_SIG")
+    funcgen.channel1.waveform.sin()
+    funcgen.channel1.vrms(v)
+    funcgen.channel1.frequency(f)
+    funcgen.channel1(True)
+
+    time.sleep(0.5)
+
+    values = dmm.min_avg_max(995, 1.1)
+    min_ = values["min"]
+    avg_ = values["avg"]
+    max_ = values["max"]
+
+    assert min_ < avg_ < max_
 
 
 @pytest.mark.drivertest
