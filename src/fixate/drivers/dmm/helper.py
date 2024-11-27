@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+
+
 class DMM:
     REGEX_ID = "DMM"
     is_connected = False
@@ -101,6 +104,12 @@ class DMM:
 
     def get_identity(self):
         raise NotImplementedError
+
+    @dataclass
+    class MeasurementStats:
+        min: float
+        max: float
+        avg: float
 
     # context manager for setting NPLC
     class _nplc_context_manager(object):

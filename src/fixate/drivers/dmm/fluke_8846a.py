@@ -128,7 +128,7 @@ class Fluke8846A(DMM):
         avg_ = self.instrument.query_ascii_values("CALC:AVER:AVER?")[0]
         max_ = self.instrument.query_ascii_values("CALC:AVER:MAX?")[0]
 
-        values = {"min": min_, "avg": avg_, "max": max_}
+        values = DMM.MeasurementStats(min=min_, avg=avg_, max=max_)
 
         return values
 

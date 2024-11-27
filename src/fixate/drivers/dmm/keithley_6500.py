@@ -170,7 +170,7 @@ class Keithley6500(DMM):
         self._write("SENS:COUNt 1")
         self._write('TRAC:DEL "TempTable"')
 
-        values = {"min": min_, "avg": avg_, "max": max_}
+        values = DMM.MeasurementStats(min=min_, avg=avg_, max=max_)
 
         return values
 

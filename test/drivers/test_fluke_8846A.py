@@ -363,12 +363,12 @@ def test_min_avg_max(dmm, rm, funcgen):
     dmm.voltage_dc()
     dmm.set_nplc(nplc=0.02)
     values = dmm.min_avg_max(995, 1.1)
-    min_ = values["min"]
-    avg_ = values["avg"]
-    max_ = values["max"]
+    min_val = values.min
+    avg_val = values.avg
+    max_val = values.max
 
     # does not guarantee that there is any input to the DMM so we can't guarantee that the min, avg, max are different
-    assert min_ <= avg_ <= max_
+    assert min_val <= avg_val <= max_val
 
     v = 50e-3
     f = 50
@@ -381,11 +381,11 @@ def test_min_avg_max(dmm, rm, funcgen):
     time.sleep(0.5)
 
     values = dmm.min_avg_max(995, 1.1)
-    min_ = values["min"]
-    avg_ = values["avg"]
-    max_ = values["max"]
+    min_val = values.min
+    avg_val = values.avg
+    max_val = values.max
 
-    assert min_ < avg_ < max_
+    assert min_val < avg_val < max_val
 
 
 @pytest.mark.drivertest
