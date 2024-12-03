@@ -124,7 +124,7 @@ class DMM:
         # return to default NPLC setting
         def __exit__(self, exc_type, exc_val, exc_tb):
             # check if an exception was raised
-            if exc_type is not None or exc_val is not None or exc_tb is not None:
+            if exc_type:
                 return False  # re-raise the exception
             # continue with the exit process
             self.dmm.set_nplc(self.original_nplc)
