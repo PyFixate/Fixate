@@ -116,9 +116,11 @@ class DMM:
         def __init__(self, dmm, nplc=None):
             self.dmm = dmm
             self.nplc = nplc
-            self.original_nplc = dmm.get_nplc()
+            self.original_nplc = None
 
         def __enter__(self):
+            # store the original NPLC setting
+            self.original_nplc = self.dmm.get_nplc()
             self.dmm.set_nplc(self.nplc)
 
         # return to default NPLC setting
