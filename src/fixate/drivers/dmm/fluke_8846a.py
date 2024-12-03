@@ -130,6 +130,10 @@ class Fluke8846A(DMM):
 
         values = DMM.MeasurementStats(min=min_, avg=avg_, max=max_)
 
+        # clean up
+        self._write("CALC:STAT OFF")
+        self._write("SAMP:COUN 1")
+
         return values
 
     def reset(self):
