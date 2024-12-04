@@ -316,20 +316,76 @@ def test_measurement_diode(funcgen, dmm, rm):
     assert meas == pytest.approx(TEST_DIODE, abs=TEST_DIODE_TOL)
 
 
+@pytest.mark.parametrize(
+    "mode",
+    [
+        ("voltage_dc"),
+        ("current_dc"),
+        ("resistance"),
+        ("fresistance"),
+        pytest.param(
+            "voltage_ac", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+        pytest.param(
+            "current_ac", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+        pytest.param(
+            "period", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+        pytest.param(
+            "frequency", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+        pytest.param(
+            "capacitance", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+        pytest.param(
+            "continuity", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+    ],
+)
 @pytest.mark.drivertest
-def test_get_nplc(dmm):
+def test_get_nplc(mode, dmm):
+    getattr(dmm, mode)()
+    dmm.set_nplc(reset=True)
     query = dmm.get_nplc()
     assert query == pytest.approx(10)
 
 
+@pytest.mark.parametrize(
+    "mode",
+    [
+        ("voltage_dc"),
+        ("current_dc"),
+        ("resistance"),
+        ("fresistance"),
+        pytest.param(
+            "voltage_ac", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+        pytest.param(
+            "current_ac", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+        pytest.param(
+            "period", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+        pytest.param(
+            "frequency", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+        pytest.param(
+            "capacitance", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+        pytest.param(
+            "continuity", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+    ],
+)
 @pytest.mark.drivertest
-def test_set_nplc(dmm):
-    dmm.voltage_dc()
+def test_set_nplc(mode, dmm):
+    getattr(dmm, mode)()
     dmm.set_nplc(nplc=1)
     query = dmm.get_nplc()
     assert query == pytest.approx(1)
 
-    dmm.set_nplc(reset=True)  # Set to default
+    dmm.set_nplc(nplc=None)  # Set to default
     query = dmm.get_nplc()
     assert query == pytest.approx(10)
 
@@ -337,38 +393,69 @@ def test_set_nplc(dmm):
     with pytest.raises(ParameterError):
         dmm.set_nplc(nplc=999)
 
-    # invalid mode
-    dmm.voltage_ac()
-    with pytest.raises(ParameterError):
-        dmm.set_nplc(nplc=1)
 
-
+@pytest.mark.parametrize(
+    "mode",
+    [
+        ("voltage_dc"),
+        ("current_dc"),
+        ("resistance"),
+        ("fresistance"),
+        pytest.param(
+            "voltage_ac", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+        pytest.param(
+            "current_ac", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+        pytest.param(
+            "period", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+        pytest.param(
+            "frequency", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+        pytest.param(
+            "capacitance", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+        pytest.param(
+            "continuity", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
+    ],
+)
 @pytest.mark.drivertest
-def test_nplc_context_manager(dmm):
-    dmm.voltage_dc()
-    dmm.set_nplc(nplc=0.02)
+def test_nplc_context_manager(mode, dmm):
+    getattr(dmm, mode)()
+
+    dmm.set_nplc(nplc=0.2)
     with dmm.nplc(1):
         query = dmm.get_nplc()
         assert query == pytest.approx(1)
     query = dmm.get_nplc()
-    assert query == pytest.approx(0.02)
+    assert query == pytest.approx(0.2)
 
     with pytest.raises(ZeroDivisionError):
         with dmm.nplc(1):
             _ = 1 / 0  # make sure exception is not swallowed
 
 
+@pytest.mark.parametrize(
+    "mode, samples, nplc",
+    [
+        ("voltage_ac", 10, None),
+        ("voltage_dc", 995, 0.02),
+        ("current_dc", 995, 0.02),
+        ("current_ac", 10, None),
+        ("period", 10, None),
+        ("frequency", 10, None),
+    ],
+)
 @pytest.mark.drivertest
-def test_min_avg_max(dmm, rm, funcgen):
-    dmm.voltage_dc()
-    dmm.set_nplc(nplc=0.02)
-    values = dmm.min_avg_max(995, 1.1)
-    min_val = values.min
-    avg_val = values.avg
-    max_val = values.max
+def test_min_avg_max(mode, samples, nplc, dmm, rm, funcgen):
+    # dmm.voltage_dc()
+    getattr(dmm, mode)()
 
-    # does not guarantee that there is any input to the DMM so we can't guarantee that the min, avg, max are different
-    assert min_val <= avg_val <= max_val
+    # only set nplc when able (depends on mode)
+    if nplc:
+        dmm.set_nplc(nplc=nplc)
 
     v = 50e-3
     f = 50
@@ -380,12 +467,39 @@ def test_min_avg_max(dmm, rm, funcgen):
 
     time.sleep(0.5)
 
-    values = dmm.min_avg_max(995, 1.1)
+    values = dmm.min_avg_max(samples, 1.1)
     min_val = values.min
     avg_val = values.avg
     max_val = values.max
 
     assert min_val < avg_val < max_val
+
+    v = 100e-3
+    f = 60
+    funcgen.channel1.vrms(v)
+    funcgen.channel1.frequency(f)
+    time.sleep(0.5)
+
+    values = dmm.min_avg_max(samples, 1.1)
+    min_val2 = values.min
+    avg_val2 = values.avg
+    max_val2 = values.max
+
+    assert min_val2 < avg_val2 < max_val2
+
+    # check if values from the two runs are different
+    # We can only really do this for certain modes and the checks depend on the mode
+    if mode == "voltage_dc":
+        assert min_val2 < min_val
+        assert max_val2 > max_val
+
+    if mode == "frequency":
+        assert min_val2 > min_val
+        assert max_val2 > max_val
+
+    if mode == "period":
+        assert min_val2 < min_val
+        assert max_val2 < max_val
 
 
 @pytest.mark.drivertest
