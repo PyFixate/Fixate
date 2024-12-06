@@ -40,7 +40,17 @@ class Keithley6500(DMM):
             "continuity": "CONT",
             "diode": "DIOD",
         }
-
+        # note: the keithley 6500 also supports changing NPLC for diode measurements, but this has been removed as the fluke does not support it.
+        self._nplc_modes = [
+            "voltage_dc",
+            "current_dc",
+            "resistance",
+            "fresistance",
+            "temperature",
+        ]
+        # note: the keithley supports setting NPLC to any value between 0.0005 and 12 (with 50hz mains power) but for compatibility with the fluke, we only support the following values
+        self._nplc_settings = [0.02, 0.2, 1, 10]
+        self._nplc_default = 1
         self._init_string = ""  # Unchanging
 
     # Adapted for different DMM behaviour
@@ -137,6 +147,33 @@ class Keithley6500(DMM):
 
         with self.lock:
             return self._read_measurements()
+
+    def min_avg_max(self, samples=1, sample_time=1):
+        """
+        automatically samples the DMM for a given number of samples and returns the min, max, and average values
+        :param samples: number of samples to take
+        :param sample_time: time to wait for the DMM to take the samples
+        return: min, avg, max values as floats in a dataclass
+        """
+
+        self._write(f'TRAC:MAKE "TempTable", {samples}')
+        self._write(f"SENS:COUNt {samples}")
+
+        # we don't actually want the results, this is just to tell the DMM to start sampling
+        _ = self.instrument.query_ascii_values('READ? "TempTable"')
+        time.sleep(sample_time)
+
+        avg_ = self.instrument.query_ascii_values('TRAC:STAT:AVER? "TempTable"')[0]
+        min_ = self.instrument.query_ascii_values('TRAC:STAT:MIN? "TempTable"')[0]
+        max_ = self.instrument.query_ascii_values('TRAC:STAT:MAX? "TempTable"')[0]
+
+        # cleanup
+        self._write("SENS:COUNt 1")
+        self._write('TRAC:DEL "TempTable"')
+
+        values = DMM.MeasurementStats(min=min_, avg=avg_, max=max_)
+
+        return values
 
     def reset(self):
         """
@@ -348,3 +385,22 @@ class Keithley6500(DMM):
             (example: FLUKE, 45, 9080025, 2.0, D2.0)
         """
         return self.instrument.query("*IDN?").strip()
+
+    def set_nplc(self, nplc=None, reset=False):
+        if reset is True or nplc is None:
+            nplc = self._nplc_default
+            # note: keithley 6500 supports using "DEF" to reset to default NPLC setting
+            # however this sets the NPLC to 0.02 which is not the default setting
+            # the datasheet specifies 1 as the default (and this has been confirmed by resetting the dmm)
+            # so this behaviour is confusing. So we just manually set the default value to 1
+        elif nplc not in self._nplc_settings:
+            raise ParameterError(f"Invalid NPLC setting {nplc}")
+
+        if self._mode not in self._nplc_modes:
+            raise ParameterError(f"NPLC setting not available for mode {self._mode}")
+
+        mode_str = f"{self._modes[self._mode]}"
+        self._write(f":SENS:{mode_str}:NPLC {nplc}")
+
+    def get_nplc(self):
+        return float(self.instrument.query(f":SENS:{self._modes[self._mode]}:NPLC?"))
