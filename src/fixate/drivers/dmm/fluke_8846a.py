@@ -116,7 +116,7 @@ class Fluke8846A(DMM):
         automatically samples the DMM for a given number of samples and returns the min, max, and average values
         :param samples: number of samples to take
         :param sample_time: time to wait for the DMM to take the samples
-        return: min, avg, max values as floats in a dictionary
+        return: min, avg, max values as floats in a dataclass
         """
 
         self._write(f"SAMP:COUN {samples}")
