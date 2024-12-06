@@ -6,6 +6,7 @@ from fixate.core.common import TestList, TestClass
 from fixate.core.exceptions import SequenceAbort, CheckFail
 from fixate.core.ui import user_retry_abort_fail
 from fixate.core.checks import CheckResult
+from fixate.reporting import CSVWriter
 
 STATUS_STATES = ["Idle", "Running", "Paused", "Finished", "Restart", "Aborted"]
 
@@ -109,6 +110,7 @@ class Sequencer:
         self.context = ContextStack()
         self.context_data = {}
         self.end_status = "N/A"
+        self.reporting_service = CSVWriter()
 
         # Sequencer behaviour. Don't ask the user when things to wrong, just marks tests as failed.
         # This does not change the behaviour of tests that call out to the user. They will still block as required.
@@ -215,6 +217,7 @@ class Sequencer:
         Runs the sequence from the beginning to end once
         :return:
         """
+        self.reporting_service.install()
         self.status = "Running"
         try:
             self.run_once()
@@ -225,6 +228,8 @@ class Sequencer:
                     top.current().exit()
                 self.context.pop()
 
+        self.reporting_service.uninstall()
+
     def run_once(self):
         """
         Runs through the tests once as are pushed onto the context stack.
@@ -232,6 +237,19 @@ class Sequencer:
         Once finished sets the status to Finished
         """
         while self.context:
+            try:
+                self.reporting_service.ensure_alive()
+            except Exception as e:
+                # We cannot log to file. Abort testing and exit
+                pub.sendMessage(
+                    "Test_Exception",
+                    exception=e,
+                    test_index=self.levels(),
+                )
+                pub.sendMessage("Sequence_Abort", exception=e)
+                self._handle_sequence_abort()
+                return
+
             if self.status == "Running":
                 try:
                     top = self.context.top()
@@ -373,7 +391,8 @@ class Sequencer:
         """Prompt the user when something goes wrong.
 
         For retry return True, to fail return False and to abort raise and abort exception. Respect the
-        non_interactive flag, which can be set by the command line option --non-interactive"""
+        non_interactive flag, which can be set by the command line option --non-interactive
+        """
 
         if self.non_interactive:
             return False
