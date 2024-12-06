@@ -40,14 +40,15 @@ class Keithley6500(DMM):
             "continuity": "CONT",
             "diode": "DIOD",
         }
+        # note: the keithley 6500 also supports changing NPLC for diode measurements, but this has been removed as the fluke does not support it.
         self._nplc_modes = [
             "voltage_dc",
             "current_dc",
             "resistance",
             "fresistance",
-            "diode",
             "temperature",
         ]
+        # note: the keithley supports setting NPLC to any value between 0.0005 and 12 (with 50hz mains power) but for compatibility with the fluke, we only support the following values
         self._nplc_settings = [0.02, 0.2, 1, 10]
         self._nplc_default = 1
         self._init_string = ""  # Unchanging

@@ -329,9 +329,11 @@ def test_measurement_diode(funcgen, dmm, rm):
     [
         ("voltage_dc"),
         ("current_dc"),
-        ("diode"),
         ("resistance"),
         ("fresistance"),
+        pytest.param(
+            "diode", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
         pytest.param(
             "voltage_ac", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
         ),
@@ -365,9 +367,11 @@ def test_get_nplc(mode, dmm):
     [
         ("voltage_dc"),
         ("current_dc"),
-        ("diode"),
         ("resistance"),
         ("fresistance"),
+        pytest.param(
+            "diode", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
         pytest.param(
             "voltage_ac", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
         ),
@@ -409,9 +413,11 @@ def test_set_nplc(mode, dmm):
     [
         ("voltage_dc"),
         ("current_dc"),
-        ("diode"),
         ("resistance"),
         ("fresistance"),
+        pytest.param(
+            "diode", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
+        ),
         pytest.param(
             "voltage_ac", marks=pytest.mark.xfail(raises=ParameterError, strict=True)
         ),
