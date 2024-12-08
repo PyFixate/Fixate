@@ -42,6 +42,16 @@ class Fluke8846A(DMM):
             "continuity": "CONF:CONTinuity",
             "diode": "CONF:DIODe",
         }
+        self._nplc_modes = [
+            "resistance",
+            "fresistance",
+            "voltage_dc",
+            "current_dc",
+            "temperature",
+            "ftemperature",
+        ]
+        self._nplc_settings = [0.02, 0.2, 1, 10]
+        self._default_nplc = 10  # Default NPLC setting as per Fluke 8846A manual
         self._init_string = ""  # Unchanging
 
     @property
@@ -100,6 +110,31 @@ class Fluke8846A(DMM):
 
         with self.lock:
             return self._read_measurements()
+
+    def min_avg_max(self, samples=1, sample_time=1):
+        """
+        automatically samples the DMM for a given number of samples and returns the min, max, and average values
+        :param samples: number of samples to take
+        :param sample_time: time to wait for the DMM to take the samples
+        return: min, avg, max values as floats in a dataclass
+        """
+
+        self._write(f"SAMP:COUN {samples}")
+        self._write("CALC:FUNC AVER")
+        self._write("CALC:STAT ON")
+        self._write("INIT")
+        time.sleep(sample_time)
+        min_ = self.instrument.query_ascii_values("CALC:AVER:MIN?")[0]
+        avg_ = self.instrument.query_ascii_values("CALC:AVER:AVER?")[0]
+        max_ = self.instrument.query_ascii_values("CALC:AVER:MAX?")[0]
+
+        values = DMM.MeasurementStats(min=min_, avg=avg_, max=max_)
+
+        # clean up
+        self._write("CALC:STAT OFF")
+        self._write("SAMP:COUN 1")
+
+        return values
 
     def reset(self):
         """
@@ -308,3 +343,25 @@ class Fluke8846A(DMM):
             (example: FLUKE, 45, 9080025, 2.0, D2.0)
         """
         return self.instrument.query("*IDN?").strip()
+
+    def set_nplc(self, nplc=None, reset=False):
+        if reset is True or nplc is None:
+            nplc = self._default_nplc
+        elif nplc not in self._nplc_settings:
+            raise ParameterError(f"Invalid NPLC setting {nplc}")
+
+        if self._mode not in self._nplc_modes:
+            raise ParameterError(f"NPLC setting not available for mode {self._mode}")
+
+        mode_str = f"{self._modes[self._mode]}"
+
+        # Remove the CONF: from the start of the string
+        mode_str = mode_str.replace("CONF:", "")
+
+        self._write(f"{mode_str}:NPLC {nplc}")  # e.g. VOLT:DC:NPLC 10
+
+    def get_nplc(self):
+        mode_str = f"{self._modes[self._mode]}"
+        # Remove the CONF: from the start of the string
+        mode_str = mode_str.replace("CONF:", "")
+        return float(self.instrument.query(f"{mode_str}:NPLC?"))
