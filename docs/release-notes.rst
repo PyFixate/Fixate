@@ -9,6 +9,8 @@ Release Date xx/xx/24
 
 New Features
 ############
+- DMM drivers now have a new function to set NPLC (Number of Power Line Cycles) for the DMM.
+- DMM drivers now have a new function to use the DMM's internal statistics function to take multiple measurements and return the mean, minimum and maximum values.
 
 Improvements
 ############
