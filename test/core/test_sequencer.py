@@ -1,267 +1,323 @@
-import time
-import unittest
-from unittest.mock import MagicMock, call
-from pubsub import pub
+import pytest
 import fixate
-from fixate.core.common import TestList as FixateTL, TestClass as FixateTC
+from fixate.core.common import TestList, TestClass
+from fixate.core.checks import chk_fails, chk_passes
+from pubsub import pub
 
 
-def sleep_100m():
-    time.sleep(0.1)
-    return True
-
-
-class Lst(FixateTL):
-    """
-    Mock Test List
-    """
-
-    def __init__(self, seq, num, mock_obj):
-        super().__init__(seq)
-        self.mock = mock_obj
-        self.num = num
-
+class TestSetupError(TestClass):
     def set_up(self):
-        self.mock.list_setup(self.num)
+        raise Exception("Something went wrong")
 
+
+class TestTearDownError(TestClass):
     def tear_down(self):
-        self.mock.list_tear_down(self.num)
-
-    def enter(self):
-        self.mock.list_enter(self.num)
-
-    def exit(self):
-        self.mock.list_exit(self.num)
+        raise Exception("Something went wrong")
 
 
-class LstSetupFail(Lst):
-    def set_up(self):
-        super().set_up()
-        raise ValueError("Failed Setup")
-
-
-class SubclassOfFixateTest(FixateTC):
-    """
-    Dummy Test Class
-    """
-
-    attempts = 1
-
-    def __init__(self, num, mock_obj):
-        super().__init__()
-        self.mock = mock_obj
-        self.num = num
-
-    def set_up(self):
-        self.mock.test_setup(self.num)
-
-    def tear_down(self):
-        self.mock.test_tear_down(self.num)
-
+class TestPass(TestClass):
     def test(self):
-        self.mock.test_test(self.num)
+        chk_passes("Passed check")
 
 
-@unittest.skip("busted. Looks like aysnc stuff might not be working?")
-class TestSequencerTests(unittest.TestCase):
-    _async = False
+class TestFails(TestClass):
+    def test(self):
+        chk_fails("This test fails")
 
-    def setUp(self):
-        self.test_cls = fixate.config.RESOURCES["SEQUENCER"]
-        pub.subscribe(self.abort_on_error, "UI_req")
 
-    def abort_on_error(self, msg, q, target=None, attempts=5, kwargs=None):
-        q.put("Result", "ABORT")
+class TestError(TestClass):
+    def test(self):
+        raise Exception("Test error")
 
-    def test_single_test_deep_level(self):
-        self.mock_master = MagicMock()
-        self.test_cls.clear_tests()
 
-        test_lst = Lst(
-            [Lst([SubclassOfFixateTest(3, self.mock_master)], 2, self.mock_master)],
-            1,
-            self.mock_master,
-        )
-        self.test_cls.load(test_lst)
-        self.run_test_cls()
-        self.mock_master.assert_has_calls(
-            [
-                call.list_enter(1),
-                call.list_enter(2),
-                call.list_setup(1),
-                call.list_setup(2),
-                call.test_setup(3),
-                call.test_test(3),
-                call.test_tear_down(3),
-                call.list_tear_down(2),
-                call.list_tear_down(1),
-                call.list_exit(2),
-                call.list_exit(1),
+class TestListSetupError(TestList):
+    def set_up(self):
+        raise Exception("Test set up error")
+
+
+class TestListTearDownError(TestList):
+    def tear_down(self):
+        raise Exception("Test tear down error")
+
+
+class TestListEnterError(TestList):
+    def enter(self):
+        raise Exception("Test enter error")
+
+
+class TestListExitError(TestList):
+    def exit(self):
+        raise Exception("Test exit error")
+
+
+class FakeReportingService:
+    """
+    Fakes out the normal reporting service, so we dont generate logs
+    and I don't care about testing this module in this context.
+    """
+
+    def install(self):
+        return
+
+    def uninstall(self):
+        return
+
+    def ensure_alive(self):
+        return True
+
+
+class PubSubSnooper:
+    """
+    Hooks into the pubsub module and logs test status updates
+    """
+
+    def __init__(self):
+        # Subscribe to all the basic stuff that monitor the test execution
+        pub.subscribe(self.snoop, pub.ALL_TOPICS)
+        self.calls = []  # List to store all calls
+
+    def snoop(self, topicObj=pub.AUTO_TOPIC, **msgData):
+        self.calls.append(str(topicObj.getName()))
+
+
+@pytest.fixture
+def pubsub_logs():
+    # Return a TestStatusHooks object to check for test sequence updates
+    return PubSubSnooper()
+
+
+@pytest.fixture
+def sequencer():
+    # Gets a sequencer object
+    seq = fixate.sequencer.Sequencer()
+    seq.reporting_service = FakeReportingService()
+    seq.non_interactive = True
+    fixate.config.RESOURCES["SEQUENCER"] = seq
+    return fixate.config.RESOURCES["SEQUENCER"]
+
+
+def test_load_test(sequencer):
+    test_seq = TestList(seq=[TestPass(), TestPass()])
+    sequencer.load(test_seq)
+
+
+sequence_run_parameters = [
+    [
+        TestList(
+            seq=[
+                TestPass(),
+            ]
+        ),
+        [
+            "Sequence_Update",
+            "Sequence_Start",
+            "TestList_Start",
+            "Test_Start",
+            "Check",
+            "Test_Complete",
+            "TestList_Complete",
+            "TestList_Complete",
+            "Sequence_Update",
+            "Sequence_Complete",
+        ],
+        "PASSED",
+    ],
+    [
+        TestList(
+            seq=[
+                TestFails(),
+            ]
+        ),
+        [
+            "Sequence_Update",
+            "Sequence_Start",
+            "TestList_Start",
+            "Test_Start",
+            "Check",
+            "Test_Retry",
+            "Test_Complete",
+            "TestList_Complete",
+            "TestList_Complete",
+            "Sequence_Update",
+            "Sequence_Complete",
+        ],
+        "FAILED",
+    ],
+    [
+        TestList(
+            seq=[
+                TestError(),
+            ]
+        ),
+        [
+            "Sequence_Update",
+            "Sequence_Start",
+            "TestList_Start",
+            "Test_Start",
+            "Test_Exception",
+            "Test_Retry",
+            "Test_Complete",
+            "TestList_Complete",
+            "TestList_Complete",
+            "Sequence_Update",
+            "Sequence_Complete",
+        ],
+        "FAILED",
+    ],
+    [
+        TestList(
+            seq=[
+                TestSetupError(),
+            ]
+        ),
+        [
+            "Sequence_Update",
+            "Sequence_Start",
+            "TestList_Start",
+            "Test_Start",
+            "Test_Exception",
+            "Test_Retry",
+            "Test_Complete",
+            "TestList_Complete",
+            "TestList_Complete",
+            "Sequence_Update",
+            "Sequence_Complete",
+        ],
+        "FAILED",
+    ],
+    [
+        TestList(
+            seq=[
+                TestTearDownError(),
+            ]
+        ),
+        [
+            "Sequence_Update",
+            "Sequence_Start",
+            "TestList_Start",
+            "Test_Start",
+            "Test_Exception",
+            "Test_Retry",
+            "Test_Complete",
+            "TestList_Complete",
+            "TestList_Complete",
+            "Sequence_Update",
+            "Sequence_Complete",
+        ],
+        "FAILED",
+    ],
+    [
+        TestListSetupError(
+            seq=[
+                TestPass(),
+            ]
+        ),
+        [
+            "Sequence_Update",
+            "Sequence_Start",
+            "TestList_Start",
+            "Test_Start",
+            "Test_Exception",
+            "Test_Retry",
+            "Test_Complete",
+            "TestList_Complete",
+            "TestList_Complete",
+            "Sequence_Update",
+            "Sequence_Complete",
+        ],
+        "FAILED",
+    ],
+    [
+        TestListTearDownError(
+            seq=[
+                TestPass(),
+            ]
+        ),
+        [
+            "Sequence_Update",
+            "Sequence_Start",
+            "TestList_Start",
+            "Test_Start",
+            "Check",
+            "Test_Exception",
+            "Test_Retry",
+            "Test_Complete",
+            "TestList_Complete",
+            "TestList_Complete",
+            "Sequence_Update",
+            "Sequence_Complete",
+        ],
+        "FAILED",
+    ],
+    [
+        TestListEnterError(
+            seq=[
+                TestPass(),
+            ]
+        ),
+        [
+            "Sequence_Update",
+            "Sequence_Start",
+            "TestList_Start",
+            "Test_Exception",
+            "Sequence_Abort",
+            "Sequence_Update",
+            "Sequence_Complete",
+        ],
+        "ERROR",
+    ],
+    [
+        TestListExitError(
+            seq=[
+                TestPass(),
+            ]
+        ),
+        [
+            "Sequence_Update",
+            "Sequence_Start",
+            "TestList_Start",
+            "Test_Start",
+            "Check",
+            "Test_Complete",
+            "TestList_Complete",
+            "Test_Exception",
+            "Sequence_Abort",
+            "Sequence_Update",
+            "Sequence_Complete",
+        ],
+        "ERROR",
+    ],
+]
+
+
+@pytest.mark.parametrize("test_seq,expected_calls, end_status", sequence_run_parameters)
+def test_sequence_run(test_seq, expected_calls, end_status, sequencer, pubsub_logs):
+    sequencer.load(test_seq)
+    sequencer.run_sequence()
+
+    assert expected_calls == pubsub_logs.calls
+    assert end_status == sequencer.end_status
+
+
+def test_reporting_service_error(sequencer, pubsub_logs):
+    # Make the reporting service check function raise an error
+    sequencer.reporting_service.ensure_alive = lambda: 1 / 0
+    sequencer.load(
+        TestList(
+            seq=[
+                TestPass(),
             ]
         )
+    )
+    sequencer.run_sequence()
 
-    def test_async_single_test_deep_level(self):
-        self._async = True
-        try:
-            self.test_single_test_deep_level()
-        finally:
-            self._async = False
-
-    def test_complex_test_list(self):
-        self.mock_master = MagicMock()
-        self.test_cls.clear_tests()
-        test_lst = Lst(
-            [
-                SubclassOfFixateTest(2, self.mock_master),
-                Lst(
-                    [
-                        SubclassOfFixateTest(4, self.mock_master),
-                        SubclassOfFixateTest(5, self.mock_master),
-                    ],
-                    3,
-                    self.mock_master,
-                ),
-                SubclassOfFixateTest(6, self.mock_master),
-            ],
-            1,
-            self.mock_master,
-        )
-        self.test_cls.load(test_lst)
-        self.run_test_cls()
-        self.mock_master.assert_has_calls(
-            [
-                call.list_enter(1),
-                call.list_setup(1),
-                call.test_setup(2),
-                call.test_test(2),
-                call.test_tear_down(2),
-                call.list_tear_down(1),
-                call.list_enter(3),
-                call.list_setup(1),
-                call.list_setup(3),
-                call.test_setup(4),
-                call.test_test(4),
-                call.test_tear_down(4),
-                call.list_tear_down(3),
-                call.list_tear_down(1),
-                call.list_setup(1),
-                call.list_setup(3),
-                call.test_setup(5),
-                call.test_test(5),
-                call.test_tear_down(5),
-                call.list_tear_down(3),
-                call.list_tear_down(1),
-                call.list_exit(3),
-                call.list_setup(1),
-                call.test_setup(6),
-                call.test_test(6),
-                call.test_tear_down(6),
-                call.list_tear_down(1),
-                call.list_exit(1),
-            ]
-        )
-
-    def test_async_complex_test_list(self):
-        self._async = True
-        try:
-            self.test_complex_test_list()
-        finally:
-            self._async = False
-
-    def test_list_setup_fail(self):
-        self.mock_master = MagicMock()
-        self.test_cls.clear_tests()
-
-        test_lst = Lst(
-            [
-                LstSetupFail(
-                    [
-                        Lst(
-                            [SubclassOfFixateTest(4, self.mock_master)],
-                            3,
-                            self.mock_master,
-                        )
-                    ],
-                    2,
-                    self.mock_master,
-                )
-            ],
-            1,
-            self.mock_master,
-        )
-        self.test_cls.load(test_lst)
-        self.run_test_cls()
-        self.mock_master.assert_has_calls(
-            [
-                call.list_enter(1),
-                call.list_enter(2),
-                call.list_enter(3),
-                call.list_setup(1),
-                call.list_setup(2),
-                call.list_tear_down(2),
-                call.list_tear_down(1),
-                call.list_exit(3),
-                call.list_exit(2),
-                call.list_exit(1),
-            ]
-        )
-
-    def test_list_retry_enter_exit(self):
-        """
-        Test for retries
-        :return:
-        """
-        self.mock_master = MagicMock()
-        self.test_cls.clear_tests()
-
-        test_lst = Lst(
-            [
-                LstSetupFail(
-                    [
-                        Lst(
-                            [SubclassOfFixateTest(4, self.mock_master)],
-                            3,
-                            self.mock_master,
-                        )
-                    ],
-                    2,
-                    self.mock_master,
-                )
-            ],
-            1,
-            self.mock_master,
-        )
-        self.test_cls.load(test_lst)
-        self.run_test_cls()
-        self.mock_master.assert_has_calls(
-            [
-                call.list_enter(1),
-                call.list_enter(2),
-                call.list_enter(3),
-                call.list_setup(1),
-                call.list_setup(2),
-                call.list_tear_down(2),
-                call.list_tear_down(1),
-                call.list_exit(3),
-                call.list_exit(2),
-                call.list_exit(1),
-            ]
-        )
-
-    def test_async_list_setup_fail(self):
-        self._async = True
-        try:
-            self.test_list_setup_fail()
-        finally:
-            self._async = False
-
-    def run_test_cls(self):
-        if self._async:
-            self.test_cls.loop.run_in_executor(None, self.test_cls.run_sequence)
-        else:
-            self.test_cls.run_sequence()
-
-    def tearDown(self):
-        self.mock_master = None
-        pub.unsubscribe(self.abort_on_error, "UI_req")
-        self.test_cls.clear_tests()
+    expected_calls = [
+        "Sequence_Update",
+        "Sequence_Start",
+        "Test_Exception",
+        "Sequence_Abort",
+        "Sequence_Update",
+        "Sequence_Complete",
+    ]
+    assert expected_calls == pubsub_logs.calls
+    assert "ERROR" == sequencer.end_status
