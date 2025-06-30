@@ -100,6 +100,11 @@ def test_load_test(sequencer):
     test_seq = TestList(seq=[TestPass(), TestPass()])
     sequencer.load(test_seq)
 
+    # Check sequence object loaded
+    assert sequencer.tests.tests[-1] == test_seq
+    # Check status is "N/A"
+    assert sequencer.end_status == "N/A"
+
 
 sequence_run_parameters = [
     [
