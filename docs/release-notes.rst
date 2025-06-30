@@ -3,6 +3,20 @@ Release Notes
 ==================================
 
 *************
+Version 0.6.5
+*************
+Release Date xx/xx/xx
+
+New Features
+############
+
+Improvements
+############
+
+- Sequencer logic now handles exceptions raised on sequence abort. GUI will no longer hang when a test raises and exception during a test abort. 
+
+
+*************
 Version 0.6.4
 *************
 Release Date 14/01/25
