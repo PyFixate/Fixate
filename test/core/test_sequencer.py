@@ -2,6 +2,7 @@ import pytest
 import fixate
 from fixate.core.common import TestList, TestClass
 from fixate.core.checks import chk_fails, chk_passes
+from fixate.core.exceptions import SequenceAbort
 from pubsub import pub
 from unittest.mock import MagicMock, call, patch
 
@@ -130,12 +131,26 @@ def pubsub_logs():
     return PubSubSnooper()
 
 
+def abort_on_prompt(msg, q, choices=None, target=None, attempts=5, kwargs=None):
+    q.put(("Result", "ABORT"))
+
+
+def fail_on_prompt(msg, q, choices=None, target=None, attempts=5, kwargs=None):
+    q.put(("Result", "FAIL"))
+
+
 @pytest.fixture
 def sequencer():
     # Gets a sequencer object
     seq = fixate.sequencer.Sequencer()
     seq.reporting_service = FakeReportingService()
-    seq.non_interactive = True
+
+    # Make the test fail by default:
+    pub.subscribe(fail_on_prompt, "UI_req_choices")
+
+    # Remove any latent subscription to the abort function:
+    pub.unsubscribe(abort_on_prompt, "UI_req_choices")
+
     fixate.config.RESOURCES["SEQUENCER"] = seq
     return fixate.config.RESOURCES["SEQUENCER"]
 
@@ -163,6 +178,7 @@ def test_test_error(sequencer, mock_obj):
                 call.list_exit(1),
             ]
         )
+    assert "FAILED" == sequencer.end_status
 
 
 def test_test_setup_error(sequencer, mock_obj):
@@ -184,6 +200,8 @@ def test_test_setup_error(sequencer, mock_obj):
             ]
         )
 
+    assert "FAILED" == sequencer.end_status
+
 
 def test_test_tear_down_error(sequencer, mock_obj):
     with patch.object(MockTest, "tear_down", side_effect=Exception("Test error")):
@@ -203,6 +221,7 @@ def test_test_tear_down_error(sequencer, mock_obj):
                 call.list_exit(1),
             ]
         )
+    assert "FAILED" == sequencer.end_status
 
 
 def test_list_setup_error(sequencer, mock_obj):
@@ -215,6 +234,8 @@ def test_list_setup_error(sequencer, mock_obj):
         mock_obj.assert_has_calls(
             [call.list_enter(1), call.list_tear_down(1), call.list_exit(1)]
         )
+
+    assert "FAILED" == sequencer.end_status
 
 
 def test_list_tear_down_error(sequencer, mock_obj):
@@ -235,6 +256,7 @@ def test_list_tear_down_error(sequencer, mock_obj):
                 call.list_exit(1),
             ]
         )
+    assert "FAILED" == sequencer.end_status
 
 
 def test_list_enter_error(sequencer, mock_obj):
@@ -245,6 +267,7 @@ def test_list_enter_error(sequencer, mock_obj):
         sequencer.run_sequence()
 
         mock_obj.assert_has_calls([call.list_exit(1)])
+    assert "ERROR" == sequencer.end_status
 
 
 def test_list_exit_error(sequencer, mock_obj):
@@ -264,6 +287,7 @@ def test_list_exit_error(sequencer, mock_obj):
                 call.list_tear_down(1),
             ]
         )
+    assert "ERROR" == sequencer.end_status
 
 
 def test_sequence_pass(sequencer, mock_obj):
@@ -283,6 +307,7 @@ def test_sequence_pass(sequencer, mock_obj):
             call.list_exit(1),
         ]
     )
+    assert "PASSED" == sequencer.end_status
 
 
 def test_nested_sequence(sequencer, mock_obj):
@@ -325,6 +350,34 @@ def test_nested_sequence(sequencer, mock_obj):
             call.list_exit(1),
         ]
     )
+    assert "PASSED" == sequencer.end_status
+
+
+def test_abort_sequence(sequencer, mock_obj):
+    # Un-subscribe the other function as this was causing conflicts in tests
+    pub.unsubscribe(fail_on_prompt, "UI_req_choices")
+
+    # Make the test abort by default:
+    pub.subscribe(abort_on_prompt, "UI_req_choices")
+
+    with patch.object(MockTest, "test", side_effect=Exception("Test error")):
+        test_seq = MockTestList([MockTest(2, mock_obj)], 1, mock_obj)
+
+        sequencer.load(test_seq)
+        sequencer.run_sequence()
+
+        mock_obj.assert_has_calls(
+            [
+                call.list_enter(1),
+                call.list_setup(1),
+                call.test_setup(2),
+                # No call.test_test(1) as this now raises an exception
+                call.test_tear_down(2),
+                call.list_tear_down(1),
+                call.list_exit(1),
+            ]
+        )
+    assert "ERROR" == sequencer.end_status
 
 
 def test_load_test(sequencer):
@@ -372,6 +425,9 @@ sequence_run_parameters = [
             "Check",
             "Test_Retry",
             "Test_Complete",
+            "UI_block_start",
+            "UI_req_choices",
+            "UI_block_end",
             "TestList_Complete",
             "TestList_Complete",
             "Sequence_Update",
@@ -393,6 +449,9 @@ sequence_run_parameters = [
             "Test_Exception",
             "Test_Retry",
             "Test_Complete",
+            "UI_block_start",
+            "UI_req_choices",
+            "UI_block_end",
             "TestList_Complete",
             "TestList_Complete",
             "Sequence_Update",
@@ -414,6 +473,9 @@ sequence_run_parameters = [
             "Test_Exception",
             "Test_Retry",
             "Test_Complete",
+            "UI_block_start",
+            "UI_req_choices",
+            "UI_block_end",
             "TestList_Complete",
             "TestList_Complete",
             "Sequence_Update",
@@ -435,6 +497,9 @@ sequence_run_parameters = [
             "Test_Exception",
             "Test_Retry",
             "Test_Complete",
+            "UI_block_start",
+            "UI_req_choices",
+            "UI_block_end",
             "TestList_Complete",
             "TestList_Complete",
             "Sequence_Update",
@@ -456,6 +521,9 @@ sequence_run_parameters = [
             "Test_Exception",
             "Test_Retry",
             "Test_Complete",
+            "UI_block_start",
+            "UI_req_choices",
+            "UI_block_end",
             "TestList_Complete",
             "TestList_Complete",
             "Sequence_Update",
@@ -478,6 +546,9 @@ sequence_run_parameters = [
             "Test_Exception",
             "Test_Retry",
             "Test_Complete",
+            "UI_block_start",
+            "UI_req_choices",
+            "UI_block_end",
             "TestList_Complete",
             "TestList_Complete",
             "Sequence_Update",
