@@ -3,6 +3,50 @@ import fixate
 from fixate.core.common import TestList, TestClass
 from fixate.core.checks import chk_fails, chk_passes
 from pubsub import pub
+from unittest.mock import MagicMock, call, patch
+
+
+class MockTest(TestClass):
+    """
+    Test class that allows tracing of function calls
+    """
+
+    def __init__(self, num, mock_obj):
+        super().__init__()
+        self.mock = mock_obj
+        self.num = num
+
+    def set_up(self):
+        self.mock.test_setup(self.num)
+
+    def tear_down(self):
+        self.mock.test_tear_down(self.num)
+
+    def test(self):
+        self.mock.test_test(self.num)
+
+
+class MockTestList(TestList):
+    """
+    Test class that allows tracing of function calls
+    """
+
+    def __init__(self, seq, num, mock_obj):
+        super().__init__(seq)
+        self.mock = mock_obj
+        self.num = num
+
+    def set_up(self):
+        self.mock.list_setup(self.num)
+
+    def tear_down(self):
+        self.mock.list_tear_down(self.num)
+
+    def enter(self):
+        self.mock.list_enter(self.num)
+
+    def exit(self):
+        self.mock.list_exit(self.num)
 
 
 class TestSetupError(TestClass):
@@ -94,6 +138,193 @@ def sequencer():
     seq.non_interactive = True
     fixate.config.RESOURCES["SEQUENCER"] = seq
     return fixate.config.RESOURCES["SEQUENCER"]
+
+
+@pytest.fixture
+def mock_obj():
+    return MagicMock()
+
+
+def test_test_error(sequencer, mock_obj):
+    with patch.object(MockTest, "test", side_effect=Exception("Test error")):
+        test_seq = MockTestList([MockTest(2, mock_obj)], 1, mock_obj)
+
+        sequencer.load(test_seq)
+        sequencer.run_sequence()
+
+        mock_obj.assert_has_calls(
+            [
+                call.list_enter(1),
+                call.list_setup(1),
+                call.test_setup(2),
+                # No call.test_test(1) as this now raises an exception
+                call.test_tear_down(2),
+                call.list_tear_down(1),
+                call.list_exit(1),
+            ]
+        )
+
+
+def test_test_setup_error(sequencer, mock_obj):
+    with patch.object(MockTest, "set_up", side_effect=Exception("Test error")):
+        test_seq = MockTestList([MockTest(2, mock_obj)], 1, mock_obj)
+
+        sequencer.load(test_seq)
+        sequencer.run_sequence()
+
+        mock_obj.assert_has_calls(
+            [
+                call.list_enter(1),
+                call.list_setup(1),
+                # Hit error here in setup()
+                # Skip test_test()
+                call.test_tear_down(2),
+                call.list_tear_down(1),
+                call.list_exit(1),
+            ]
+        )
+
+
+def test_test_tear_down_error(sequencer, mock_obj):
+    with patch.object(MockTest, "tear_down", side_effect=Exception("Test error")):
+        test_seq = MockTestList([MockTest(2, mock_obj)], 1, mock_obj)
+
+        sequencer.load(test_seq)
+        sequencer.run_sequence()
+
+        mock_obj.assert_has_calls(
+            [
+                call.list_enter(1),
+                call.list_setup(1),
+                call.test_setup(2),
+                call.test_test(2),
+                # Hit error in tear down here
+                # No list tear down runs
+                call.list_exit(1),
+            ]
+        )
+
+
+def test_list_setup_error(sequencer, mock_obj):
+    with patch.object(MockTestList, "set_up", side_effect=Exception("Test error")):
+        test_seq = MockTestList([MockTest(2, mock_obj)], 1, mock_obj)
+
+        sequencer.load(test_seq)
+        sequencer.run_sequence()
+
+        mock_obj.assert_has_calls(
+            [call.list_enter(1), call.list_tear_down(1), call.list_exit(1)]
+        )
+
+
+def test_list_tear_down_error(sequencer, mock_obj):
+    with patch.object(MockTestList, "tear_down", side_effect=Exception("Test error")):
+        test_seq = MockTestList([MockTest(2, mock_obj)], 1, mock_obj)
+
+        sequencer.load(test_seq)
+        sequencer.run_sequence()
+
+        mock_obj.assert_has_calls(
+            [
+                call.list_enter(1),
+                call.list_setup(1),
+                call.test_setup(2),
+                call.test_test(2),
+                call.test_tear_down(2),
+                # List tear down raises error
+                call.list_exit(1),
+            ]
+        )
+
+
+def test_list_enter_error(sequencer, mock_obj):
+    with patch.object(MockTestList, "enter", side_effect=Exception("Test error")):
+        test_seq = MockTestList([MockTest(2, mock_obj)], 1, mock_obj)
+
+        sequencer.load(test_seq)
+        sequencer.run_sequence()
+
+        mock_obj.assert_has_calls([call.list_exit(1)])
+
+
+def test_list_exit_error(sequencer, mock_obj):
+    with patch.object(MockTestList, "exit", side_effect=Exception("Test error")):
+        test_seq = MockTestList([MockTest(2, mock_obj)], 1, mock_obj)
+
+        sequencer.load(test_seq)
+        sequencer.run_sequence()
+
+        mock_obj.assert_has_calls(
+            [
+                call.list_enter(1),
+                call.list_setup(1),
+                call.test_setup(2),
+                call.test_test(2),
+                call.test_tear_down(2),
+                call.list_tear_down(1),
+            ]
+        )
+
+
+def test_sequence_pass(sequencer, mock_obj):
+    test_seq = MockTestList([MockTest(2, mock_obj)], 1, mock_obj)
+
+    sequencer.load(test_seq)
+    sequencer.run_sequence()
+
+    mock_obj.assert_has_calls(
+        [
+            call.list_enter(1),
+            call.list_setup(1),
+            call.test_setup(2),
+            call.test_test(2),
+            call.test_tear_down(2),
+            call.list_tear_down(1),
+            call.list_exit(1),
+        ]
+    )
+
+
+def test_nested_sequence(sequencer, mock_obj):
+    test_seq = MockTestList(
+        [
+            MockTest(2, mock_obj),
+            MockTestList([MockTest(3, mock_obj), MockTest(4, mock_obj)], 5, mock_obj),
+        ],
+        1,
+        mock_obj,
+    )
+
+    sequencer.load(test_seq)
+    sequencer.run_sequence()
+
+    mock_obj.assert_has_calls(
+        [
+            call.list_enter(1),
+            call.list_setup(1),
+            call.test_setup(2),
+            call.test_test(2),
+            call.test_tear_down(2),
+            call.list_tear_down(1),
+            call.list_enter(5),
+            call.list_setup(1),
+            call.list_setup(5),
+            call.test_setup(3),
+            call.test_test(3),
+            call.test_tear_down(3),
+            call.list_tear_down(5),
+            call.list_tear_down(1),
+            call.list_setup(1),
+            call.list_setup(5),
+            call.test_setup(4),
+            call.test_test(4),
+            call.test_tear_down(4),
+            call.list_tear_down(5),
+            call.list_tear_down(1),
+            call.list_exit(5),
+            call.list_exit(1),
+        ]
+    )
 
 
 def test_load_test(sequencer):
