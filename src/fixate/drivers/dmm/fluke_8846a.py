@@ -274,7 +274,7 @@ class Fluke8846A(DMM):
             command = "; :SENS:VOLT:DC:IMP:AUTO OFF"
         self._set_measurement_mode("voltage_dc", _range, suffix=command)
 
-    def current_ac(self, _range=None):
+    def current_ac(self, _range, port):
 
         # Check the requested range is not more than the port capability:
         if _range >= self.current_ports[port]:
