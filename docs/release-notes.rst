@@ -3,6 +3,19 @@ Release Notes
 ==================================
 
 *************
+Version 0.6.5
+*************
+Release Date xx/xx/xx
+
+New Features
+############
+
+Improvements
+############
+- DMM current mode functions now raise an exception when an incompatible port combination is used. The range and port parameters are now required parameters.
+
+
+*************
 Version 0.6.4
 *************
 Release Date 14/01/25
