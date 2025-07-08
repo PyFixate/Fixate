@@ -3,7 +3,6 @@ from fixate.core.exceptions import InstrumentError, ParameterError
 from fixate.drivers.dmm.helper import DMM
 import time
 from typing import Literal
-import enum
 
 
 class Fluke8846A(DMM):
