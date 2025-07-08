@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Literal
 
 
 class DMM:
@@ -60,10 +61,14 @@ class DMM:
         """
         raise NotImplementedError
 
-    def current_ac(self, _range):
+    def current_ac(self, _range, port: Literal["HIGH", "LOW"]):
+        """
+        Sets the DMM in AC current measurement mode and puts it in the range given
+        by the argument _range. Signals expected to be measured must be < _range.
+        """
         raise NotImplementedError
 
-    def current_dc(self, _range):
+    def current_dc(self, _range, port: Literal["HIGH", "LOW"]):
         """
         Sets the DMM in DC current measurement mode and puts it in the range given
         by the argument _range. Signals expected to be measured must be < _range.

@@ -286,15 +286,15 @@ class Fluke8846A(DMM):
         """
 
         # Check the requested range is not more than the port capability:
-        if _range >= self.current_ports[port]:
+        if _range > self.current_ports[port]:
             raise ValueError(
-                "The selected port and range combination is not available for this instrument."
+                "The selected port and range combination is not available for this instrument. Consider using a different multimeter"
             )
 
         # Raise an error if the high port is selected when the low port should be used:
-        if _range <= self.current_ports["LOW"][1] and port == "HIGH":
+        if _range < self.current_ports["LOW"] and port == "HIGH":
             raise ValueError(
-                "High range port selected when the low range port should be used!"
+                "High range port selected when the low range port should be used! Consider using a different multimeter."
             )
 
         self._set_measurement_mode("current_ac", _range)
@@ -311,15 +311,15 @@ class Fluke8846A(DMM):
         """
 
         # Check the requested range is not more than the port capability:
-        if _range >= self.current_ports[port]:
+        if _range > self.current_ports[port]:
             raise ValueError(
-                "The selected port and range combination is not available for this instrument."
+                "The selected port and range combination is not available for this instrument. Consider using a different multimeter"
             )
 
         # Raise an error if the high port is selected when the low port should be used:
-        if _range <= self.current_ports["LOW"][1] and port == "HIGH":
+        if _range < self.current_ports["LOW"] and port == "HIGH":
             raise ValueError(
-                "High range port selected when the low range port should be used!"
+                "High range port selected when the low range port should be used! Consider using a different multimeter."
             )
 
         self._set_measurement_mode("current_dc", _range)
