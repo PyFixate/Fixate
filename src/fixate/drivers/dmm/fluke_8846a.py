@@ -2,6 +2,8 @@ from threading import Lock
 from fixate.core.exceptions import InstrumentError, ParameterError
 from fixate.drivers.dmm.helper import DMM
 import time
+from typing import Literal
+import enum
 
 
 class Fluke8846A(DMM):
@@ -53,6 +55,10 @@ class Fluke8846A(DMM):
         self._nplc_settings = [0.02, 0.2, 1, 10]
         self._default_nplc = 10  # Default NPLC setting as per Fluke 8846A manual
         self._init_string = ""  # Unchanging
+
+        # High and low current port definition. Each definition encodes the maximum current able to
+        # be measured by the port (in amps)
+        self.current_ports = {"HIGH": 10, "LOW": 400e-3}
 
     @property
     def samples(self):
@@ -269,9 +275,43 @@ class Fluke8846A(DMM):
         self._set_measurement_mode("voltage_dc", _range, suffix=command)
 
     def current_ac(self, _range=None):
+
+        # Check the requested range is not more than the port capability:
+        if _range >= self.current_ports[port]:
+            raise ValueError(
+                "The selected port and range combination is not available for this instrument."
+            )
+
+        # Raise an error if the high port is selected when the low port should be used:
+        if _range <= self.current_ports["LOW"][1] and port == "HIGH":
+            raise ValueError(
+                "High range port selected when the low range port should be used!"
+            )
+
         self._set_measurement_mode("current_ac", _range)
 
-    def current_dc(self, _range=None):
+    def current_dc(self, _range, port: Literal["HIGH", "LOW"]):
+        """
+        Set the measurement mode on the DMM to DC current.
+
+        If the range and port selection are not compatible, i.e. someone has requested to measure
+        1A on the low range port, an exception is raised.
+        This however does not account for the fact that the 'range' is not strictly the exact value to be measured.
+        We can only make the assumption that the measured value is expected to be less than the range value.
+        """
+
+        # Check the requested range is not more than the port capability:
+        if _range >= self.current_ports[port]:
+            raise ValueError(
+                "The selected port and range combination is not available for this instrument."
+            )
+
+        # Raise an error if the high port is selected when the low port should be used:
+        if _range <= self.current_ports["LOW"][1] and port == "HIGH":
+            raise ValueError(
+                "High range port selected when the low range port should be used!"
+            )
+
         self._set_measurement_mode("current_dc", _range)
 
     def resistance(self, _range=None):
