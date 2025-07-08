@@ -275,6 +275,15 @@ class Fluke8846A(DMM):
         self._set_measurement_mode("voltage_dc", _range, suffix=command)
 
     def current_ac(self, _range, port):
+        """
+        Set the measurement mode on the DMM to AC current.
+
+        If the range and port selection are not compatible, i.e. someone has requested to measure
+        1 A on the low range port with a maximum capability of 400 mA, an exception is raised.
+
+        If the range requested can be measured by the low port, but the high port is selected, an
+        exception is raised.
+        """
 
         # Check the requested range is not more than the port capability:
         if _range >= self.current_ports[port]:
@@ -295,9 +304,10 @@ class Fluke8846A(DMM):
         Set the measurement mode on the DMM to DC current.
 
         If the range and port selection are not compatible, i.e. someone has requested to measure
-        1A on the low range port, an exception is raised.
-        This however does not account for the fact that the 'range' is not strictly the exact value to be measured.
-        We can only make the assumption that the measured value is expected to be less than the range value.
+        1A on the low range port with a maximum capability of 400 mA, an exception is raised.
+
+        If the range requested can be measured by the low port, but the high port is selected, an
+        exception is raised.
         """
 
         # Check the requested range is not more than the port capability:

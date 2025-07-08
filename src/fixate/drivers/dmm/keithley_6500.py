@@ -308,7 +308,15 @@ class Keithley6500(DMM):
         self._set_measurement_mode("voltage_dc", _range, suffix=command)
 
     def current_ac(self, _range, port):
+        """
+        Set the measurement mode on the DMM to AC current.
 
+        If the range and port selection are not compatible, i.e. someone has requested to measure
+        1A on the low range port with a maximum capability of 400 mA, an exception is raised.
+
+        If the range requested can be measured by the low port, but the high port is selected, an
+        exception is raised.
+        """
         # Check the requested range is not more than the port capability:
         if _range >= self.current_ports[port]:
             raise ValueError(
@@ -324,6 +332,15 @@ class Keithley6500(DMM):
         self._set_measurement_mode("current_ac", _range)
 
     def current_dc(self, _range, port):
+        """
+        Set the measurement mode on the DMM to DC current.
+
+        If the range and port selection are not compatible, i.e. someone has requested to measure
+        1A on the low range port with a maximum capability of 400 mA, an exception is raised.
+
+        If the range requested can be measured by the low port, but the high port is selected, an
+        exception is raised.
+        """
 
         # Check the requested range is not more than the port capability:
         if _range >= self.current_ports[port]:
