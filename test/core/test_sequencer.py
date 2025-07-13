@@ -2,7 +2,6 @@ import pytest
 import fixate
 from fixate.core.common import TestList, TestClass
 from fixate.core.checks import chk_fails, chk_passes
-from fixate.core.exceptions import SequenceAbort
 from pubsub import pub
 from unittest.mock import MagicMock, call, patch
 
@@ -29,7 +28,7 @@ class MockTest(TestClass):
 
 class MockTestList(TestList):
     """
-    Test class that allows tracing of function calls
+    Test list that allows tracing of function calls
     """
 
     def __init__(self, seq, num, mock_obj):

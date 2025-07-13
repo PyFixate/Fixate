@@ -13,7 +13,7 @@ New Features
 Improvements
 ############
 
-- Sequencer logic now handles exceptions raised on sequence abort. GUI will no longer hang when a test raises and exception during a test abort. 
+- Sequencer logic now handles exceptions raised on sequence abort. GUI will no longer hang when a test raises an exception during a test abort. 
 
 
 *************
