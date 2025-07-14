@@ -55,7 +55,7 @@ class Keithley6500(DMM):
 
         # High and low current port definition. Each definition encodes the maximum current able to
         # be measured by the port (in amps)
-        self.current_ports = {"HIGH": 10, "LOW": 3}
+        self._current_ports = {"HIGH": 10, "LOW": 3}
 
     # Adapted for different DMM behaviour
     @property
@@ -317,17 +317,8 @@ class Keithley6500(DMM):
         If the range requested can be measured by the low port, but the high port is selected, an
         exception is raised.
         """
-        # Check the requested range is not more than the port capability:
-        if _range > self.current_ports[port]:
-            raise ValueError(
-                "The selected port and range combination is not available for this instrument. Consider using a different multimeter"
-            )
-
-        # Raise an error if the high port is selected when the low port should be used:
-        if _range < self.current_ports["LOW"] and port == "HIGH":
-            raise ValueError(
-                "High range port selected when the low range port should be used! Consider using a different multimeter."
-            )
+        # Check the port and range combination is compatible for the instrument:
+        self._check_current_port_range(_range, port)
 
         self._set_measurement_mode("current_ac", _range)
 
@@ -341,18 +332,8 @@ class Keithley6500(DMM):
         If the range requested can be measured by the low port, but the high port is selected, an
         exception is raised.
         """
-
-        # Check the requested range is not more than the port capability:
-        if _range > self.current_ports[port]:
-            raise ValueError(
-                "The selected port and range combination is not available for this instrument."
-            )
-
-        # Raise an error if the high port is selected when the low port should be used:
-        if _range < self.current_ports["LOW"] and port == "HIGH":
-            raise ValueError(
-                "High range port selected when the low range port should be used!"
-            )
+        # Check the port and range combination is compatible for the instrument:
+        self._check_current_port_range(_range, port)
 
         self._set_measurement_mode("current_dc", _range)
 

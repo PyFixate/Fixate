@@ -12,7 +12,7 @@ New Features
 
 Improvements
 ############
-- DMM current mode functions now raise an exception when an incompatible port combination is used. The range and port parameters are now required parameters.
+- DMM current mode functions now raise an exception when an incompatible port and range combination is used. The range and port parameters are now required parameters.
 
 
 *************
@@ -22,7 +22,7 @@ Release Date 14/01/25
 
 New Features
 ############
-- DMM drivers now have a new function to set NPLC (Number of Power Line Cycles) for the DMM.
+- DMM drivers now have a new function to set NPLC (Number of Powr Line Cycles) for the DMM.
 - DMM drivers now have a new function to use the DMM's internal statistics function to take multiple measurements and return the mean, minimum and maximum values.
 
 Improvements

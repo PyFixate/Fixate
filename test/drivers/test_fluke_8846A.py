@@ -48,8 +48,6 @@ def test_reset(dmm):
     [
         ("voltage_ac", "VOLT:AC"),
         ("voltage_dc", "VOLT"),
-        ("current_dc", "CURR"),
-        ("current_ac", "CURR:AC"),
         ("resistance", "RES"),
         ("fresistance", "FRES"),
         ("period", "PER"),
@@ -67,6 +65,63 @@ def test_mode(mode, expected, dmm):
 
     query = dmm.instrument.query("SENS:FUNC?")
     assert query.strip('"\r\n') == expected
+
+
+@pytest.mark.parametrize(
+    "mode, expected",
+    [
+        ("current_dc", "CURR"),
+        ("current_ac", "CURR:AC"),
+    ],
+)
+@pytest.mark.drivertest
+def test_mode_current(mode, expected, dmm):
+    """
+    The current mode has an additional 'port' required parameter.
+    So we need to test this differently than the other modes.
+    """
+    getattr(dmm, mode)(_range=100e-3, port="LOW")
+
+    query = dmm.instrument.query("SENS:FUNC?")
+    assert query.strip('"\r\n') == expected
+
+
+@pytest.mark.parametrize(
+    "mode, expected",
+    [
+        ("current_dc", "CURR"),
+        ("current_ac", "CURR:AC"),
+    ],
+)
+@pytest.mark.drivertest
+def test_current_incompatible_port_and_range(mode, expected, dmm):
+    """
+    The current mode has an additional 'port' required parameter.
+    So we need to test this differently than the other modes.
+    """
+    with pytest.raises(ValueError) as excinfo:
+        getattr(dmm, mode)(_range=7, port="LOW")
+
+    assert re.search("port and range combination not available", str(excinfo.value))
+
+
+@pytest.mark.parametrize(
+    "mode, expected",
+    [
+        ("current_dc", "CURR"),
+        ("current_ac", "CURR:AC"),
+    ],
+)
+@pytest.mark.drivertest
+def test_current_should_use_low_port(mode, expected, dmm):
+    """
+    The current mode has an additional 'port' required parameter.
+    So we need to test this differently than the other modes.
+    """
+    with pytest.raises(ValueError) as excinfo:
+        getattr(dmm, mode)(_range=100e-3, port="HIGH")
+
+    assert re.search("low range port should be used", str(excinfo.value))
 
 
 @pytest.mark.parametrize("nsample", [50000, 1])
