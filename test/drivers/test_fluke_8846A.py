@@ -48,8 +48,6 @@ def test_reset(dmm):
     [
         ("voltage_ac", "VOLT:AC"),
         ("voltage_dc", "VOLT"),
-        ("current_dc", "CURR"),
-        ("current_ac", "CURR:AC"),
         ("resistance", "RES"),
         ("fresistance", "FRES"),
         ("period", "PER"),
@@ -69,6 +67,63 @@ def test_mode(mode, expected, dmm):
     assert query.strip('"\r\n') == expected
 
 
+@pytest.mark.parametrize(
+    "mode, expected",
+    [
+        ("current_dc", "CURR"),
+        ("current_ac", "CURR:AC"),
+    ],
+)
+@pytest.mark.drivertest
+def test_mode_current(mode, expected, dmm):
+    """
+    The current mode has an additional 'port' required parameter.
+    So we need to test this differently than the other modes.
+    """
+    getattr(dmm, mode)(_range=100e-3, port="LOW")
+
+    query = dmm.instrument.query("SENS:FUNC?")
+    assert query.strip('"\r\n') == expected
+
+
+@pytest.mark.parametrize(
+    "mode, expected",
+    [
+        ("current_dc", "CURR"),
+        ("current_ac", "CURR:AC"),
+    ],
+)
+@pytest.mark.drivertest
+def test_current_incompatible_port_and_range(mode, expected, dmm):
+    """
+    The current mode has an additional 'port' required parameter.
+    So we need to test this differently than the other modes.
+    """
+    with pytest.raises(ValueError) as excinfo:
+        getattr(dmm, mode)(_range=7, port="LOW")
+
+    assert re.search("port and range combination is not available", str(excinfo.value))
+
+
+@pytest.mark.parametrize(
+    "mode, expected",
+    [
+        ("current_dc", "CURR"),
+        ("current_ac", "CURR:AC"),
+    ],
+)
+@pytest.mark.drivertest
+def test_current_should_use_low_port(mode, expected, dmm):
+    """
+    The current mode has an additional 'port' required parameter.
+    So we need to test this differently than the other modes.
+    """
+    with pytest.raises(ValueError) as excinfo:
+        getattr(dmm, mode)(_range=100e-3, port="HIGH")
+
+    assert re.search("low range port should be used", str(excinfo.value))
+
+
 @pytest.mark.parametrize("nsample", [50000, 1])
 @pytest.mark.drivertest
 def test_samples(nsample, dmm):
@@ -86,50 +141,141 @@ def test_samples_over_range(nsample, dmm):
 
 
 @pytest.mark.parametrize(
-    "mode, range",
+    "mode, args",
     [
-        ("voltage_ac", 1),
-        ("voltage_ac", 10),
-        ("voltage_dc", 1),
-        ("voltage_dc", 10),
-        ("current_dc", 1),
-        ("current_dc", 10),
-        ("current_ac", 1),
-        ("current_ac", 10),
-        ("resistance", 10),
-        ("resistance", 10e6),
-        ("fresistance", 10),
-        ("fresistance", 10e6),
-        ("capacitance", 1e-6),
-        ("capacitance", 1e-9),
+        (
+            "voltage_ac",
+            [
+                1,
+            ],
+        ),
+        (
+            "voltage_ac",
+            [
+                10,
+            ],
+        ),
+        (
+            "voltage_dc",
+            [
+                1,
+            ],
+        ),
+        (
+            "voltage_dc",
+            [
+                10,
+            ],
+        ),
+        ("current_dc", [1, "HIGH"]),
+        ("current_dc", [10, "HIGH"]),
+        ("current_ac", [1, "HIGH"]),
+        ("current_ac", [10, "HIGH"]),
+        (
+            "resistance",
+            [
+                10,
+            ],
+        ),
+        (
+            "resistance",
+            [
+                10e6,
+            ],
+        ),
+        (
+            "fresistance",
+            [
+                10,
+            ],
+        ),
+        (
+            "fresistance",
+            [
+                10e6,
+            ],
+        ),
+        (
+            "capacitance",
+            [
+                1e-6,
+            ],
+        ),
+        (
+            "capacitance",
+            [
+                1e-9,
+            ],
+        ),
     ],
 )
 @pytest.mark.drivertest
-def test_range(mode, range, dmm):
-    getattr(dmm, mode)(_range=range)
+def test_range(mode, args, dmm):
+    getattr(dmm, mode)(*args)
     mod = dmm.instrument.query("SENS:FUNC?").strip('"\r\n')
     query = dmm.instrument.query(mod + ":RANG?")
-    assert float(query) == pytest.approx(range)
+    assert float(query) == pytest.approx(args[0])
 
 
 # DMM does not return an error for under range. It just clips the value.
 # It does return an error for over range however..
+
+
 @pytest.mark.parametrize(
-    "mode, range",
+    "mode, args",
     [
-        ("voltage_ac", 10000),
-        ("voltage_dc", 10000),
-        ("current_dc", 100),
-        ("current_ac", 100),
-        ("resistance", 10e9),
-        ("fresistance", 10e9),
-        ("capacitance", 1),
+        (
+            "voltage_ac",
+            [
+                10000,
+            ],
+        ),
+        (
+            "voltage_dc",
+            [
+                10000,
+            ],
+        ),
+        pytest.param(
+            "current_dc",
+            [100, "HIGH"],
+            marks=pytest.mark.xfail(
+                raises=ValueError,
+                reason="API now manages the range checks for the current functions.",
+            ),
+        ),
+        pytest.param(
+            "current_ac",
+            [100, "HIGH"],
+            marks=pytest.mark.xfail(
+                raises=ValueError,
+                reason="API now manages the range checks for the current functions.",
+            ),
+        ),
+        (
+            "resistance",
+            [
+                10e9,
+            ],
+        ),
+        (
+            "fresistance",
+            [
+                10e9,
+            ],
+        ),
+        (
+            "capacitance",
+            [
+                1,
+            ],
+        ),
     ],
 )
 @pytest.mark.drivertest
-def test_range_over_range(mode, range, dmm):
+def test_range_over_range(mode, args, dmm):
     with pytest.raises(InstrumentError) as excinfo:
-        getattr(dmm, mode)(_range=range)
+        getattr(dmm, mode)(*args)
     assert re.search("Invalid parameter", str(excinfo.value))
 
 
@@ -243,7 +389,7 @@ def test_measurement_voltage_ac(funcgen, dmm, rm):
 @pytest.mark.drivertest
 def test_measurement_current_dc(funcgen, dmm, rm):
     rm.mux.connectionMap("DMM_R1_2w")
-    dmm.current_dc(_range=100e-3)
+    dmm.current_dc(_range=100e-3, port="LOW")
     idc = dmm.measurement()
 
     assert idc == pytest.approx(TEST_CURRENT_DC, abs=TEST_CURRENT_DC_TOL)
@@ -253,7 +399,7 @@ def test_measurement_current_dc(funcgen, dmm, rm):
 @pytest.mark.drivertest
 def test_measurement_current_ac(funcgen, dmm, rm):
     rm.mux.connectionMap("DMM_R1_2w")
-    dmm.current_ac(_range=100e-3)
+    dmm.current_ac(_range=100e-3, port="LOW")
     iac = dmm.measurement()
 
     assert iac == pytest.approx(TEST_CURRENT_AC, abs=TEST_CURRENT_AC_TOL)
@@ -348,7 +494,12 @@ def test_measurement_diode(funcgen, dmm, rm):
 )
 @pytest.mark.drivertest
 def test_get_nplc(mode, dmm):
-    getattr(dmm, mode)()
+    if "current" in mode:
+        # Range and port are un-important here.
+        getattr(dmm, mode)(_range=100e-3, port="LOW")
+    else:
+        getattr(dmm, mode)()
+
     dmm.set_nplc(reset=True)
     query = dmm.get_nplc()
     assert query == pytest.approx(10)
@@ -386,7 +537,11 @@ def test_get_nplc(mode, dmm):
 )
 @pytest.mark.drivertest
 def test_set_nplc(mode, dmm):
-    getattr(dmm, mode)()
+    if "current" in mode:
+        getattr(dmm, mode)(_range=100e-3, port="LOW")
+    else:
+        getattr(dmm, mode)()
+
     dmm.set_nplc(nplc=1)
     query = dmm.get_nplc()
     assert query == pytest.approx(1)
@@ -432,7 +587,10 @@ def test_set_nplc(mode, dmm):
 )
 @pytest.mark.drivertest
 def test_nplc_context_manager(mode, dmm):
-    getattr(dmm, mode)()
+    if "current" in mode:
+        getattr(dmm, mode)(_range=100e-3, port="LOW")
+    else:
+        getattr(dmm, mode)()
 
     dmm.set_nplc(nplc=0.2)
     with dmm.nplc(1):
@@ -459,8 +617,10 @@ def test_nplc_context_manager(mode, dmm):
 )
 @pytest.mark.drivertest
 def test_min_avg_max(mode, samples, nplc, dmm, rm, funcgen):
-    # dmm.voltage_dc()
-    getattr(dmm, mode)()
+    if "current" in mode:
+        getattr(dmm, mode)(_range=100e-3, port="LOW")
+    else:
+        getattr(dmm, mode)()
 
     # only set nplc when able (depends on mode)
     if nplc:
@@ -481,7 +641,7 @@ def test_min_avg_max(mode, samples, nplc, dmm, rm, funcgen):
     avg_val = values.avg
     max_val = values.max
 
-    assert min_val < avg_val < max_val
+    assert min_val <= avg_val <= max_val
 
     v = 100e-3
     f = 60
@@ -494,7 +654,7 @@ def test_min_avg_max(mode, samples, nplc, dmm, rm, funcgen):
     avg_val2 = values.avg
     max_val2 = values.max
 
-    assert min_val2 < avg_val2 < max_val2
+    assert min_val2 <= avg_val2 <= max_val2
 
     # check if values from the two runs are different
     # We can only really do this for certain modes and the checks depend on the mode

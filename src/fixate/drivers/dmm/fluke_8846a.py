@@ -2,6 +2,7 @@ from threading import Lock
 from fixate.core.exceptions import InstrumentError, ParameterError
 from fixate.drivers.dmm.helper import DMM
 import time
+from typing import Literal
 
 
 class Fluke8846A(DMM):
@@ -53,6 +54,10 @@ class Fluke8846A(DMM):
         self._nplc_settings = [0.02, 0.2, 1, 10]
         self._default_nplc = 10  # Default NPLC setting as per Fluke 8846A manual
         self._init_string = ""  # Unchanging
+
+        # High and low current port definition. Each definition encodes the maximum current able to
+        # be measured by the port (in amps)
+        self._current_ports = {"HIGH": 10, "LOW": 400e-3}
 
     @property
     def samples(self):
@@ -268,10 +273,36 @@ class Fluke8846A(DMM):
             command = "; :SENS:VOLT:DC:IMP:AUTO OFF"
         self._set_measurement_mode("voltage_dc", _range, suffix=command)
 
-    def current_ac(self, _range=None):
+    def current_ac(self, _range, port):
+        """
+        Set the measurement mode on the DMM to AC current.
+
+        If the range and port selection are not compatible, i.e. someone has requested to measure
+        1 A on the low range port with a maximum capability of 400 mA, an exception is raised.
+
+        If the range requested can be measured by the low port, but the high port is selected, an
+        exception is raised.
+        """
+
+        # Check the port and range combination is compatible for the instrument:
+        self._check_current_port_range(_range, port)
+
         self._set_measurement_mode("current_ac", _range)
 
-    def current_dc(self, _range=None):
+    def current_dc(self, _range, port: Literal["HIGH", "LOW"]):
+        """
+        Set the measurement mode on the DMM to DC current.
+
+        If the range and port selection are not compatible, i.e. someone has requested to measure
+        1A on the low range port with a maximum capability of 400 mA, an exception is raised.
+
+        If the range requested can be measured by the low port, but the high port is selected, an
+        exception is raised.
+        """
+
+        # Check the port and range combination is compatible for the instrument:
+        self._check_current_port_range(_range, port)
+
         self._set_measurement_mode("current_dc", _range)
 
     def resistance(self, _range=None):
