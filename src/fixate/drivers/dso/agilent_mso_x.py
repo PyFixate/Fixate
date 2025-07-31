@@ -545,8 +545,6 @@ class MSO_X_3000(DSO):
         self._raise_if_error()  # Raises if any errors were made during setup
         # Stop
         # Clear status registers (CLS)
-        # enable the trigger mask in the event register (SRE)
-        # operation complete (OPC)
         self.instrument.write(":STOP;*CLS")
         self._store["time_base_wait"] = (
             self.instrument.query_ascii_values(":TIM:RANG?")[0]
