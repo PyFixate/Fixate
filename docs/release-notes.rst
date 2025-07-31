@@ -3,6 +3,12 @@ Release Notes
 ==================================
 
 *************
+Version 0.6.5
+*************
+Release Date 01/08/2025
+- Bug fix for DSOX1202G where it would appear to hang the program and scope
+
+*************
 Version 0.6.4
 *************
 Release Date 14/01/25
