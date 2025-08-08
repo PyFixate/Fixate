@@ -5,7 +5,7 @@ Release Notes
 *************
 Version 0.6.5
 *************
-Release Date 01/08/25
+Release Date xx-xx-xxxx
 
 Improvements
 ############
