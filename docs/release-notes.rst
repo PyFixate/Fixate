@@ -3,6 +3,15 @@ Release Notes
 ==================================
 
 *************
+Version 0.6.5
+*************
+Release Date xx-xx-xxxx
+
+Improvements
+############
+- Fix bug where DSOX1202G appeared to hang both the program and scope
+
+*************
 Version 0.6.4
 *************
 Release Date 14/01/25
