@@ -202,7 +202,7 @@ class SPD3303X(PPS):
         """
         for cmd in data.split(";"):
             self.instrument.write(cmd)
-            time.sleep(0.02 + len(cmd) / 6000)
+            time.sleep(0.1 + len(cmd) / 4000)
         self._is_error()
 
     @staticmethod
