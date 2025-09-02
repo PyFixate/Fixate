@@ -62,8 +62,7 @@ plg_csv = {
 index = None
 
 
-class InstrumentType(enum.StrEnum):
-    def __repr__(self): return str(self.value)
+class InstrumentType(enum.Enum):
     SERIAL = "serial"
     VISA = "visa"
 
