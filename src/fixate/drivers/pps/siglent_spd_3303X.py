@@ -24,11 +24,11 @@ class SPD3303X(PPS):
 
         self.api = [
             # Save commands
-            ("save.group1", self.write, "*SAV 1"),
-            ("save.group2", self.write, "*SAV 2"),
-            ("save.group3", self.write, "*SAV 3"),
-            ("save.group4", self.write, "*SAV 4"),
-            ("save.group5", self.write, "*SAV 5"),
+            ("save.group1", self._write_slow, "*SAV 1"),
+            ("save.group2", self._write_slow, "*SAV 2"),
+            ("save.group3", self._write_slow, "*SAV 3"),
+            ("save.group4", self._write_slow, "*SAV 4"),
+            ("save.group5", self._write_slow, "*SAV 5"),
             # Recall commands
             ("recall.group1", self.write, "*RCL 1"),
             ("recall.group2", self.write, "*RCL 2"),
@@ -203,6 +203,18 @@ class SPD3303X(PPS):
         for cmd in data.split(";"):
             self.instrument.write(cmd)
             time.sleep(0.02 + len(cmd) / 6000)
+        self._is_error()
+
+    def _write_slow(self, base_str, *args, **kwargs):
+        """
+        The SPD3303X is very slow at saving the current configuration to memory
+        To correct this, an extra 30 ms is added to the delay between commands.
+        This function should be identical to _write with the exception of an additional 0.03 s in wait time
+        """
+        cmds = self._format_string(base_str, **kwargs)
+        for cmd in cmds.split(";"):
+            self.instrument.write(cmd)
+            time.sleep(0.02 + len(cmd) / 6000 + 0.03)
         self._is_error()
 
     @staticmethod
