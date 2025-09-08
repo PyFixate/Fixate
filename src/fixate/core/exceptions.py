@@ -1,20 +1,20 @@
-class SequenceAbort(BaseException):
+class SequenceAbort(Exception):
     pass
 
 
-class ScriptError(BaseException):
+class ScriptError(Exception):
     pass
 
 
-class TestRetryExceeded(BaseException):
+class TestRetryExceeded(Exception):
     pass
 
 
-class TestAbort(BaseException):
+class TestAbort(Exception):
     pass
 
 
-class InstrumentError(BaseException):
+class InstrumentError(Exception):
     pass
 
 
@@ -22,11 +22,11 @@ class InstrumentTimeOut(InstrumentError):
     pass
 
 
-class ParameterError(BaseException):
+class ParameterError(Exception):
     pass
 
 
-class InvalidScalarQuantityError(BaseException):
+class InvalidScalarQuantityError(Exception):
     pass
 
 
@@ -38,7 +38,7 @@ class InstrumentNotConnected(InstrumentError):
     pass
 
 
-class NotCompatible(BaseException):
+class NotCompatible(Exception):
     pass
 
 
@@ -46,21 +46,21 @@ class MissingParameters(ParameterError):
     pass
 
 
-class UserInputError(BaseException):
+class UserInputError(Exception):
     pass
 
 
-class TestClassError(BaseException):
+class TestClassError(Exception):
     pass
 
 
-class TestError(BaseException):
+class TestError(Exception):
     pass
 
 
-class DUTError(BaseException):
+class DUTError(Exception):
     pass
 
 
-class CheckFail(BaseException):
+class CheckFail(Exception):
     pass
