@@ -20,7 +20,7 @@ idna==3.7
     # via requests
 imagesize==1.4.1
     # via sphinx
-jinja2==3.1.5
+jinja2==3.1.6
     # via sphinx
 markupsafe==2.1.5
     # via jinja2
@@ -46,7 +46,7 @@ pyserial==3.5
     # via fixate (pyproject.toml)
 pyvisa==1.14.1
     # via fixate (pyproject.toml)
-requests==2.32.3
+requests==2.32.4
     # via sphinx
 ruamel-yaml==0.18.6
     # via fixate (pyproject.toml)
@@ -72,7 +72,7 @@ sphinxcontrib-serializinghtml==1.1.10
     # via sphinx
 typing-extensions==4.12.2
     # via pyvisa
-urllib3==2.2.2
+urllib3==2.5.0
     # via requests
 wcwidth==0.2.13
     # via cmd2
