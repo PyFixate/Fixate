@@ -6,7 +6,7 @@ from fixate.core.common import TestList, TestClass
 from fixate.core.exceptions import SequenceAbort, CheckFail
 from fixate.core.ui import user_retry_abort_fail
 from fixate.core.checks import CheckResult
-from fixate.reporting import CSVWriter
+from fixate.reporting import JSONWriter
 
 STATUS_STATES = ["Idle", "Running", "Paused", "Finished", "Restart", "Aborted"]
 
@@ -110,7 +110,7 @@ class Sequencer:
         self.context = ContextStack()
         self.context_data = {}
         self.end_status = "N/A"
-        self.reporting_service = CSVWriter()
+        self.reporting_service = JSONWriter()
 
         # Sequencer behaviour. Don't ask the user when things to wrong, just marks tests as failed.
         # This does not change the behaviour of tests that call out to the user. They will still block as required.
