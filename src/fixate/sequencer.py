@@ -7,6 +7,9 @@ from fixate.core.exceptions import SequenceAbort, CheckFail
 from fixate.core.ui import user_retry_abort_fail
 from fixate.core.checks import CheckResult
 from fixate.reporting import CSVWriter
+import logging
+
+logger = logging.getLogger(__name__)
 
 STATUS_STATES = ["Idle", "Running", "Paused", "Finished", "Restart", "Aborted"]
 
@@ -219,14 +222,19 @@ class Sequencer:
         """
         self.reporting_service.install()
         self.status = "Running"
-        try:
-            self.run_once()
-        finally:
-            while self.context:
-                top = self.context.top()
-                if isinstance(top.current(), TestList):
+
+        self.run_once()
+
+        while self.context:
+            # Test sequence aborted early for some reason
+            # Run test exit functions
+            top = self.context.top()
+            if isinstance(top.current(), TestList):
+                try:
                     top.current().exit()
-                self.context.pop()
+                except Exception as e:
+                    logger.exception(e)
+            self.context.pop()
 
         self.reporting_service.uninstall()
 
