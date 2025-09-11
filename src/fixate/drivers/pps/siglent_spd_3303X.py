@@ -24,11 +24,11 @@ class SPD3303X(PPS):
 
         self.api = [
             # Save commands
-            ("save.group1", lambda cmd: self._write(cmd, delay=0.5), "*SAV 1"),
-            ("save.group2", lambda cmd: self._write(cmd, delay=0.5), "*SAV 2"),
-            ("save.group3", lambda cmd: self._write(cmd, delay=0.5), "*SAV 3"),
-            ("save.group4", lambda cmd: self._write(cmd, delay=0.5), "*SAV 4"),
-            ("save.group5", lambda cmd: self._write(cmd, delay=0.5), "*SAV 5"),
+            ("save.group1", lambda cmd: self._write(cmd, delay=0.1), "*SAV 1"),
+            ("save.group2", lambda cmd: self._write(cmd, delay=0.1), "*SAV 2"),
+            ("save.group3", lambda cmd: self._write(cmd, delay=0.1), "*SAV 3"),
+            ("save.group4", lambda cmd: self._write(cmd, delay=0.1), "*SAV 4"),
+            ("save.group5", lambda cmd: self._write(cmd, delay=0.1), "*SAV 5"),
             # Recall commands
             ("recall.group1", self.write, "*RCL 1"),
             ("recall.group2", self.write, "*RCL 2"),
