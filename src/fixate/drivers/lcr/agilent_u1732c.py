@@ -79,7 +79,7 @@ FETC? ALL
 
 
 class AgilentU1732C(LCR):
-    REGEX_ID = "Agilent Technologies,U1732C"
+    "(Keysight|Agilent) Technologies,U1732C" # Regex allows multiple manufacturers
     INSTR_TYPE = "VISA"
 
     def __init__(self, instrument):
