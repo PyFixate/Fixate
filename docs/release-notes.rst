@@ -1,14 +1,7 @@
 ==================================
 Release Notes
 ==================================
-*************
-Version 0.6.6
-*************
-Release Date 09/10/2025
 
-Improvements
-############
-- LCR Driver now supports instruments reporting as Keysight or Agilent. Newer models of the LCR meter report as Keysight, whereas older models report as Agilent. 
 *************
 Version 0.6.5
 *************
@@ -17,6 +10,7 @@ Release Date xx-xx-xxxx
 Improvements
 ############
 - Fix bug where DSOX1202G appeared to hang both the program and scope
+- LCR Driver now supports instruments reporting as Keysight or Agilent. Newer models of the LCR meter report as Keysight, whereas older models report as Agilent. 
 
 *************
 Version 0.6.4
