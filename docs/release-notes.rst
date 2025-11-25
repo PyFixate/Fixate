@@ -7,8 +7,13 @@ Version 0.6.5
 *************
 Release Date xx-xx-xxxx
 
+New Features
+############
+
 Improvements
 ############
+
+- Sequencer logic now handles exceptions raised on sequence abort. GUI will no longer hang when a test raises an exception during a test abort. 
 - Fix bug where DSOX1202G appeared to hang both the program and scope
 
 *************
