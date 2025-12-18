@@ -187,6 +187,7 @@ class SPD3303X(PPS):
     def _read_value(self, data):
         values = self.instrument.query_ascii_values(data)
         self._is_error()
+        time.sleep(0.02)
         return values[0]
 
     def _write(self, data, delay=0.0):
