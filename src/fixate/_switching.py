@@ -32,11 +32,9 @@ from __future__ import annotations
 import itertools
 import time
 from typing import (
-    Generic,
     Optional,
     Callable,
     Sequence,
-    TypeVar,
     Generator,
     Union,
     Collection,
@@ -94,12 +92,11 @@ class PinUpdate:
 
 PinUpdateCallback = Callable[[PinUpdate, bool], None]
 
-S = TypeVar("S", bound=str)
 
 from types import get_original_bases, resolve_bases
 
 
-class VirtualMux(Generic[S]):
+class VirtualMux[S: Signal]:
     map_tree: Optional[TreeDef] = None
     map_list: Optional[Sequence[Sequence[str]]] = None
     pin_list: PinList = ()
@@ -544,7 +541,7 @@ class VirtualSwitch(VirtualMux):
         super().__init__(update_pins)
 
 
-class RelayMatrixMux(VirtualMux[S]):
+class RelayMatrixMux[S: Signal](VirtualMux[S]):
     clearing_time = 0.01
 
     def _calculate_pins(
@@ -746,10 +743,7 @@ class MuxGroup:
         return [str(mux) for mux in self.get_multiplexers()]
 
 
-JigSpecificMuxGroup = TypeVar("JigSpecificMuxGroup", bound=MuxGroup)
-
-
-class JigDriver(Generic[JigSpecificMuxGroup]):
+class JigDriver[JigSpecificMuxGroup: MuxGroup]:
     """
     Combine multiple VirtualMux's and multiple AddressHandler's.
 
@@ -833,10 +827,7 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
             )
 
 
-_T = TypeVar("_T")
-
-
-def _generate_bit_sets(bits: Sequence[_T]) -> Generator[set[_T], None, None]:
+def _generate_bit_sets[_T](bits: Sequence[_T]) -> Generator[set[_T], None, None]:
     """
     Create subsets of bits, representing bits of a list of integers
 

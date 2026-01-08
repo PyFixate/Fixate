@@ -2,6 +2,7 @@
 This file is just a test playground that shows how the update jig classes will
 fit together.
 """
+
 from __future__ import annotations
 from dataclasses import dataclass, field
 from fixate import (
@@ -11,6 +12,7 @@ from fixate import (
     PinValueAddressHandler,
     VirtualSwitch,
     RelayMatrixMux,
+    Signal,
 )
 
 
@@ -84,6 +86,7 @@ MuxTwoSigDef = Union[
 SingleSignalDef = Annotated[Literal["sig_c1"], "c0", "c1"]
 # fmt: on
 
+
 # VirtualMuxes can now be created with type annotations to provide the signal map
 # this only works when subclassing
 class MyMux(VirtualMux[MuxOneSigDef]):
@@ -115,12 +118,8 @@ ls("")
 # further generic types can be created by subclassing from VirtualMux using a TypeVar
 # compared to the above way of subclassing, this way lets you reuse the class
 
-from typing import TypeVar
 
-S = TypeVar("S", bound=str)
-
-
-class MyGenericMux(VirtualMux[S]):
+class MyGenericMux[S: Signal](VirtualMux[S]):
     ...
 
     def extra_method(self) -> None:
@@ -134,6 +133,7 @@ class MyConcreteMux(MyGenericMux[MuxTwoSigDef]):
 generic_mux = MyConcreteMux()
 generic_mux("sig_b1")
 generic_mux("sig_b2")
+
 
 # RelayMatrixMux is an example of a reusable generic class
 class MyRelayMatrixMux(RelayMatrixMux[MuxOneSigDef]):
