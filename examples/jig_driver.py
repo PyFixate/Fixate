@@ -97,7 +97,7 @@ muxa("sig_a2")
 
 # using the wrong signal name will be caught at runtime and by the type checker
 try:
-    muxa("unknown signal name")  # type: ignore[arg-type]
+    muxa("unknown signal name")
 except ValueError as e:
     print(f"An Exception would have occurred: {e}")
 else:
