@@ -8,6 +8,7 @@ import fixate.drivers
 from fixate.core.common import bits
 from fixate.core.exceptions import InstrumentNotConnected
 
+from fixate.drivers._ftdi import ftdI2xx
 
 # Definitions
 UCHAR = ctypes.c_ubyte
@@ -111,21 +112,6 @@ class PARITY(object):
     FT_PARITY_MARK = UCHAR(3)
     FT_PARITY_SPACE = UCHAR(4)
 
-
-if os.name == "nt":
-    try:
-        ftdI2xx = ctypes.WinDLL("FTD2XX.dll")
-    except Exception as e:
-        raise ImportError(
-            "Unable to find FTD2XX.dll.\nPlugging in an FTDI device will install the DLL."
-        ) from e
-else:
-    try:
-        ftdI2xx = ctypes.cdll.LoadLibrary("/usr/local/lib/libftd2xx.so")
-    except Exception as e:
-        raise ImportError(
-            "Unable to find libftd2xx.so.\nInstall as per https://www.ftdichip.com/Drivers/D2XX/Linux/ReadMe-linux.txt"
-        ) from e
 
 _ipdwNumDevs = DWORD(0)
 _p_ipdwNumDevs = LPDWORD(_ipdwNumDevs)
@@ -281,12 +267,10 @@ class FTDI2xx(object):
 
     def write_bit_mode(self, mask, validate=False):
         """
-        handle; gained from device info
-        mask; value to write for the mask
-            for BIT_MODE.FT_BITMODE_CBUS_BITBANG
-            upper nibble is input (0) output (1)
-            lower nibble is pin value low (0) high (1)
-        bit_mode; Type BIT_MODE
+        :param mask: value to write for the mask for ``BIT_MODE.FT_BITMODE_CBUS_BITBANG``
+
+            * upper nibble is input (0) output (1)
+            * lower nibble is pin value low (0) high (1)
         """
         check_return(ftdI2xx.FT_SetBitMode(self.handle, UCHAR(mask), self.bit_mode))
         data_bus = UCHAR()
@@ -403,8 +387,9 @@ class FTDI2xx(object):
         :param latch_mask: CBUS Pin for latch. 1 Default for Relay Matrix
         :param clk_mask: CBUS Pin for clock. 2 Default for Relay Matrix
         :param data_mask: CBUS Pin for data. 4 Default for Relay Matrix
-        :param invert_mask: Mask for inverting. 0b111 For all inverted 0b000 for all non inverted
-        based on MSB 0b<latch><clock><data> LSB
+        :param invert_mask: Mask for inverting. Based on ``0b<latch><clock><data>``
+
+            e.g. ``0b100`` Would mean the latch bit is inverted. ``0b011`` would mean the clock and data bits are inverted.
         :return:
         """
         self.bb_bytes = bytes_required

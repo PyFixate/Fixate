@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+
+
 class DMM:
     REGEX_ID = "DMM"
     is_connected = False
@@ -11,7 +14,7 @@ class DMM:
     def local(self):
         """
         Sets instrument to local mode
-        Use remote() to restore remote operation.
+        Use `remote()` to restore remote operation.
         """
         raise NotImplementedError
 
@@ -32,30 +35,56 @@ class DMM:
         """
         Trigger and return measurement from the instrument buffer.
 
-        delay: If True, waits for self.measurement_delay seconds then triggers a measurement.
-        returns: a single value as a float
+        Args:
+            delay (bool): If True, waits for `self.measurement_delay` seconds then triggers a measurement.
+
+        Returns:
+            float: measured value
         """
         raise NotImplementedError
 
     def voltage_ac(self, _range=None):
+        """
+        Sets the DMM in AC voltage measurement mode and puts it in the range given
+        by the argument _range. Signals expected to be measured must be < _range.
+
+        Args:
+            _range (???): The range to set the DMM to.
+        """
         raise NotImplementedError
 
     def voltage_dc(self, _range=None, auto_impedance=False):
+        """
+        Sets the DMM in DC voltage measurement mode and puts it in the range given
+        by the argument _range. Signals expected to be measured must be < _range.
+        """
         raise NotImplementedError
 
     def current_ac(self, _range):
         raise NotImplementedError
 
     def current_dc(self, _range):
+        """
+        Sets the DMM in DC current measurement mode and puts it in the range given
+        by the argument _range. Signals expected to be measured must be < _range.
+        """
         raise NotImplementedError
 
     def resistance(self, _range=None):
+        """
+        Sets the DMM in 2-wire resistance measurement mode and puts it in the range
+        given by the argument _range. Signals expected to be measured must be < _range.
+        """
         raise NotImplementedError
 
     def frequency(self, _range=None):
         raise NotImplementedError
 
     def fresistance(self, _range=None):
+        """
+        Sets the DMM in 4-wire resistance measurement mode and puts it in the range
+        given by the argument _range. Signals expected to be measured must be < _range.
+        """
         raise NotImplementedError
 
     def period(self, _range=None):
@@ -75,3 +104,28 @@ class DMM:
 
     def get_identity(self):
         raise NotImplementedError
+
+    @dataclass
+    class MeasurementStats:
+        min: float
+        max: float
+        avg: float
+
+    # context manager for setting NPLC
+    class _nplc_context_manager(object):
+        def __init__(self, dmm, nplc=None):
+            self.dmm = dmm
+            self.nplc = nplc
+            self.original_nplc = None
+
+        def __enter__(self):
+            # store the original NPLC setting
+            self.original_nplc = self.dmm.get_nplc()
+            self.dmm.set_nplc(self.nplc)
+
+        # return to default NPLC setting
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            self.dmm.set_nplc(self.original_nplc)
+
+    def nplc(self, nplc=None):
+        return self._nplc_context_manager(self, nplc)

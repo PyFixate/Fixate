@@ -30,4 +30,6 @@ from fixate._switching import (
     generate_relay_matrix_pin_list as generate_relay_matrix_pin_list,
 )
 
-__version__ = "0.6.2"
+from fixate.main import run_main_program as run
+
+__version__ = "0.6.4"

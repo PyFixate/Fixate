@@ -16,19 +16,21 @@ def converge_scalar(
     """
     Uses a linear scalar controller to converge two functions.
     Best used in a linear system and with an informed starting point.
-    Usage example;
-    >>>dm.funcgen.channel1.waveform.sin()
-    >>>dm.funcgen.channel1.frequency(1000)
-    >>>dm.funcgen.channel1.vrms(0.1)
-    >>>dm.dmm.voltage_ac()
-    >>>dm.funcgen.channel1(True)
-    >>>converged = converge_scalar(control_func = dm.funcgen.channel1.vrms,
-    >>>                            feedback_func = dm.dmm.measurement,
-    >>>                            set_point = 5.0,
-    >>>                            initial_state = 0.1,
-    >>>                            settle_min = 4.95,
-    >>>                            settle_max = 5.05,
-    >>>                            settle_number = 1)
+
+    Example::
+        >>> dm.funcgen.channel1.waveform.sin()
+        >>> dm.funcgen.channel1.frequency(1000)
+        >>> dm.funcgen.channel1.vrms(0.1)
+        >>> dm.dmm.voltage_ac()
+        >>> dm.funcgen.channel1(True)
+        >>> converged = converge_scalar(control_func = dm.funcgen.channel1.vrms,
+        >>>                            feedback_func = dm.dmm.measurement,
+        >>>                            set_point = 5.0,
+        >>>                            initial_state = 0.1,
+        >>>                            settle_min = 4.95,
+        >>>                            settle_max = 5.05,
+        >>>                            settle_number = 1)
+
     This will converge the function generator (sin 1kHz) so that the multimeter reading will read
     between 4.95 and 5.05 at least 3 times before returning.
 
@@ -60,6 +62,7 @@ def converge_scalar(
     :param limit_control: (minimum: [float, int], maximum: [float, int])
     Limits that the control is allowed to reach before aborting. None for each parameter places no limits.
     Values smaller than minimum and numbers greater than maximum are aborted.
+
     :return:
     True if converged
     False if not completed before timeout

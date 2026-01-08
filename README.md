@@ -10,7 +10,7 @@ While Fixate is fairly simple, it is already being used to test real electronics
 
 ## Getting Started
 
-Fixate runs on Python 3.7 or greater.
+Fixate runs on Python 3.8 or greater.
 
 ### Installing
 
@@ -19,37 +19,35 @@ Alternatively, install from Pypi with 'pip install fixate'
 
 ### Run the example scripts
 
-There are a number of examples under src/fixate/examples. For a minimal example try running tiny.py.
+There are a number of examples under the examples folder.
+You will need a clone fo the git repository to get the examples.
+For a minimal example try running tiny.py.
 For a more complicated example using multi-level tests, try running multi_level_design.py.
-The test runner is executed by calling the package as a script with the test script to execute passed in using the
-'-p' command line argument, as well as the -c command line argument to specify the config file
+The test runner is executed by calling the `fixate` package and passing in the test script to execute using the '-p' command line argument.
 
-#### Running on Windows:
+The following commands are for Windows:
 
-If running from a pip installed version of fixate the path to the examples will be "path_to_python_installation"/Lib/site-packages/fixate/examples/ From this folder the following can be executed:
+```sh
+git clone https://github.com/PyFixate/Fixate.git
+cd Fixate
+py -m venv .venv
+.venv\Scripts\activate
+py -m pip install .
+py -m fixate -p examples\tiny.py
+```
 
-python -m fixate -p tiny.py
+#### Make a script directly executable
 
-Alternatively the full path to tiny.py can be provided.
+For easier development, test scripts can be setup to call the fixate main as their own with some default parameters, as in:
 
-python -m fixate -p "path_to_python_installation"/Lib/site-packages/fixate/examples/tiny.py
-
-#### Running on MacOS:
-
-Running on Mac is the same as running on Windows with the exception of the path to the examples. The path will be: "path_to_python_installation"/lib/pythonX.Y/site-packages/fixate/examples/
-Where X.Y is the version of python that is installed.
+python examples/tiny.py
 
 ## Running the tests
 In general, it is recommended to run the "core" set of tests.
-The "drivers" test have a number of dependencies that are not required by default. Tests run using unittest.
-Navigate to the test/core directory and execute "python -m unittest".
-
-## Modifying the Qt GUI
-
-The Qt GUI base file is created using Qt Designer under Mingw32.
-If you'd like to make changes, use pyuic5 to build the layout file, with the command:
-
-pyuic5 fixateGUI.ui -o layout.py
+The "drivers" tests have a number of dependencies that are not required by default.
+Tests are run using pytest.
+The easiest way to run the test is using tox.
+To run the tests manually using pytest, excluding tests that required instruments, you can run `pytest -m "not drivertest"`. 
 
 
 ## Check out the docs
@@ -59,6 +57,15 @@ https://fixate.readthedocs.io
 ## Contributing
 
 Contributions are welcome. Get in touch or create a new pull request.
+
+Pull requests will need to pass code checks. You can run these most easily locally via [`pre-commit`](https://pre-commit.com/):
+
+```
+pip install pre-commit
+pre-commit install --install-hooks 
+pre-commit run --all-files # if not run before on your changes, otherwise leave off the flag
+```
+
 
 ## Authors
 

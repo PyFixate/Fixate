@@ -94,12 +94,12 @@ def mode_builder(search_dict, repl_kwargs, *args, **kwargs):
     [] indicates an optional parameter. If no argument is given on the level that has an optional argument then it
     can still be parsed.
     If no [] arguments exist and no fitting arguments fit the current pattern then Parameter error will be raised
-    :param args:
-     These are arguments that don't require an additional argument, identified by : prefix
-     eg. voltage
-    :param kwargs:
-     These are arguments identified by key name and require an additional parameter, identified by {}
-     eg. {range} would be called as kwarg range=1
+
+    Args:
+        args: These are arguments that don't require an additional argument, identified by : prefix
+              eg. voltage
+        kwargs: These are arguments identified by key name and require an additional parameter,
+                identified by {} eg. {range} would be called as kwarg range=1
     :return:
     """
     # Search primary parameters
@@ -136,20 +136,19 @@ def mode_builder(search_dict, repl_kwargs, *args, **kwargs):
 
 def unit_convert(value, min_primary_number, max_primary_number, as_int=False):
     """
-    :param value:
-    An int or float to convert into a scaled unit
-    :param min_primary_number:
-    min value acceptable for the number
-    :param max_primary_number:
-    max value acceptable for the number
-    usage:
+    Args:
+        value: An int or float to convert into a scaled unit
+        min_primary_number: min value acceptable for the number
+        max_primary_number: max value acceptable for the number
 
-    >>>unit_convert(100e6, 1, 999)
-    '100.0M'
-    >>>unit_convert(100e6, 0.1, 99)
-    '0.1G'
-    >>>unit_convert(100e6, 1, 999, as_int=True)
-    '100M'
+    usage::
+
+        >>> unit_convert(100e6, 1, 999)
+        '100.0M'
+        >>> unit_convert(100e6, 0.1, 99)
+        '0.1G'
+        >>> unit_convert(100e6, 1, 999, as_int=True)
+        '100M'
     """
     for unit, scale in UNIT_SCALE.items():
         if min_primary_number * scale <= value <= max_primary_number * scale:
