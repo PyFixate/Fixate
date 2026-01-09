@@ -459,14 +459,21 @@ class VirtualMux[S: Signal]:
 
     def _digest_type_hints(self) -> None:
         # digest all the typing information if there is any
+
+        # original bases are effectively the "as written" class
+        # they are types, not classes
         bases = get_original_bases(self.__class__)
+        # resolved bases are what actually exist at runtime
         resolved_bases = resolve_bases(bases)
         first_resolved_base = resolved_bases[0]
+        # now check that we are trying to get typing information out of the correct class
         assert issubclass(
             first_resolved_base, VirtualMux
-        ), f"{first_resolved_base} should be VirtualMux subclass"
-        if bases != resolved_bases:
-            args = get_args(bases[0])
+        ), f"First parent class of {self.__class__} should be VirtualMux subclass, not {first_resolved_base}"
+
+        args = get_args(bases[0])
+        # if we found typing annotations, use them to define the pins and signals
+        if args:
             plist, mlist = self._unpack_muxdef(args[0])
             self.pin_list = plist
             self.map_list = mlist
