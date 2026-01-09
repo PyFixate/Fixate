@@ -77,10 +77,9 @@ MuxOneSigDef = Union[
     Annotated[Literal["sig_a2"], "a1"],
 ]
 
-MuxTwoSigDef = Union[
-    Annotated[Literal["sig_b1"], "b0", "b2"],
-    Annotated[Literal["sig_b2"], "b1"],
-]
+# alternative syntax without the Union keyword
+MuxTwoSigDef = (Annotated[Literal["sig_b1"], "b0", "b2"] |
+                Annotated[Literal["sig_b2"], "b1"])
 
 # if defining only a single signal, the Union is omitted in the definition
 SingleSignalDef = Annotated[Literal["sig_c1"], "c0", "c1"]
