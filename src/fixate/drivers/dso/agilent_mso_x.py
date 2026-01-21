@@ -643,39 +643,38 @@ class MSO_X_3000(DSO):
                 preamble[labels[index]] = val
         return preamble
 
-    def waveform_values(self, signals, file_name="", file_type="csv"):
+    def waveform_values(self, signal, file_name="", file_type="csv"):
         """
-        :param signals:
+        :param signal:
          The channel ie "1", "2", "3", "4", "MATH", "FUNC"
         :param file_name:
          If
         :param file_type:
         :return:
         """
-        signals = self.digitize(signals)
-        return_vals = {}
-        for sig in signals:
-            return_vals[sig] = []
-            results = return_vals[sig]
-            self.write(":WAV:SOUR {}".format(sig))
-            self.write(":WAV:FORM BYTE")
-            self.write(":WAV:POIN:MODE RAW")
-            preamble = self.waveform_preamble()
-            data = self.retrieve_waveform_data()
-            for index, datum in enumerate(data):
-                time_val = index * preamble["x_increment"]
-                y_val = (
-                    preamble["y_origin"]
-                    + (datum - preamble["y_reference"]) * preamble["y_increment"]
-                )
-                results.append((time_val, y_val))
+        signal = self.digitize(signal)
+        # digitize returns a list:
+        self.write(":WAV:SOUR {}".format(signal[0]))
+        self.write(":WAV:FORM BYTE")
+        self.write(":WAV:POIN:MODE RAW")
+
+        preamble = self.waveform_preamble()
+        data = self.retrieve_waveform_data()
+        time_values = []
+        values = []
+        for index, datum in enumerate(data):
+            time_val = index * preamble["x_increment"]
+            y_val = (
+                preamble["y_origin"]
+                + (datum - preamble["y_reference"]) * preamble["y_increment"]
+            )
+            time_values.append(time_val)
+            values.append(y_val)
         if file_name and file_type == "csv":  # Needs work for multiple references
             with open(file_name, "w") as f:
                 f.write("x,y")
-                for label in sorted(preamble):
-                    f.write(",{},{}".format(label, preamble[label]))
                 f.write("\n")
-                for time_val, y_val in enumerate(results):
+                for time_val, y_val in zip(time_values, values):
                     f.write(
                         "{time_val},{voltage}\n".format(
                             time_val=time_val, voltage=y_val
@@ -683,7 +682,7 @@ class MSO_X_3000(DSO):
                     )
         elif file_name and file_type == "bin":
             raise NotImplementedError("Binary Output not implemented")
-        return results
+        return time_values, values
 
     def retrieve_waveform_data(self):
         self.instrument.write(":WAV:DATA?")
