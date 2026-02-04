@@ -652,11 +652,16 @@ class MSO_X_3000(DSO):
         :param file_type:
         :return:
         """
-        signal = self.digitize(signal)
-        # digitize returns a list:
-        self.write(":WAV:SOUR {}".format(signal[0]))
-        self.write(":WAV:FORM BYTE")
-        self.write(":WAV:POIN:MODE RAW")
+        # Check if there is actually data to acquire:
+        # This line also makes the channel the source for the data export!
+        data_available = int(
+            self.query(":WAVeform:SOURce CHANnel" + str(signal) + ";POINTs?")
+        )
+        if data_available == 0:
+            # No data is available
+            # Setting a channel to be a waveform source turns it on, so we need to turn it off now:
+            self.write(":CHANnel" + str(signal) + ":DISPlay OFF")
+            raise ValueError("No data is available")
 
         preamble = self.waveform_preamble()
         data = self.retrieve_waveform_data()
