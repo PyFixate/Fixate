@@ -668,7 +668,7 @@ class MSO_X_3000(DSO):
         time_values = []
         values = []
         for index, datum in enumerate(data):
-            time_val = index * preamble["x_increment"]
+            time_val = index * preamble["x_increment"] + preamble["x_origin"]
             y_val = (
                 preamble["y_origin"]
                 + (datum - preamble["y_reference"]) * preamble["y_increment"]
