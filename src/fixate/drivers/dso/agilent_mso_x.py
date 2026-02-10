@@ -643,39 +643,57 @@ class MSO_X_3000(DSO):
                 preamble[labels[index]] = val
         return preamble
 
-    def waveform_values(self, signals, file_name="", file_type="csv"):
+    def waveform_values(self, signal, file_name="", file_type="csv"):
         """
-        :param signals:
-         The channel ie "1", "2", "3", "4", "MATH", "FUNC"
-        :param file_name:
-         If
-        :param file_type:
-        :return:
+        Retrieves waveform data from the specified channel and optionally saves it to a file.
+
+        This method queries the instrument for raw data points, scales them using
+        the waveform preamble (origin, increment, and reference values), and
+        converts them into time and voltage arrays.
+
+        Args:
+            signal (str|int): The source channel (e.g., "1", "2", "MATH", "FUNC").
+            file_name (str, optional): The path/name of the file to save data to.
+                Defaults to "", which skips file saving.
+            file_type (str, optional): The format for the output file.
+                Supported: "csv". Defaults to "csv".
+
+        Returns:
+            tuple: A tuple containing (time_values, values) as lists of floats.
+
+        Raises:
+            ValueError: If no data is available on the selected channel.
+            NotImplementedError: If an unsupported file_type is requested.
         """
-        signals = self.digitize(signals)
-        return_vals = {}
-        for sig in signals:
-            return_vals[sig] = []
-            results = return_vals[sig]
-            self.write(":WAV:SOUR {}".format(sig))
-            self.write(":WAV:FORM BYTE")
-            self.write(":WAV:POIN:MODE RAW")
-            preamble = self.waveform_preamble()
-            data = self.retrieve_waveform_data()
-            for index, datum in enumerate(data):
-                time_val = index * preamble["x_increment"]
-                y_val = (
-                    preamble["y_origin"]
-                    + (datum - preamble["y_reference"]) * preamble["y_increment"]
-                )
-                results.append((time_val, y_val))
+
+        # Check if there is actually data to acquire:
+        # This line also makes the channel the source for the data export!
+        data_available = int(
+            self.query(":WAVeform:SOURce CHANnel" + str(signal) + ";POINTs?")
+        )
+        if data_available == 0:
+            # No data is available
+            # Setting a channel to be a waveform source turns it on, so we need to turn it off now:
+            self.write(":CHANnel" + str(signal) + ":DISPlay OFF")
+            raise ValueError("No data is available")
+
+        preamble = self.waveform_preamble()
+        data = self.retrieve_waveform_data()
+        time_values = []
+        values = []
+        for index, datum in enumerate(data):
+            time_val = index * preamble["x_increment"] + preamble["x_origin"]
+            y_val = (
+                preamble["y_origin"]
+                + (datum - preamble["y_reference"]) * preamble["y_increment"]
+            )
+            time_values.append(time_val)
+            values.append(y_val)
         if file_name and file_type == "csv":  # Needs work for multiple references
             with open(file_name, "w") as f:
                 f.write("x,y")
-                for label in sorted(preamble):
-                    f.write(",{},{}".format(label, preamble[label]))
                 f.write("\n")
-                for time_val, y_val in enumerate(results):
+                for time_val, y_val in zip(time_values, values):
                     f.write(
                         "{time_val},{voltage}\n".format(
                             time_val=time_val, voltage=y_val
@@ -683,7 +701,7 @@ class MSO_X_3000(DSO):
                     )
         elif file_name and file_type == "bin":
             raise NotImplementedError("Binary Output not implemented")
-        return results
+        return time_values, values
 
     def retrieve_waveform_data(self):
         self.instrument.write(":WAV:DATA?")
