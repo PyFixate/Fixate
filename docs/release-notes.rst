@@ -7,6 +7,10 @@ Version 0.6.5
 *************
 Release Date xx-xx-xxxx
 
+Major Changes
+################
+- Support for Python 3.8 to 3.11 has been dropped. Now only Python >3.12 is supported.
+
 New Features
 ############
 
