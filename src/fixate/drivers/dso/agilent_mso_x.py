@@ -645,13 +645,27 @@ class MSO_X_3000(DSO):
 
     def waveform_values(self, signal, file_name="", file_type="csv"):
         """
-        :param signal:
-         The channel ie "1", "2", "3", "4", "MATH", "FUNC"
-        :param file_name:
-         If
-        :param file_type:
-        :return:
+        Retrieves waveform data from the specified channel and optionally saves it to a file.
+
+        This method queries the instrument for raw data points, scales them using
+        the waveform preamble (origin, increment, and reference values), and
+        converts them into time and voltage arrays.
+
+        Args:
+            signal (str|int): The source channel (e.g., "1", "2", "MATH", "FUNC").
+            file_name (str, optional): The path/name of the file to save data to.
+                Defaults to "", which skips file saving.
+            file_type (str, optional): The format for the output file.
+                Supported: "csv". Defaults to "csv".
+
+        Returns:
+            tuple: A tuple containing (time_values, values) as lists of floats.
+
+        Raises:
+            ValueError: If no data is available on the selected channel.
+            NotImplementedError: If an unsupported file_type is requested.
         """
+
         # Check if there is actually data to acquire:
         # This line also makes the channel the source for the data export!
         data_available = int(
