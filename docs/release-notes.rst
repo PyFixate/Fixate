@@ -7,6 +7,10 @@ Version 0.6.5
 *************
 Release Date xx-xx-xxxx
 
+Major Changes
+################
+- Support for Python 3.8 to 3.11 has been dropped. Now only Python >3.12 is supported.
+
 New Features
 ############
 
@@ -15,6 +19,7 @@ Improvements
 
 - Sequencer logic now handles exceptions raised on sequence abort. GUI will no longer hang when a test raises an exception during a test abort. 
 - Fix bug where DSOX1202G appeared to hang both the program and scope
+- LCR Driver now supports instruments reporting as Keysight or Agilent. Newer models of the LCR meter report as Keysight, whereas older models report as Agilent. 
 
 *************
 Version 0.6.4
