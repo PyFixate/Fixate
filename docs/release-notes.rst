@@ -20,6 +20,7 @@ Improvements
 - Sequencer logic now handles exceptions raised on sequence abort. GUI will no longer hang when a test raises an exception during a test abort. 
 - Fix bug where DSOX1202G appeared to hang both the program and scope
 - LCR Driver now supports instruments reporting as Keysight or Agilent. Newer models of the LCR meter report as Keysight, whereas older models report as Agilent. 
+- Jig switching fix to force sending the reset signal regardless of presumed jig state
 
 *************
 Version 0.6.4

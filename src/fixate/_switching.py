@@ -619,13 +619,13 @@ class VirtualAddressMap:
         time.sleep(collated.minimum_change_time)
         self._dispatch_pin_state(collated.final)
 
-    def _dispatch_pin_state(self, new_state: PinSetState) -> None:
+    def _dispatch_pin_state(self, new_state: PinSetState, force: bool = False) -> None:
         # check all pins actually have an address handler to send to
         if unknown_pins := (new_state.on | new_state.off) - self._all_pins:
             raise ValueError(f"Can't switch unknown pin(s) {', '.join(unknown_pins)}.")
 
         new_active_pins = (self._active_pins | new_state.on) - new_state.off
-        if new_active_pins != self._active_pins:
+        if (new_active_pins != self._active_pins) | force:
             self._active_pins = new_active_pins
             for pin_set, handler in self._handler_pin_sets:
                 # Note that we might send an empty set here. We need to do that
@@ -645,7 +645,7 @@ class VirtualAddressMap:
         possible the state of each VirtualMux and its related pins will not
         be in sync.
         """
-        self._dispatch_pin_state(PinSetState(off=self._all_pins))
+        self._dispatch_pin_state(PinSetState(off=self._all_pins), force=True)
 
     def update_input(self) -> None:
         """
@@ -743,6 +743,9 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
         """
         Reset all VirtualMux's to the default signal "" (all pins off)
         """
+        # first reset the virtual map of pins to a known default state
+        self.virtual_map.reset()
+        # now reset the muxes to ensure the virtual map and muxes are synced
         self.mux.reset()
 
     def _validate(self) -> None:
