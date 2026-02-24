@@ -237,10 +237,23 @@ class VirtualMux:
         elif hasattr(self, "map_list"):
             pin_set = set()
             signal_map = {}
-            for sig, *pins in self.map_list:
-                pin_set.update(pins)
-                signal_map[sig] = frozenset(pins)
-            return signal_map, frozenset(pin_set)
+            # so great think about the unpack operator (*) is that it gives you a list of items
+            # which means that a string, or sequence of strings look the same as a sequence of sequences of strings
+            # when unpacked this way
+            # filter out these edge cases.
+            # if you want to have a one signal mux, then use a virtual switch instead,
+            # or use the correct definition of map_list
+            if isinstance(self.map_list, str) or all(
+                isinstance(item, str) for item in self.map_list
+            ):
+                raise ValueError(
+                    "map_list should be in the form (('sig1', 'pin1', 'pin2',...)\n('sig2', 'pin3', 'pin4',...)\n...)"
+                )
+            else:
+                for sig, *pins in self.map_list:
+                    pin_set.update(pins)
+                    signal_map[sig] = frozenset(pins)
+                return signal_map, frozenset(pin_set)
         else:
             raise ValueError(
                 "VirtualMux subclass must define either map_tree or map_list"

@@ -551,7 +551,7 @@ def test_jig_driver_with_unknown_pins():
 
     class Mux(VirtualMux):
         pin_list = ("x0", "x1")  # "x1" isn't in either handler
-        map_list = ("sig1", "x1")
+        map_list = (("sig1", "x1"),)
 
     class Group(MuxGroup):
         def __init__(self):
