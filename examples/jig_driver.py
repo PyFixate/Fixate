@@ -14,7 +14,6 @@ from fixate import (
 
 
 class MuxOne(VirtualMux):
-    pin_list = ("x0", "x1", "x2")
     map_list = (
         ("sig1", "x0"),
         ("sig2", "x1"),

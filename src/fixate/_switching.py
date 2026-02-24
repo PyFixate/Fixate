@@ -47,6 +47,7 @@ from typing import (
 from dataclasses import dataclass
 from functools import reduce
 from operator import or_
+from collections import defaultdict
 
 Signal = str
 Pin = str
@@ -89,7 +90,6 @@ PinUpdateCallback = Callable[[PinUpdate, bool], None]
 
 
 class VirtualMux:
-    pin_list: PinList = ()
     clearing_time: float = 0.0
 
     ###########################################################################
@@ -108,11 +108,9 @@ class VirtualMux:
         # mux is defined with a map_tree, we need the ordering. But after
         # initialisation, we only need set operations on the pin list, so
         # we convert here and keep a reference to the set for future use.
-        self._pin_set = frozenset(self.pin_list)
-
         self._state = ""
 
-        self._signal_map: SignalMap = self._map_signals()
+        self._signal_map, self._pin_set = self._map_signals()
 
         # Define the implicit signal "" which can be used to turn off all pins.
         # If the signal map already has this defined, raise an error. In the old
@@ -218,7 +216,7 @@ class VirtualMux:
     # The following methods are intended as implementation detail and
     # subclasses should avoid overriding.
 
-    def _map_signals(self) -> SignalMap:
+    def _map_signals(self) -> tuple[SignalMap, PinSet]:
         """
         Default implementation of the signal mapping
 
@@ -231,9 +229,32 @@ class VirtualMux:
         map_tree or map_list.
         """
         if hasattr(self, "map_tree"):
-            return self._map_tree(self.map_tree, self.pin_list, fixed_pins=frozenset())
+            if not hasattr(self, "pin_list"):
+                raise ValueError("must include pin_list if defining map_tree")
+            else:
+                return self._map_tree(
+                    self.map_tree, self.pin_list, fixed_pins=frozenset()
+                ), frozenset(self.pin_list)
         elif hasattr(self, "map_list"):
-            return {sig: frozenset(pins) for sig, *pins in self.map_list}
+            pin_set = set()
+            signal_map = {}
+            # so great think about the unpack operator (*) is that it gives you a list of items
+            # which means that a string, or sequence of strings look the same as a sequence of sequences of strings
+            # when unpacked this way
+            # filter out these edge cases.
+            # if you want to have a one signal mux, then use a virtual switch instead,
+            # or use the correct definition of map_list
+            if isinstance(self.map_list, str) or all(
+                isinstance(item, str) for item in self.map_list
+            ):
+                raise ValueError(
+                    "map_list should be in the form (('sig1', 'pin1', 'pin2',...)\n('sig2', 'pin3', 'pin4',...)\n...)"
+                )
+            else:
+                for sig, *pins in self.map_list:
+                    pin_set.update(pins)
+                    signal_map[sig] = frozenset(pins)
+                return signal_map, frozenset(pin_set)
         else:
             raise ValueError(
                 "VirtualMux subclass must define either map_tree or map_list"
@@ -477,7 +498,7 @@ class VirtualSwitch(VirtualMux):
         self,
         update_pins: Optional[PinUpdateCallback] = None,
     ):
-        if not self.pin_list:
+        if not hasattr(self, "pin_list"):
             self.pin_list = [self.pin_name]
         super().__init__(update_pins)
 
@@ -752,6 +773,9 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
         - Ensure all pins that are used in muxes are defined by
           some address handler.
 
+        - Ensure that mux pins are unique so that muxes do not affect
+          eachother
+
         Note: It is O.K. for there to be AddressHandler pins that
             are not used anywhere. Eventually we might choose to
             warn about them. This it is necessary to define some jigs.
@@ -760,15 +784,26 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
             or_, (set(handler.pin_list) for handler in self._handlers), set()
         )
         mux_missing_pins = []
-
+        all_mux_pins: defaultdict[Pin, list[str]] = defaultdict(list)
         for mux in self.mux.get_multiplexers():
             if unknown_pins := mux.pins() - all_handler_pins:
                 mux_missing_pins.append((mux, unknown_pins))
+            for pin in mux.pins():
+                # record what we have seen to find duplicates
+                all_mux_pins[pin].append(str(mux))
 
         if mux_missing_pins:
             raise ValueError(
                 f"One or more VirtualMux uses unknown pins:\n{mux_missing_pins}"
             )
+
+        duplicates = [
+            f"Pin {pin} found in {', '.join(muxes)}"
+            for pin, muxes in all_mux_pins.items()
+            if len(muxes) > 1
+        ]
+        if duplicates:
+            raise ValueError(duplicates)
 
 
 _T = TypeVar("_T")

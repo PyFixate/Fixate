@@ -20,6 +20,8 @@ Improvements
 - Sequencer logic now handles exceptions raised on sequence abort. GUI will no longer hang when a test raises an exception during a test abort. 
 - Fix bug where DSOX1202G appeared to hang both the program and scope
 - LCR Driver now supports instruments reporting as Keysight or Agilent. Newer models of the LCR meter report as Keysight, whereas older models report as Agilent. 
+- Jig switching will now raise an error when pins are not unique across muxes. Requirement for pin_list has been dropped when not using map_tree due to issue
+  where pins would be set but never cleared when a pin was defined in the mux signals but not in the mux pins.
 
 *************
 Version 0.6.4
