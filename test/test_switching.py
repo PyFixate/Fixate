@@ -592,3 +592,42 @@ def test_pin_update_or():
         2.0,
     )
     assert expected == a | b
+
+
+@pytest.mark.parametrize("bad_map_list", ("single_string", ("tuple", "of", "strings")))
+def test_unsupported_map_lists_raise(bad_map_list):
+    class Mux(VirtualMux):
+        map_list = bad_map_list
+
+    with pytest.raises(ValueError):
+        Mux()
+
+
+def test_duplicate_pins_raise():
+    handler = AddressHandler(("x0", "x1"))
+
+    class Mux1(VirtualMux):
+        map_list = (("sig1", "x0"),)
+
+    class Mux2(VirtualMux):
+        map_list = (("sig2", "x1"),)
+
+    class Mux3(VirtualMux):
+        map_list = (("sig3", "x0", "x1"),)
+
+    class GoodGroup(MuxGroup):
+        def __init__(self):
+            self.mux1 = Mux1()
+            self.mux2 = Mux2()
+
+    class BadGroup(MuxGroup):
+        def __init__(self):
+            self.mux1 = Mux1()
+            self.mux3 = Mux3()
+
+    # this is ok
+    JigDriver(GoodGroup, [handler])
+
+    # overlap of pins is bad, mux3 can control mux1
+    with pytest.raises(ValueError):
+        JigDriver(BadGroup, [handler])
