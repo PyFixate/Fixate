@@ -631,3 +631,17 @@ def test_duplicate_pins_raise():
     # overlap of pins is bad, mux3 can control mux1
     with pytest.raises(ValueError):
         JigDriver(BadGroup, [handler])
+
+
+def test_map_tree_missing_pin_list_raises():
+    class GoodTree(VirtualMux):
+        pin_list = "1"
+        map_tree = ("a", "b")
+
+    GoodTree()
+
+    class BadTree(VirtualMux):
+        map_tree = ("a", "b")
+
+    with pytest.raises(ValueError):
+        BadTree()

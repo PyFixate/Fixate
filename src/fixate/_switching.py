@@ -230,10 +230,11 @@ class VirtualMux:
         """
         if hasattr(self, "map_tree"):
             if not hasattr(self, "pin_list"):
-                raise ValueError("pin_list must not be None if defining map_tree")
-            return self._map_tree(
-                self.map_tree, self.pin_list, fixed_pins=frozenset()
-            ), frozenset(self.pin_list)
+                raise ValueError("must include pin_list if defining map_tree")
+            else:
+                return self._map_tree(
+                    self.map_tree, self.pin_list, fixed_pins=frozenset()
+                ), frozenset(self.pin_list)
         elif hasattr(self, "map_list"):
             pin_set = set()
             signal_map = {}
