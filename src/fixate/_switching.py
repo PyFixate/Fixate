@@ -47,6 +47,7 @@ from typing import (
 from dataclasses import dataclass
 from functools import reduce
 from operator import or_
+from collections import defaultdict
 
 Signal = str
 Pin = str
@@ -758,6 +759,9 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
         - Ensure all pins that are used in muxes are defined by
           some address handler.
 
+        - Ensure that mux pins are unique so that muxes do not affect
+          eachother
+
         Note: It is O.K. for there to be AddressHandler pins that
             are not used anywhere. Eventually we might choose to
             warn about them. This it is necessary to define some jigs.
@@ -766,15 +770,26 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
             or_, (set(handler.pin_list) for handler in self._handlers), set()
         )
         mux_missing_pins = []
-
+        all_mux_pins: defaultdict[Pin, list[str]] = defaultdict(list)
         for mux in self.mux.get_multiplexers():
             if unknown_pins := mux.pins() - all_handler_pins:
                 mux_missing_pins.append((mux, unknown_pins))
+            for pin in mux.pins():
+                # record what we have seen to find duplicates
+                all_mux_pins[pin].append(str(mux))
 
         if mux_missing_pins:
             raise ValueError(
                 f"One or more VirtualMux uses unknown pins:\n{mux_missing_pins}"
             )
+
+        duplicates = [
+            f"Pin {pin} found in {', '.join(muxes)}"
+            for pin, muxes in all_mux_pins.items()
+            if len(muxes) > 1
+        ]
+        if duplicates:
+            raise ValueError(duplicates)
 
 
 _T = TypeVar("_T")
