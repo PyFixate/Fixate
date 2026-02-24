@@ -9,7 +9,7 @@ load_config()  # Load fixate config file
 # Test values for measurement functions:
 # These are mostly defined either by J413 or an arbitrary number I picked.
 TEST_RESISTANCE = 100  # Resistance in loopback jig for testing
-TEST_RESISTANCE_TOL = 5  # 1 Ohm absolute tolerance
+TEST_RESISTANCE_TOL = 5  # 5 Ohm absolute tolerance
 TEST_CAPACITANCE = 4.7e-6  # Capacitance in loopback jig for testing
 TEST_CAPACITANCE_TOL = 0.5e-6
 TEST_VOLTAGE_DC = 100e-3
@@ -481,7 +481,7 @@ def test_min_avg_max(mode, samples, nplc, dmm, rm, funcgen):
     avg_val = values.avg
     max_val = values.max
 
-    assert min_val <= avg_val <= max_val
+    assert min_val < avg_val < max_val
 
     v = 100e-3
     f = 60
@@ -494,7 +494,7 @@ def test_min_avg_max(mode, samples, nplc, dmm, rm, funcgen):
     avg_val2 = values.avg
     max_val2 = values.max
 
-    assert min_val2 <= avg_val2 <= max_val2
+    assert min_val2 < avg_val2 < max_val2
 
     # check if values from the two runs are different
     # We can only really do this for certain modes and the checks depend on the mode
