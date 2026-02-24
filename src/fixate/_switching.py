@@ -89,7 +89,6 @@ PinUpdateCallback = Callable[[PinUpdate, bool], None]
 
 
 class VirtualMux:
-    pin_list: PinList = ()
     clearing_time: float = 0.0
 
     ###########################################################################
@@ -108,11 +107,9 @@ class VirtualMux:
         # mux is defined with a map_tree, we need the ordering. But after
         # initialisation, we only need set operations on the pin list, so
         # we convert here and keep a reference to the set for future use.
-        self._pin_set = frozenset(self.pin_list)
-
         self._state = ""
 
-        self._signal_map: SignalMap = self._map_signals()
+        self._signal_map, self._pin_set = self._map_signals()
 
         # Define the implicit signal "" which can be used to turn off all pins.
         # If the signal map already has this defined, raise an error. In the old
@@ -218,7 +215,7 @@ class VirtualMux:
     # The following methods are intended as implementation detail and
     # subclasses should avoid overriding.
 
-    def _map_signals(self) -> SignalMap:
+    def _map_signals(self) -> tuple[SignalMap, PinSet]:
         """
         Default implementation of the signal mapping
 
@@ -231,9 +228,18 @@ class VirtualMux:
         map_tree or map_list.
         """
         if hasattr(self, "map_tree"):
-            return self._map_tree(self.map_tree, self.pin_list, fixed_pins=frozenset())
+            if not hasattr(self, "pin_list"):
+                raise ValueError("pin_list must not be None if defining map_tree")
+            return self._map_tree(
+                self.map_tree, self.pin_list, fixed_pins=frozenset()
+            ), frozenset(self.pin_list)
         elif hasattr(self, "map_list"):
-            return {sig: frozenset(pins) for sig, *pins in self.map_list}
+            pin_set = set()
+            signal_map = {}
+            for sig, *pins in self.map_list:
+                pin_set.update(pins)
+                signal_map[sig] = frozenset(pins)
+            return signal_map, frozenset(pin_set)
         else:
             raise ValueError(
                 "VirtualMux subclass must define either map_tree or map_list"
@@ -477,7 +483,7 @@ class VirtualSwitch(VirtualMux):
         self,
         update_pins: Optional[PinUpdateCallback] = None,
     ):
-        if not self.pin_list:
+        if not hasattr(self, "pin_list"):
             self.pin_list = [self.pin_name]
         super().__init__(update_pins)
 
