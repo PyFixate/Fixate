@@ -6,7 +6,7 @@ import re
 
 import fixate.drivers
 from fixate.core.common import bits
-from fixate.core.exceptions import InstrumentNotConnected
+from fixate.core.exceptions import FixateError, InstrumentNotConnected
 
 from fixate.drivers._ftdi import ftdI2xx
 
@@ -44,7 +44,7 @@ FT_STATUS = {
 }
 
 
-class FTD2XXError(Exception):
+class FTD2XXError(FixateError):
     pass
 
 
