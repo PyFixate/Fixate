@@ -44,7 +44,7 @@ FT_STATUS = {
 }
 
 
-class FTD2XXError(BaseException):
+class FTD2XXError(Exception):
     pass
 
 
