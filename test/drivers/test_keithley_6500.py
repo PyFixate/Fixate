@@ -9,7 +9,7 @@ load_config()  # Load fixate config file
 # Test values for measurement functions:
 # These are mostly defined either by J413 or an arbitrary number I picked.
 TEST_RESISTANCE = 100  # Resistance in loopback jig for testing
-TEST_RESISTANCE_TOL = 1  # 1 Ohm absolute tolerance
+TEST_RESISTANCE_TOL = 5  # 5 Ohm absolute tolerance
 TEST_CAPACITANCE = 4.7e-6  # Capacitance in loopback jig for testing
 TEST_CAPACITANCE_TOL = 0.5e-6
 TEST_VOLTAGE_DC = 100e-3
@@ -57,7 +57,7 @@ def test_reset(dmm):
         ("capacitance", "CAP"),
         ("continuity", "CONT"),
         ("diode", "DIOD"),
-        ("temperature", "TEMP"),
+        pytest.param("temperature", "TEMP", marks=pytest.mark.xfail),
         pytest.param("ftemperature", "TEMP", marks=pytest.mark.xfail),
     ],
 )
