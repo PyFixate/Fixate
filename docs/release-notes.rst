@@ -22,6 +22,7 @@ Improvements
 - LCR Driver now supports instruments reporting as Keysight or Agilent. Newer models of the LCR meter report as Keysight, whereas older models report as Agilent.
 - Fixed a bug where the PPS would crash if it was polled too frequently.
 - Changed tolerances for PPS and DMM tests to more accurately match device accuracy.
+- Created a new FixateError base class for all exceptions raised by fixate to use. It inherits from Exception instead of BaseExcepetion to improve error handling.
 
 *************
 Version 0.6.4
