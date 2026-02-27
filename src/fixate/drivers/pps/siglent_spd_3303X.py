@@ -24,11 +24,11 @@ class SPD3303X(PPS):
 
         self.api = [
             # Save commands
-            ("save.group1", self.write, "*SAV 1"),
-            ("save.group2", self.write, "*SAV 2"),
-            ("save.group3", self.write, "*SAV 3"),
-            ("save.group4", self.write, "*SAV 4"),
-            ("save.group5", self.write, "*SAV 5"),
+            ("save.group1", lambda cmd: self._write(cmd, delay=0.1), "*SAV 1"),
+            ("save.group2", lambda cmd: self._write(cmd, delay=0.1), "*SAV 2"),
+            ("save.group3", lambda cmd: self._write(cmd, delay=0.1), "*SAV 3"),
+            ("save.group4", lambda cmd: self._write(cmd, delay=0.1), "*SAV 4"),
+            ("save.group5", lambda cmd: self._write(cmd, delay=0.1), "*SAV 5"),
             # Recall commands
             ("recall.group1", self.write, "*RCL 1"),
             ("recall.group2", self.write, "*RCL 2"),
@@ -189,7 +189,7 @@ class SPD3303X(PPS):
         self._is_error()
         return values[0]
 
-    def _write(self, data):
+    def _write(self, data, delay=0.0):
         """
         The SPD3303X cannot respond to visa commands as quickly as some other devices
         A 20ms delay was found to be reliable for most commands.
@@ -202,7 +202,7 @@ class SPD3303X(PPS):
         """
         for cmd in data.split(";"):
             self.instrument.write(cmd)
-            time.sleep(0.02 + len(cmd) / 6000)
+            time.sleep(0.02 + delay + len(cmd) / 6000)
         self._is_error()
 
     @staticmethod
