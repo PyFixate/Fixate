@@ -20,6 +20,7 @@ Improvements
 - Sequencer logic now handles exceptions raised on sequence abort. GUI will no longer hang when a test raises an exception during a test abort. 
 - Fix bug where DSOX1202G appeared to hang both the program and scope
 - LCR Driver now supports instruments reporting as Keysight or Agilent. Newer models of the LCR meter report as Keysight, whereas older models report as Agilent.
+- Fixed a bug where the PPS would crash if it was polled too frequently.
 - Changed tolerances for PPS and DMM tests to more accurately match device accuracy.
 
 *************
