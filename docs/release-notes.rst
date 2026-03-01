@@ -3,9 +3,13 @@ Release Notes
 ==================================
 
 *************
-Version 0.6.4
+Version 0.6.5
 *************
-Release Date xx/xx/24
+Release Date xx-xx-xxxx
+
+Major Changes
+################
+- Support for Python 3.8 to 3.11 has been dropped. Now only Python >3.12 is supported.
 
 New Features
 ############
@@ -13,7 +17,29 @@ New Features
 Improvements
 ############
 
+- Sequencer logic now handles exceptions raised on sequence abort. GUI will no longer hang when a test raises an exception during a test abort. 
+- Fix bug where DSOX1202G appeared to hang both the program and scope
+- LCR Driver now supports instruments reporting as Keysight or Agilent. Newer models of the LCR meter report as Keysight, whereas older models report as Agilent.
+- Fixed a bug where the PPS would crash if it was polled too frequently.
+- Changed tolerances for PPS and DMM tests to more accurately match device accuracy.
+- Created a new FixateError base class for all exceptions raised by fixate to use. It inherits from Exception instead of BaseExcepetion to improve error handling.
+
+*************
+Version 0.6.4
+*************
+Release Date 14/01/25
+
+New Features
+############
+- DMM drivers now have a new function to set NPLC (Number of Power Line Cycles) for the DMM.
+- DMM drivers now have a new function to use the DMM's internal statistics function to take multiple measurements and return the mean, minimum and maximum values.
+
+Improvements
+############
+
 - fxconfig now prevents duplicate entries from being added to the config file.
+- csv-writer thread crash will now abort the test. 
+- UTF-8 encoding is now explicitly used for the csv test log and the debug log file. Improves reliability.
 
 *************
 Version 0.6.3

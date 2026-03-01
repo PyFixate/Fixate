@@ -545,9 +545,7 @@ class MSO_X_3000(DSO):
         self._raise_if_error()  # Raises if any errors were made during setup
         # Stop
         # Clear status registers (CLS)
-        # enable the trigger mask in the event register (SRE)
-        # operation complete (OPC)
-        self.instrument.query(":STOP;*CLS;*SRE 1;*OPC?")
+        self.instrument.write(":STOP;*CLS")
         self._store["time_base_wait"] = (
             self.instrument.query_ascii_values(":TIM:RANG?")[0]
             + self.instrument.query_ascii_values(":TIM:POS?")[0]
@@ -567,7 +565,7 @@ class MSO_X_3000(DSO):
 
     def run(self):
         self._triggers_read = 0
-        self.query(":STOP;*CLS;*SRE 1;*OPC?")
+        self.write(":STOP;*CLS")
         # Currently we're not using events. wait_on_trigger is polling. The current implementation
         # doesn't work when using a LAN connection to the instrument, so we will comment out for now
         # self.instrument.enable_event(visa.constants.EventType.service_request, visa.constants.VI_QUEUE)

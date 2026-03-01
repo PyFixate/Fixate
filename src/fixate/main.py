@@ -13,7 +13,6 @@ import fixate.config
 from fixate.core.exceptions import SequenceAbort
 from fixate.core.ui import user_info_important, user_ok
 from fixate import user_serial
-from fixate.reporting import register_csv, unregister_csv
 from fixate.ui_cmdline import register_cmd_line, unregister_cmd_line
 import fixate.sequencer
 
@@ -312,8 +311,6 @@ class FixateWorker:
                     ]
                 except (AttributeError, KeyError):
                     pass
-            register_csv()
-            self.sequencer.status = "Running"
 
             self.sequencer.run_sequence()
             if not self.sequencer.non_interactive:
@@ -326,7 +323,6 @@ class FixateWorker:
             input(traceback.print_exc())
             raise
         finally:
-            unregister_csv()
             if serial_response == "ABORT_FORCE" or test_selector == "ABORT_FORCE":
                 return ReturnCodes.ABORTED
             if serial_number is None:
@@ -408,7 +404,7 @@ def run_main_program(test_script_path=None, main_args=None):
         args.diagnostic_log_dir.mkdir(parents=True, exist_ok=True)
 
         handler = RotateEachInstanceHandler(
-            args.diagnostic_log_dir / "fixate.log", backupCount=10
+            args.diagnostic_log_dir / "fixate.log", backupCount=10, encoding="utf-8"
         )
         handler.setFormatter(
             logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
