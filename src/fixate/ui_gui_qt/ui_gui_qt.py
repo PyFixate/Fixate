@@ -269,7 +269,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         except (FileNotFoundError, OSError):
             # When running direct from the file system, if an image isn't found we
             # get FileNotFoundError. When running from a zip file, we get OSError
-            logger.exception("Image path specific in the test script was invalid")
+            logger.exception("Image path specified in the test script was invalid")
             # message dialog so the user knows the image didn't load
             self.file_not_found(path)
         else:
@@ -634,7 +634,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     """User IO handlers, emit signals to trigger main thread updates via slots.
        These are run in the sequencer thread"""
 
-    def gui_user_input(self, message, choices=None):
+    def _gui_user_input(self, message, choices=None):
         if choices is not None:  # Button Prompt
             self.sig_choices_input.emit(message, choices)
         else:  # Text Prompt
@@ -738,96 +738,32 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             callback_obj.set_target_finished_callback(self.sig_button_reset.emit)
             self.sig_choices_input.emit(msg, ("Fail",))
 
-    def _topic_UI_req(self, msg, q):
-        """
-        This can be replaced anywhere in the project that needs to implement the user driver
-        The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the
-        second part is the exception object or response object
-        :param msg:
-         Message for the user to understand what to do
-        :param q:
-         The result queue of type queue.Queue
-        :return:
-        """
+    def _topic_UI_req(self, msg):
         if self.closing:
-            q.put("Result", None)
             return
-        self.gui_user_input(msg, ("Continue",))
-        q.put("Result", None)
 
-    def _topic_UI_req_choices(self, msg, q, choices, target, attempts=5):
-        """
-        This can be replaced anywhere in the project that needs to implement the user driver
-        Temporarily a simple input function.
-        The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the
-        second part is the exception object or response object
-        This needs to be compatible with forced exit. Look to user action for how it handles a forced exit
-        :param msg:
-         Message for the user to understand what to input
-        :param q:
-         The result queue of type queue.Queue
-        :param target:
-         Optional
-         Validation function to check if the user response is valid
-        :param attempts:
-        :return:
-        """
+        self._gui_user_input(msg, ("Continue",))
+
+    def _topic_UI_req_choices(self, msg, q, choices):
         if self.closing:
+            # I don't think the result of this code ever gets used, nothing looking for "ABORT_FORCE"
+            # unpacks from a tuple. This can probably be deleted.
             q.put(("Result", "ABORT_FORCE"))
             return
 
-        for _ in range(attempts):
-            # This will change based on the interface
-            ret_val = self.gui_user_input(self.reformat_text(msg), choices)
-            ret_val = target(ret_val, choices)
-            if ret_val:
-                q.put(("Result", ret_val))
-                return
-        q.put(
-            "Exception",
-            UserInputError("Maximum number of attempts {} reached".format(attempts)),
-        )
+        ret_val = self._gui_user_input(msg, choices)
+        q.put(ret_val)
 
-    def _topic_UI_req_input(self, msg, q, target=None, attempts=5, kwargs=None):
-        """
-        This can be replaced anywhere in the project that needs to implement the user driver
-        Temporarily a simple input function.
-        The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the
-        second part is the exception object or response object
-        This needs to be compatible with forced exit. Look to user action for how it handles a forced exit
-        :param msg:
-         Message for the user to understand what to input
-        :param q:
-         The result queue of type queue.Queue
-        :param target:
-         Optional
-         Validation function to check if the user response is valid
-        :param attempts:
-
-        :param kwargs:
-        :return:
-        """
+    def _topic_UI_req_input(self, msg, q):
         if self.closing:
+            # I don't think the result of this code ever gets used, nothing looking for "ABORT_FORCE"
+            # unpacks from a tuple. This can probably be deleted.
             q.put(("Result", "ABORT_FORCE"))
             return
 
         msg = self.reformat_text(msg)
-        wrapper.initial_indent = ""
-        wrapper.subsequent_indent = ""
-        for _ in range(attempts):
-            # This will change based on the interface
-            ret_val = self.gui_user_input(msg, None)
-            if target is None or ret_val == "ABORT_FORCE":
-                q.put(ret_val)
-                return
-            ret_val = target(ret_val, **kwargs)
-            if ret_val:
-                q.put(("Result", ret_val))
-                return
-        # Display failure of target and send exception
-        error_str = f"Maximum number of attempts {attempts} reached. {target.__doc__}"
-        self._topic_UI_display(error_str)
-        q.put(("Exception", UserInputError(error_str)))
+        ret_val = self._gui_user_input(msg, None)
+        q.put(ret_val)
 
     def _topic_UI_display(self, msg):
         """
@@ -839,7 +775,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_active_update.emit(self.reformat_text(msg))
         self.sig_history_update.emit(self.reformat_text(msg))
 
-    def _topic_UI_display_important(self, msg):
+    def _topic_UI_display_important(self, msg, colour="red", bg_colour="white"):
         """
         :param msg:
         :return:
@@ -847,15 +783,24 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.closing:
             return
 
+        txt_fill = "!" * wrapper.width
+
+        # Hisotry window
         self.sig_history_update.emit("")
-        self.sig_history_update.emit("!" * wrapper.width)
-        self.sig_active_update.emit("!" * wrapper.width)
+        self.sig_history_update.emit(txt_fill)
         self.sig_history_update.emit("")
         self.sig_history_update.emit(self.reformat_text(msg))
-        self.sig_active_update.emit(self.reformat_text(msg))
         self.sig_history_update.emit("")
-        self.sig_history_update.emit("!" * wrapper.width)
-        self.sig_active_update.emit("!" * wrapper.width)
+        self.sig_history_update.emit(txt_fill)
+
+        # Active window
+        self.sig_active_update.emit(
+            f"<span style='color:{colour};background-color:{bg_colour}'>{txt_fill}</span>"
+        )
+        self.sig_active_update.emit(self.reformat_text(msg))
+        self.sig_active_update.emit(
+            f"<span style='color:{colour};background-color:{bg_colour}'>{txt_fill}</span>"
+        )
 
     def _topic_Sequence_Complete(
         self, status, passed, failed, error, skipped, sequence_status

@@ -3,9 +3,10 @@ This module details user input api
 """
 import time
 from queue import Queue, Empty
+from collections import OrderedDict
 from pubsub import pub
 from fixate.config import RESOURCES
-from collections import OrderedDict
+from fixate.core.exceptions import UserInputError
 
 USER_YES_NO = ("YES", "NO")
 USER_RETRY_ABORT_FAIL = ("RETRY", "ABORT", "FAIL")
@@ -27,12 +28,26 @@ def _user_req_input(msg, target=None, attempts=5, **kwargs):
     """
     q = Queue()
     pub.sendMessage("UI_block_start")
-    pub.sendMessage(
-        "UI_req_input", msg=msg, q=q, target=target, attempts=attempts, kwargs=kwargs
-    )
-    resp = q.get()
+    for _ in range(attempts):
+        pub.sendMessage("UI_req_input", msg=msg, q=q)
+        resp = q.get()
+        if target is None:
+            return resp
+        ret_val = target(resp, **kwargs)
+        # check for not False so that if ret_val is an empty string or 0 it not result in error
+        # see Issue #213: https://github.com/PyFixate/Fixate/issues/213
+        if ret_val is not False:
+            pub.sendMessage("UI_block_end")
+            # live up to the original contract
+            return ("Result", ret_val)
+
+    # if we get here we have exhausted attempts
+    # so return the same response that the original implementation did
     pub.sendMessage("UI_block_end")
-    return resp
+    return (
+        "Exception",
+        UserInputError("Maximum number of attempts {} reached".format(attempts)),
+    )
 
 
 def _user_req_choices(msg, choices, target=None, attempts=5):
@@ -55,17 +70,24 @@ def _user_req_choices(msg, choices, target=None, attempts=5):
         )
     q = Queue()
     pub.sendMessage("UI_block_start")
-    pub.sendMessage(
-        "UI_req_choices",
-        msg=msg,
-        q=q,
-        choices=choices,
-        target=target,
-        attempts=attempts,
-    )
-    resp = q.get()
+    for _ in range(attempts):
+        pub.sendMessage("UI_req_choices", msg=msg, q=q, choices=choices)
+        resp = q.get()
+        ret_val = target(resp, choices)
+        # check for not False so that if ret_val is an empty string or 0 it not result in error
+        # see Issue #213: https://github.com/PyFixate/Fixate/issues/213
+        if ret_val is not False:
+            pub.sendMessage("UI_block_end")
+            # live up to the original contract
+            return ("Result", ret_val)
+
+    # if we get here we have exhausted attempts
+    # so return the same response that the original implementation did
     pub.sendMessage("UI_block_end")
-    return resp
+    return (
+        "Exception",
+        UserInputError("Maximum number of attempts {} reached".format(attempts)),
+    )
 
 
 def user_info(msg):
@@ -93,7 +115,7 @@ def _float_validate(entry):
     try:
         return float(entry)
     except ValueError:
-        user_info("Please enter a number")
+        user_info("Please enter a number!")
         return False
 
 
@@ -168,12 +190,11 @@ def user_ok(msg):
     :param msg:
      A message that will be shown to the user
     """
-    q = Queue()
     pub.sendMessage("UI_block_start")
-    pub.sendMessage("UI_req", msg=msg, q=q)
-    resp = q.get()
+    pub.sendMessage("UI_req", msg=msg)
     pub.sendMessage("UI_block_end")
-    return resp
+    # Moved the logic to the UI layer, both cmd and gui used to put None on the queue.
+    return None
 
 
 def user_image(path):

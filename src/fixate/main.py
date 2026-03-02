@@ -11,7 +11,8 @@ from pubsub import pub
 from pathlib import Path
 import fixate.config
 from fixate.core.exceptions import SequenceAbort
-from fixate.core.ui import user_info_important, user_serial, user_ok
+from fixate.core.ui import user_info_important, user_ok
+from fixate import user_serial
 from fixate.ui_cmdline import register_cmd_line, unregister_cmd_line
 import fixate.sequencer
 
@@ -275,13 +276,10 @@ class FixateWorker:
             if self.args.serial_number is None:
                 serial_response = user_serial("Please enter serial number")
                 if serial_response == "ABORT_FORCE":
+                    # ABORT_FORCE will only ever come from the GUI.
                     return ReturnCodes.ABORTED
-                elif serial_response[0] == "Exception":
-                    # Should be tuple: ("Exception", <Exception>)
-                    raise serial_response[1]
                 else:
-                    # Should be tuple: ("Result", serial_number)
-                    serial_number = serial_response[1]
+                    serial_number = serial_response
                     self.sequencer.context_data["serial_number"] = serial_number
             else:
                 serial_number = self.args.serial_number
