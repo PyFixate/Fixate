@@ -423,7 +423,12 @@ class TestClass:
     skip_on_fail = False
 
     def __init__(self, skip=False):
-        self.skip = skip
+        # Explicitly check if skip is True (and only true) to avoid the case where skip is set to a non-boolean value
+        if skip is True:
+            self.skip = True
+        else:
+            self.skip = False
+
         if not self.test_desc:
             try:
                 doc_string = [
