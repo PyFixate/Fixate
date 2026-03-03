@@ -8,7 +8,7 @@ import fixate.drivers
 from fixate.core.common import bits
 from fixate.core.exceptions import FixateError, InstrumentNotConnected
 
-from fixate.drivers._ftdi import ftdI2xx
+from fixate.drivers.ftdi._ftdi import ftdI2xx
 
 # Definitions
 UCHAR = ctypes.c_ubyte

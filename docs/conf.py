@@ -55,7 +55,7 @@ templates_path = ["_templates"]
 # All aren't necessary for the docs themselves
 autodoc_mock_imports = [
     # import a DLL/shared lib and is platform-dependent
-    "fixate.drivers._ftdi",
+    "fixate.drivers.ftdi._ftdi",
     "PyDAQmx",
     # pulls in platform-dependent libraries
     "pynput",
