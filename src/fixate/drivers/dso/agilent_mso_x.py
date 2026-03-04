@@ -645,7 +645,8 @@ class MSO_X_3000(DSO):
 
     def waveform_values(self, signal, file_name="", file_type="csv"):
         """
-        Retrieves waveform data from the specified channel and optionally saves it to a file.
+        Retrieves currently present waveform data from the specified channel and optionally saves it to a file.
+        The oscilliscope must be in the stopped state to retrive waveform data.
 
         This method queries the instrument for raw data points, scales them using
         the waveform preamble (origin, increment, and reference values), and
