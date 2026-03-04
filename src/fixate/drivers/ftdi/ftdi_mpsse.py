@@ -397,6 +397,8 @@ class SPITransferOptions(IntEnum):
 class MpsseSPI(Mpsse):
     INSTR_TYPE = "FTDI"
     # TODO - complete me
+    def __init__(self, ftdi_description: str):
+        raise NotImplementedError("SPI support not yet implemented.")
 
 
 def open(protocol: Protocol | str, ftdi_description: str) -> Mpsse:
