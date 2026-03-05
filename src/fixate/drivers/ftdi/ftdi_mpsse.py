@@ -2,6 +2,7 @@ import ctypes
 import logging
 from collections.abc import Collection
 from enum import IntEnum, IntFlag, StrEnum, unique
+from typing import Callable, TypeVar
 
 from fixate.core.exceptions import FixateError, InstrumentNotConnected
 from fixate.drivers import log_instrument_open
@@ -396,39 +397,37 @@ class SPITransferOptions(IntEnum):
 
 class MpsseSPI(Mpsse):
     INSTR_TYPE = "FTDI"
+
     # TODO - complete me
     def __init__(self, ftdi_description: str):
         raise NotImplementedError("SPI support not yet implemented.")
 
 
-def open(protocol: Protocol | str, ftdi_description: str) -> Mpsse:
-    """Open an MPSSE device with the given protocol and description.
+MPSSE_TYPE = TypeVar("MPSSE_TYPE", bound=Mpsse)
+
+
+def open[MPSSE_TYPE](
+    interface: Callable[[str], MPSSE_TYPE], ftdi_description: str
+) -> MPSSE_TYPE:
+    """Open an MPSSE device with the given class/type and description.
 
     Args:
-        protocol: The protocol to use with the device. This determines which MPSSE class to instantiate.
+        interface: The MPSSE class to instantiate. This determines which MPSSE class to use.
         ftdi_description: The description of the device to open. This is the "Description" field from the D2XX API (aka).
 
     Returns:
-        An instance of the appropriate MPSSE class for the given protocol, initialized with the device corresponding to the given description.
+        An instance of the appropriate MPSSE class for the given class/type, for the device corresponding to the given description.
 
     Raises:
         InstrumentNotConnected: If no device with the given description is found.
         ValueError: If an unsupported protocol is specified.
     """
 
-    if protocol == Protocol.I2C or protocol == "i2c":
-        try:
-            driver = MpsseI2C(ftdi_description)
-        except FTD2XXError:
-            raise InstrumentNotConnected(
-                f"FTDI device with description '{ftdi_description}' not found."
-            )
-    elif protocol == Protocol.SPI or protocol == "spi":
-        # TODO - implement me
-        raise NotImplementedError("SPI support not yet implemented.")
-    else:
-        raise ValueError(
-            f"Unsupported protocol '{protocol}'. Supported protocols are: {[p.value for p in Protocol]}."
+    try:
+        driver = interface(ftdi_description)
+    except FTD2XXError:
+        raise InstrumentNotConnected(
+            f"FTDI device with description '{ftdi_description}' not found."
         )
 
     log_instrument_open(driver)
