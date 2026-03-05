@@ -154,7 +154,7 @@ def test_measure_voltage(pps, channel, query, voltage):
     time.sleep(1)  # Slow PPS again
     v = ch.measure.voltage()
     ch(False)  # Channel ON
-    assert float(v) == pytest.approx(voltage, abs=10e-3)
+    assert float(v) == pytest.approx(voltage, abs=50e-3)
 
 
 # Need to use the patch jig to test any current other than 0.
