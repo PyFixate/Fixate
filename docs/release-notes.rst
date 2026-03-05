@@ -23,6 +23,8 @@ Improvements
 - Fixed a bug where the PPS would crash if it was polled too frequently.
 - Changed tolerances for PPS and DMM tests to more accurately match device accuracy.
 - Created a new FixateError base class for all exceptions raised by fixate to use. It inherits from Exception instead of BaseExcepetion to improve error handling.
+- DSO Driver function 'waveform_values' now returns a single channels x and y data as two separate lists, without re-acquiring the signal. This function should
+  now be called after performing signal acquisition.
 
 *************
 Version 0.6.4
