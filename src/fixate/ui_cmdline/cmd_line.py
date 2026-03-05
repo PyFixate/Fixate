@@ -95,6 +95,8 @@ def register_cmd_line():
     pub.subscribe(_print_test_skip, "Test_Skip")
     pub.subscribe(_print_test_retry, "Test_Retry")
     pub.subscribe(_user_action, "UI_action")
+    pub.subscribe(_user_image_or_gif, "UI_image", caller="UI_image")
+    pub.subscribe(_user_image_or_gif, "UI_gif", caller="UI_gif")
     key_hook.install()
 
     return
@@ -105,14 +107,19 @@ def unregister_cmd_line():
     return
 
 
-def reformat_text(text_str, first_line_fill="", subsequent_line_fill=""):
+def _reformat_text(text_str, first_line_fill="", subsequent_line_fill=""):
     lines = []
+    _wrapper_initial_indent = wrapper.initial_indent
+    _wrapper_subsequent_indent = wrapper.subsequent_indent
     wrapper.initial_indent = first_line_fill
     wrapper.subsequent_indent = subsequent_line_fill
     for ind, line in enumerate(text_str.splitlines()):
         if ind != 0:
             wrapper.initial_indent = subsequent_line_fill
         lines.append(wrapper.fill(line))
+    # reset the indents, calls to this method should not affect the global state
+    wrapper.initial_indent = _wrapper_initial_indent
+    wrapper.subsequent_indent = _wrapper_subsequent_indent
     return "\n".join(lines)
 
 
@@ -133,7 +140,7 @@ def _user_action(msg, callback_obj):
     None
     """
     print("\a")
-    print(reformat_text(msg))
+    print(_reformat_text(msg))
     print('Press escape or "f" to fail')
     cancel_queue = Queue()
     callback_obj.set_user_cancel_queue(cancel_queue)
@@ -142,98 +149,28 @@ def _user_action(msg, callback_obj):
     key_hook.start_monitor(cancel_queue, {b"\x1b": False, b"f": False})
 
 
-def _user_ok(msg, q):
-    """
-    This can be replaced anywhere in the project that needs to implement the user driver
-    The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the second
-    part is the exception object or response object
-    :param msg:
-     Message for the user to understand what to do
-    :param q:
-     The result queue of type queue.Queue
-    :return:
-    """
-    msg = reformat_text(msg + "\n\nPress Enter to continue...")
+def _user_ok(msg):
+    msg = _reformat_text(msg + "\n\nPress Enter to continue...")
     print("\a")
     input(msg)
-    q.put("Result", None)
 
 
-def _user_choices(msg, q, choices, target, attempts=5):
+def _user_choices(msg, q, choices):
+    choicesstr = "\n" + ", ".join(choices[:-1]) + " or " + choices[-1]
+    print("\a")
+    ret_val = input(_reformat_text(msg + choicesstr) + " ")
+    q.put(ret_val)
+
+
+def _user_input(msg, q):
     """
-    This can be replaced anywhere in the project that needs to implement the user driver
-    Temporarily a simple input function.
-    The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the second
-    part is the exception object or response object
-    This needs to be compatible with forced exit. Look to user action for how it handles a forced exit
-    :param msg:
-     Message for the user to understand what to input
-    :param q:
-     The result queue of type queue.Queue
-    :param target:
-     Optional
-     Validation function to check if the user response is valid
-    :param attempts:
-    :param args:
-    :param kwargs:
-    :return:
-    """
-    choicesstr = "\n" + ", ".join(choices[:-1]) + " or " + choices[-1] + " "
-    for _ in range(attempts):
-        # This will change based on the interface
-        print("\a")
-        ret_val = input(reformat_text(msg + choicesstr))
-        ret_val = target(ret_val, choices)
-        if ret_val:
-            q.put(("Result", ret_val))
-            return
-    q.put(
-        "Exception",
-        UserInputError("Maximum number of attempts {} reached".format(attempts)),
-    )
-
-
-def _user_input(msg, q, target=None, attempts=5, kwargs=None):
-    """
-    This can be replaced anywhere in the project that needs to implement the user driver
-    Temporarily a simple input function.
-    The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the second
-    part is the exception object or response object
-    This needs to be compatible with forced exit. Look to user action for how it handles a forced exit
-    :param msg:
-     Message for the user to understand what to input
-    :param q:
-     The result queue of type queue.Queue
-    :param target:
-     Optional
-     Validation function to check if the user response is valid
-    :param attempts:
-    :param args:
-    :param kwargs:
-    :return:
+    Get raw user input and put in on the queue.
     """
     initial_indent = ">>> "
-    subsequent_indent = "    "
-    # additional space added due to wrapper.drop_white_space being True, need to
-    # drop white spaces, but keep the white space to separate the cursor from input message
-    msg = reformat_text(msg, initial_indent, subsequent_indent) + "\n>>> "
-    wrapper.initial_indent = ""
-    wrapper.subsequent_indent = ""
-    for _ in range(attempts):
-        # This will change based on the interface
-        print("\a")
-        ret_val = input(msg)
-        if target is None:
-            q.put(ret_val)
-            return
-        ret_val = target(ret_val, **kwargs)
-        if ret_val:
-            q.put(("Result", ret_val))
-            return
-    # Display failure of target and send exception
-    error_str = f"Maximum number of attempts {attempts} reached. {target.__doc__}"
-    _user_display(error_str)
-    q.put(("Exception", UserInputError(error_str)))
+    subsequent_indent = "    "  # TODO - determine is this is needed
+    print("\a")
+    resp = input(_reformat_text(msg, initial_indent, subsequent_indent) + "\n>>> ")
+    q.put(resp)
 
 
 def _user_display(msg):
@@ -242,26 +179,39 @@ def _user_display(msg):
     :param important: creates a line of "!" either side of the message
     :return:
     """
-    print(reformat_text(msg))
+    print(_reformat_text(msg))
 
 
-def _user_display_important(msg):
+def _user_display_important(msg, colour=None, bg_colour=None):
     """
     :param msg:
     :param important: creates a line of "!" either side of the message
     :return:
     """
+    # ignore the colours that are used in the GUI
     print("")
     print("!" * wrapper.width)
     print("")
-    print(reformat_text(msg))
+    print(_reformat_text(msg))
     print("")
     print("!" * wrapper.width)
+
+
+def _user_image_or_gif(path, caller):
+    if caller == "UI_image":
+        disp_str = "image"
+    else:
+        disp_str = "GIF"
+    print("\a")
+    _user_display_important(f"Oh oh, {disp_str} display not supported in command line")
+    print(
+        _reformat_text(f"This {disp_str} would have been displayed in the GUI: {path}")
+    )
 
 
 def _print_sequence_end(status, passed, failed, error, skipped, sequence_status):
     print("#" * wrapper.width)
-    print(reformat_text("Sequence {}".format(sequence_status)))
+    print(_reformat_text("Sequence {}".format(sequence_status)))
     # print("Sequence {}".format(sequence_status))
     post_sequence_info = RESOURCES["SEQUENCER"].context_data.get(
         "_post_sequence_info", {}
@@ -272,13 +222,13 @@ def _print_sequence_end(status, passed, failed, error, skipped, sequence_status)
         for msg, state in post_sequence_info.items():
             if status == "PASSED":
                 if state == "PASSED" or state == "ALL":
-                    print(reformat_text(msg))
+                    print(_reformat_text(msg))
             elif state != "PASSED":
-                print(reformat_text(msg))
+                print(_reformat_text(msg))
 
     print("-" * wrapper.width)
     # reformat_text
-    print(reformat_text("Status: {}".format(status)))
+    print(_reformat_text("Status: {}".format(status)))
     # print("Status: {}".format(status))
     print("#" * wrapper.width)
     print("\a")
@@ -286,7 +236,7 @@ def _print_sequence_end(status, passed, failed, error, skipped, sequence_status)
 
 def _print_test_start(data, test_index):
     print("*" * wrapper.width)
-    print(reformat_text("Test {}: {}".format(test_index, data.test_desc)))
+    print(_reformat_text("Test {}: {}".format(test_index, data.test_desc)))
     # print("Test {}: {}".format(test_index, data.test_desc))
     print("-" * wrapper.width)
 
@@ -295,14 +245,14 @@ def _print_test_complete(data, test_index, status):
     sequencer = RESOURCES["SEQUENCER"]
     print("-" * wrapper.width)
     print(
-        reformat_text(
+        _reformat_text(
             "Checks passed: {}, Checks failed: {}".format(
                 sequencer.chk_pass, sequencer.chk_fail
             )
         )
     )
     # print("Checks passed: {}, Checks failed: {}".format(sequencer.chk_pass, sequencer.chk_fail))
-    print(reformat_text("Test {}: {}".format(test_index, status.upper())))
+    print(_reformat_text("Test {}: {}".format(test_index, status.upper())))
     # print("Test {}: {}".format(test_index, status.upper()))
     print("-" * wrapper.width)
 
@@ -312,14 +262,14 @@ def _print_test_skip(data, test_index):
 
 
 def _print_test_retry(data, test_index):
-    print(reformat_text("\nTest {}: Retry".format(test_index)))
+    print(_reformat_text("\nTest {}: Retry".format(test_index)))
 
 
 def _print_errors(exception, test_index):
     print("")
     print("!" * wrapper.width)
     print(
-        reformat_text(
+        _reformat_text(
             "Test {}: Exception Occurred, {} {}".format(
                 test_index, type(exception), exception
             )
@@ -334,4 +284,4 @@ def _print_errors(exception, test_index):
 
 def _print_comparisons(passes: bool, chk: CheckResult, chk_cnt: int, context: str):
     msg = f"\nCheck {chk_cnt}: " + chk.check_string
-    print(reformat_text(msg))
+    print(_reformat_text(msg))
