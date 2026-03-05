@@ -154,12 +154,14 @@ class MpsseI2C(Mpsse):
                 )
             )
         except FTD2XXError as e:
-            if e.args[0] == libmpsse.FT_IO_ERROR:
+            if e.args[0] == "FT_IO_ERROR":
                 raise FTD2XXError(
                     f"Expected to read {length} bytes, but only read {_bytes_read.value} bytes."
                 ) from e
-            elif e.args[0] == libmpsse.FT_DEVICE_NOT_FOUND:
-                raise FTD2XXError(f"Device with address {address} not found.") from e
+            elif e.args[0] == "FT_DEVICE_NOT_FOUND":
+                raise FTD2XXError(
+                    f"Device with address {address:#02x} not found."
+                ) from e
             else:
                 # Something else happened that isn't documented by the libmpsse library.
                 raise
@@ -200,15 +202,17 @@ class MpsseI2C(Mpsse):
                 )
             )
         except FTD2XXError as e:
-            if e.args[0] == libmpsse.FT_IO_ERROR:
+            if e.args[0] == "FT_IO_ERROR":
                 raise FTD2XXError(
-                    f"Expected to write {len(data)} bytes, but only wrote {_bytes_written.value} bytes."
+                    f"Expected to write {len(data)} bytes, but only wrote {_bytes_written.value} bytes. Check device connection."
                 ) from e
-            elif e.args[0] == libmpsse.FT_DEVICE_NOT_FOUND:
-                raise FTD2XXError(f"Device with address {address} not found.") from e
-            elif e.args[0] == libmpsse.FT_FAILED_TO_WRITE_DEVICE:
+            elif e.args[0] == "FT_DEVICE_NOT_FOUND":
                 raise FTD2XXError(
-                    f"Device with address {address} NACKed a byte."
+                    f"Device with address {address:#02x} not found."
+                ) from e
+            elif e.args[0] == "FT_FAILED_TO_WRITE_DEVICE":
+                raise FTD2XXError(
+                    f"Device with address {address:#02x} NACKed a byte."
                 ) from e
             else:
                 # Something else happened that isn't documented by the libmpsse library.
