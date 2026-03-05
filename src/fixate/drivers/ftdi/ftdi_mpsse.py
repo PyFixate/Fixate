@@ -147,8 +147,8 @@ class MpsseI2C(Mpsse):
                 libmpsse.I2C_DeviceRead(
                     self._handle,
                     _addr,
-                    ctypes.byref(_buffer),
                     length,
+                    ctypes.byref(_buffer),
                     ctypes.byref(_bytes_read),
                     options.value if options is not None else 0,
                 )
@@ -193,8 +193,8 @@ class MpsseI2C(Mpsse):
                 libmpsse.I2C_DeviceWrite(
                     self._handle,
                     _addr,
+                    len(_buffer),
                     ctypes.byref(_buffer),
-                    len(data),
                     ctypes.byref(_bytes_written),
                     options.value if options is not None else 0,
                 )
