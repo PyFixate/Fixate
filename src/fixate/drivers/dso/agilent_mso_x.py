@@ -1,4 +1,3 @@
-import struct
 import pyvisa
 from fixate.core.exceptions import InstrumentError
 from fixate.drivers.dso.helper import DSO
@@ -669,19 +668,19 @@ class MSO_X_3000(DSO):
         try:
             # If the channel is not able to be converted to an int, then its almost definitely not an analogue source
             # i.e. you might have requested "math" or "function" that is not supported by this method.
-            int(signal)
+            int_signal = int(signal)
         except ValueError:
             raise ValueError(
                 "Please select an analog channel. Math or function channels are not supported."
             )
 
         # Exit early if the requested channel is not currently displayed:
-        ch_state = int(self.instrument.query(":CHANnel" + str(signal) + ":DISPlay?"))
+        ch_state = int(self.instrument.query(f":CHANnel{int_signal}:DISPlay?"))
         if not ch_state:
             raise ValueError("Requested channel is not active!")
 
         # Set the channel:
-        self.instrument.write(":WAVeform:SOURce CHANnel" + str(signal))
+        self.instrument.write(f":WAVeform:SOURce CHANnel{int_signal}")
         # Explicitly set this to avoid confusion
         self.instrument.write(":WAVeform:FORMat BYTE")
         self.instrument.write(":WAVeform:UNSigned 0")
@@ -700,20 +699,19 @@ class MSO_X_3000(DSO):
         # This command sets the points mode to MAX AND ensures that the maximum # of points to be transferred is set, though they must still be on screen
         self.instrument.write(":WAVeform:POINts MAX")
         # The above command sets the points mode to MAX. So we set it here to make sure its what we want.
-        self.instrument.write(":WAVeform:POINts:MODE " + str(points_mode))
+        self.instrument.write(":WAVeform:POINts:MODE " + points_mode)
 
         # Check if there is actually data to acquire:
         data_available = int(self.query(":WAVeform:POINTs?"))
         if data_available == 0:
             # No data is available
             # Setting a channel to be a waveform source turns it on, so we need to turn it off now:
-            self.write(":CHANnel" + str(signal) + ":DISPlay OFF")
+            self.write(f":CHANnel{int_signal}:DISPlay OFF")
             raise ValueError("No data is available")
 
         preamble = self.waveform_preamble()
         # Grab the data from the scope:
-        # "h" datatype should be 2 bytes as defined in the struct module.
-        # The scope being in "WORD" format should return two bytes per value.
+        # datatype definition is "b" for byte. See struct module details.
         data = self.instrument.query_binary_values(
             ":WAV:DATA?", datatype="b", is_big_endian=True
         )
