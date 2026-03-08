@@ -297,13 +297,15 @@ class MpsseI2CSimpleInterface:
         self._main_interface = main_interface
         self._address = address
 
-    def read(self, length: int) -> bytes:
+    def read(self, length: int, start: bool = True, stop: bool = True) -> bytes:
         """Read data from the I2C device.
 
         This method uses default transfer options that should be suitable for most use cases. If you need more control over the transfer, you can use the read method of the main interface MpsseI2C directly.
 
         Args:
             length: The number of bytes to read.
+            start: Whether to send a start bit before the read operation. Default is True.
+            stop: Whether to send a stop bit after the read operation. Default is True.
 
         Returns:
             The data read from the I2C device.
@@ -312,14 +314,22 @@ class MpsseI2CSimpleInterface:
             FTD2XXError
         """
 
-        options = (
-            I2CTransferOptions.START_BIT
-            | I2CTransferOptions.STOP_BIT
-            | I2CTransferOptions.BREAK_ON_NACK
-        )
+        options = I2CTransferOptions.BREAK_ON_NACK
+        if start:
+            options |= I2CTransferOptions.START_BIT
+        if stop:
+            options |= I2CTransferOptions.STOP_BIT
+
         return self._main_interface.read(self._address, length, options=options)
 
-    def read_from(self, register: int, length: int) -> bytes:
+    def read_from(
+        self,
+        register: int,
+        length: int,
+        start: bool = True,
+        stop: bool = True,
+        repeated_start: bool = False,
+    ) -> bytes:
         """Read data from a specific register of the I2C device.
 
         This method uses default transfer options that should be suitable for most use cases. If you need more control over the transfer, you can use the exchange method of the main interface MpsseI2C directly.
@@ -327,6 +337,9 @@ class MpsseI2CSimpleInterface:
         Args:
             register: The register address to read from.
             length: The number of bytes to read.
+            start: Whether to send a start bit before the write operation. Default is True.
+            stop: Whether to send a stop bit after the read operation. Default is True.
+            repeated_start: Whether to send a repeated start bit between the write and read operations. Default is False.
 
         Returns:
             The data read from the specified register of the I2C device.
@@ -334,13 +347,17 @@ class MpsseI2CSimpleInterface:
         Raises:
             FTD2XXError
         """
-        # these options will result in a repeated start between the write and read operations.
-        write_options = I2CTransferOptions.START_BIT | I2CTransferOptions.BREAK_ON_NACK
-        read_options = (
-            I2CTransferOptions.START_BIT
-            | I2CTransferOptions.STOP_BIT
-            | I2CTransferOptions.BREAK_ON_NACK
-        )
+        # default will be to break on NACK
+        write_options = I2CTransferOptions.BREAK_ON_NACK
+        read_options = I2CTransferOptions.BREAK_ON_NACK
+
+        if start:
+            write_options |= I2CTransferOptions.START_BIT
+        if stop:
+            read_options |= I2CTransferOptions.STOP_BIT
+        if repeated_start:
+            read_options |= I2CTransferOptions.START_BIT
+
         return self._main_interface.exchange(
             self._address,
             bytes([register]),
@@ -349,26 +366,41 @@ class MpsseI2CSimpleInterface:
             read_options=read_options,
         )
 
-    def write(self, data: bytes | bytearray | Collection[int]):
+    def write(
+        self,
+        data: bytes | bytearray | Collection[int],
+        start: bool = True,
+        stop: bool = True,
+    ):
         """Write data to the I2C device.
 
         This method uses default transfer options that should be suitable for most use cases. If you need more control over the transfer, you can use the write method of the main interface MpsseI2C directly.
 
         Args:
             data: The data to write to the I2C device.
+            start: Whether to send a start bit before the write operation. Default is True.
+            stop: Whether to send a stop bit after the write operation. Default is True.
 
         Raises:
             FTD2XXError
         """
+        # default will be to break on NACK.
+        write_options = I2CTransferOptions(I2CTransferOptions.BREAK_ON_NACK)
 
-        options = (
-            I2CTransferOptions.START_BIT
-            | I2CTransferOptions.STOP_BIT
-            | I2CTransferOptions.BREAK_ON_NACK
-        )
-        return self._main_interface.write(self._address, data, options=options)
+        if start:
+            write_options |= I2CTransferOptions.START_BIT
+        if stop:
+            write_options |= I2CTransferOptions.STOP_BIT
 
-    def write_to(self, register: int, data: bytes | bytearray | Collection[int]):
+        return self._main_interface.write(self._address, data, options=write_options)
+
+    def write_to(
+        self,
+        register: int,
+        data: bytes | bytearray | Collection[int],
+        start: bool = True,
+        stop: bool = True,
+    ):
         """Write data to a specific register of the I2C device.
 
         This method uses default transfer options that should be suitable for most use cases. If you need more control over the transfer, you can use the exchange method of the main interface MpsseI2C directly.
@@ -376,17 +408,21 @@ class MpsseI2CSimpleInterface:
         Args:
             register: The register address to write to.
             data: The data to write to the specified register of the I2C device.
+            start: Whether to send a start bit before the write operation. Default is True.
+            stop: Whether to send a stop bit after the write operation. Default is True.
 
         Raises:
             FTD2XXError
         """
         # TODO - might need to consider the possibility of the register being multiple bytes, but for now assume it's just one byte.
+        # default will be to break on NACK.
+        write_options = I2CTransferOptions(I2CTransferOptions.BREAK_ON_NACK)
 
-        write_options = (
-            I2CTransferOptions.START_BIT
-            | I2CTransferOptions.STOP_BIT
-            | I2CTransferOptions.BREAK_ON_NACK
-        )
+        if start:
+            write_options |= I2CTransferOptions.START_BIT
+        if stop:
+            write_options |= I2CTransferOptions.STOP_BIT
+
         return self._main_interface.write(
             self._address, bytes([register]) + bytes(data), options=write_options
         )
