@@ -425,6 +425,8 @@ class MpsseI2CSimpleInterface:
             self._address, bytes([register]) + bytes(data), options=write_options
         )
 
+    # TODO - add more functionality as needed, e.g. POLLING, GPIO control, clock stretching, etc.
+
 
 @unique
 class SPITransferOptions(IntEnum):
