@@ -120,15 +120,13 @@ class MpsseI2C(Mpsse):
             )
         check_return(libmpsse.I2C_InitChannel(self._handle, ctypes.byref(config)))
 
-    def read(
-        self, address: int, length: int, options: I2CTransferOptions | None = None
-    ) -> bytes:
+    def read(self, address: int, length: int, options: I2CTransferOptions) -> bytes:
         """Read data from an I2C device.
 
         Args:
             address: The 7-bit I2C address of the device to read from.
             length: The number of bytes to read.
-            options: Optional transfer options. See I2CTransferOptions for more information.
+            options: Transfer options for the read operation. See I2CTransferOptions for more information.
 
         Returns:
             The data read from the I2C device.
@@ -171,14 +169,14 @@ class MpsseI2C(Mpsse):
         self,
         address: int,
         data: bytes | bytearray | Collection[int],
-        options: I2CTransferOptions | None = None,
+        options: I2CTransferOptions,
     ):
         """Write data to an I2C device.
 
         Args:
             address: The 7-bit I2C address of the device to write to.
             data: The data to write to the device.
-            options: Optional transfer options. See I2CTransferOptions for more information.
+            options: Transfer options for the write operation. See I2CTransferOptions for more information.
 
         Raises:
             FTD2XXError: Via check_return if the underlying library call fails.
@@ -198,7 +196,7 @@ class MpsseI2C(Mpsse):
                     len(_buffer),
                     ctypes.byref(_buffer),
                     ctypes.byref(_bytes_written),
-                    options.value if options is not None else 0,
+                    options.value,
                 )
             )
         except FTD2XXError as e:
