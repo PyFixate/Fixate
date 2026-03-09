@@ -326,7 +326,7 @@ class MpsseI2CSimpleInterface:
         length: int,
         start: bool = True,
         stop: bool = True,
-        repeated_start: bool = False,
+        repeated_start: bool = True,
     ) -> bytes:
         """Read data from a specific register of the I2C device.
 
