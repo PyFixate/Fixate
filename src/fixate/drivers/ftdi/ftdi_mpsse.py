@@ -132,7 +132,7 @@ class MpsseI2C(Mpsse):
             The data read from the I2C device.
 
         Raises:
-            FTD2XXError: Via check_return if the underlying library call fails.
+            I2CError: Via FTD2XXError in check_return if the underlying library call fails.
                 FT_IO_ERROR will occur if the device does not transfer the expected number of bytes.
                 FT_DEVICE_NOT_FOUND will occur if the device does not respond.
         """
@@ -153,13 +153,11 @@ class MpsseI2C(Mpsse):
             )
         except FTD2XXError as e:
             if e.args[0] == "FT_IO_ERROR":
-                raise FTD2XXError(
+                raise I2CError(
                     f"Expected to read {length} bytes, but only read {_bytes_read.value} bytes."
                 ) from e
             elif e.args[0] == "FT_DEVICE_NOT_FOUND":
-                raise FTD2XXError(
-                    f"Device with address {address:#02x} not found."
-                ) from e
+                raise I2CError(f"Device with address {address:#02x} not found.") from e
             else:
                 # Something else happened that isn't documented by the libmpsse library.
                 raise
@@ -179,7 +177,7 @@ class MpsseI2C(Mpsse):
             options: Transfer options for the write operation. See I2CTransferOptions for more information.
 
         Raises:
-            FTD2XXError: Via check_return if the underlying library call fails.
+            I2CError: Via FTD2XXError in check_return if the underlying library call fails.
                 FT_IO_ERROR will occur if the device does not transfer the expected number of bytes.
                 FT_DEVICE_NOT_FOUND will occur if the device does not respond.
                 FT_FAILED_TO_WRITE_DEVICE will occur if the device nACKs a byte and the BREAK_ON_NACK option is specified.
@@ -201,15 +199,13 @@ class MpsseI2C(Mpsse):
             )
         except FTD2XXError as e:
             if e.args[0] == "FT_IO_ERROR":
-                raise FTD2XXError(
+                raise I2CError(
                     f"Expected to write {len(data)} bytes, but only wrote {_bytes_written.value} bytes. Check device connection."
                 ) from e
             elif e.args[0] == "FT_DEVICE_NOT_FOUND":
-                raise FTD2XXError(
-                    f"Device with address {address:#02x} not found."
-                ) from e
+                raise I2CError(f"Device with address {address:#02x} not found.") from e
             elif e.args[0] == "FT_FAILED_TO_WRITE_DEVICE":
-                raise FTD2XXError(
+                raise I2CError(
                     f"Device with address {address:#02x} NACKed a byte."
                 ) from e
             else:
@@ -237,7 +233,7 @@ class MpsseI2C(Mpsse):
             The data read from the I2C device after writing.
 
         Raises:
-            FTD2XXError
+            I2CError: Via FTD2XXError in check_return if the underlying library call fails.
         """
 
         # First we write to the device with address and the data to write (e.g. register address), then we read from the device with the same address and the specified number of bytes to read.
@@ -253,7 +249,7 @@ class MpsseI2C(Mpsse):
             pin_values: Values of the GPIO pins. For output pins, 1 for high, 0 for low. For input pins, this value is ignored.
 
         Raises:
-            FTD2XXError: Via check_return if the underlying library call fails.
+            I2CError: Via FTD2XXError in check_return if the underlying library call fails.
         """
         _dir = UCHAR(direction)
         _values = UCHAR(pin_values)
@@ -266,7 +262,7 @@ class MpsseI2C(Mpsse):
             The state of the GPIO pins. For output pins, 1 for high, 0 for low. For input pins, 1 for high, 0 for low.
 
         Raises:
-            FTD2XXError: Via check_return if the underlying library call fails.
+            I2CError: Via FTD2XXError in check_return if the underlying library call fails.
         """
         _values = UCHAR()
         check_return(libmpsse.I2C_ReadGPIO(self._handle, ctypes.byref(_values)))
@@ -309,7 +305,7 @@ class MpsseI2CSimpleInterface:
             The data read from the I2C device.
 
         Raises:
-            FTD2XXError
+            I2CError: Via FTD2XXError in check_return if the underlying library call fails.
         """
 
         options = I2CTransferOptions.BREAK_ON_NACK
@@ -343,7 +339,7 @@ class MpsseI2CSimpleInterface:
             The data read from the specified register of the I2C device.
 
         Raises:
-            FTD2XXError
+            I2CError: Via FTD2XXError in check_return if the underlying library call fails.
         """
         # default will be to break on NACK
         write_options = I2CTransferOptions.BREAK_ON_NACK
@@ -380,7 +376,7 @@ class MpsseI2CSimpleInterface:
             stop: Whether to send a stop bit after the write operation. Default is True.
 
         Raises:
-            FTD2XXError
+            I2CError: Via FTD2XXError in check_return if the underlying library call fails.
         """
         # default will be to break on NACK.
         write_options = I2CTransferOptions(I2CTransferOptions.BREAK_ON_NACK)
@@ -410,7 +406,7 @@ class MpsseI2CSimpleInterface:
             stop: Whether to send a stop bit after the write operation. Default is True.
 
         Raises:
-            FTD2XXError
+            I2CError: Via FTD2XXError in check_return if the underlying library call fails.
         """
         # TODO - might need to consider the possibility of the register being multiple bytes, but for now assume it's just one byte.
         # default will be to break on NACK.
