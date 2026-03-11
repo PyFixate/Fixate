@@ -757,7 +757,7 @@ class MSO_X_3000(DSO):
             with open(file_name, "w") as f:
                 f.write("x,y\n")
                 for x_val, y_val in zip(x, y):
-                    f.write(f"{x_val},{y_val}")
+                    f.write(f"{x_val},{y_val}\n")
 
         elif file_name and file_type == "bin":
             raise NotImplementedError("Binary Output not implemented")
