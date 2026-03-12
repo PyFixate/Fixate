@@ -184,7 +184,7 @@ def _user_choices(msg, q, choices, target, attempts=5):
         print("\a")
         ret_val = input(reformat_text(msg + choicesstr))
         ret_val = target(ret_val, choices)
-        if ret_val:
+        if ret_val is not None:
             q.put(("Result", ret_val))
             return
     q.put(
@@ -227,7 +227,7 @@ def _user_input(msg, q, target=None, attempts=5, kwargs=None):
             q.put(ret_val)
             return
         ret_val = target(ret_val, **kwargs)
-        if ret_val:
+        if ret_val is not None:
             q.put(("Result", ret_val))
             return
     # Display failure of target and send exception

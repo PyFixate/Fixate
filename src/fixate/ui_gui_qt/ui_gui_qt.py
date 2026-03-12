@@ -780,7 +780,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             # This will change based on the interface
             ret_val = self.gui_user_input(self.reformat_text(msg), choices)
             ret_val = target(ret_val, choices)
-            if ret_val:
+            if ret_val is not None:
                 q.put(("Result", ret_val))
                 return
         q.put(
@@ -821,7 +821,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
                 q.put(ret_val)
                 return
             ret_val = target(ret_val, **kwargs)
-            if ret_val:
+            if ret_val is not None:
                 q.put(("Result", ret_val))
                 return
         # Display failure of target and send exception
