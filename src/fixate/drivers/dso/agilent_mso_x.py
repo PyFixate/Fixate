@@ -128,6 +128,11 @@ class MSO_X_3000(DSO):
                 self.query_after_acquire,
                 "MEAS:VRAT? DISP,{self._store[source1]},{self._store[source2]}",
             ),
+            (
+                "measure.vtime",
+                self.query_after_acquire,
+                "MEAS:VTIM? {time}, CHAN{channel:n}",
+            ),
             # Ch1 Measure
             ("measure.counter.ch1", self.query_after_acquire, "MEAS:COUN? CHAN1"),
             ("measure.duty.ch1", self.query_after_acquire, "MEAS:DUTY? CHAN1"),
