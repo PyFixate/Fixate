@@ -9,7 +9,7 @@ import time
 # KEYSIGHT TECHNOLOGIES,DSO-X 1102G,CN57096441,01.20.2019061038
 # AGILENT TECHNOLOGIES,MSO-X 3014A,MY51360314,02.43.2018020635
 class MSO_X_3000(DSO):
-    # Regex needs work to detect only the 4 channel scopes we have here:
+    # Regex needs work to detect only the 4 channel scopes we have:
     REGEX_ID = "(KEYSIGHT|AGILENT) TECHNOLOGIES,[DM]SO-?X"
     INSTR_TYPE = "VISA"
     retrys_on_timeout = 1
@@ -25,6 +25,11 @@ class MSO_X_3000(DSO):
         self.reset()
         self.instrument.query_delay = 0.2
         self.instrument.timeout = 1000
+
+        # If, for example this does not have 4 channels, we can do:
+        # We would actually call some function like not_availalbe() that would raise a better error
+        self.ch3 = lambda: 1 / 0
+        self.ch4 = lambda: 1 / 0
 
     def single(self) -> None:
         """
