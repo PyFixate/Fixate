@@ -1,6 +1,6 @@
 import pyvisa
 from fixate.core.exceptions import InstrumentError
-from fixate.drivers.dso.helper2 import DSO
+from fixate.drivers.dso.helper import DSO
 import time
 
 
