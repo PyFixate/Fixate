@@ -131,11 +131,11 @@ def pubsub_logs():
 
 
 def abort_on_prompt(msg, q, choices=None, target=None, attempts=5, kwargs=None):
-    q.put(("Result", "ABORT"))
+    q.put(("ABORT"))
 
 
 def fail_on_prompt(msg, q, choices=None, target=None, attempts=5, kwargs=None):
-    q.put(("Result", "FAIL"))
+    q.put(("FAIL"))
 
 
 @pytest.fixture
