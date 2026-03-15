@@ -54,6 +54,10 @@ class MSO_X_3000(DSO):
             ("ch2.offset", self.write, "CHAN2:OFFS {value}"),
             ("ch3.offset", self.write, "CHAN3:OFFS {value}"),
             ("ch4.offset", self.write, "CHAN4:OFFS {value}"),
+            ("ch1.invert", self.write, "CHAN1:INV {value:n}"),
+            ("ch2.invert", self.write, "CHAN2:INV {value:n}"),
+            ("ch3.invert", self.write, "CHAN3:INV {value:n}"),
+            ("ch4.invert", self.write, "CHAN4:INV {value:n}"),
             ("ch1.coupling.ac", self.write, "CHAN1:COUP AC"),
             ("ch2.coupling.ac", self.write, "CHAN2:COUP AC"),
             ("ch3.coupling.ac", self.write, "CHAN3:COUP AC"),
@@ -123,6 +127,11 @@ class MSO_X_3000(DSO):
                 "measure.vratio.display",
                 self.query_after_acquire,
                 "MEAS:VRAT? DISP,{self._store[source1]},{self._store[source2]}",
+            ),
+            (
+                "measure.vtime",
+                self.query_after_acquire,
+                "MEAS:VTIM? {time}, CHAN{channel:n}",
             ),
             # Ch1 Measure
             ("measure.counter.ch1", self.query_after_acquire, "MEAS:COUN? CHAN1"),

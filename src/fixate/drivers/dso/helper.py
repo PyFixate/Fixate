@@ -704,6 +704,16 @@ class Measure:
         self.xmax = MeasureAllSources()
         self.xmin = MeasureAllSources()
 
+    def vtime(self, time: float, channel: int):
+        """
+        Return the y value of a channel at the requested time.
+        """
+        raise InstrumentFeatureUnavailable(
+            "{} not available on this device".format(
+                inspect.currentframe().f_code.co_name
+            )
+        )
+
 
 class MultiSlopes(CallableNoArgs):
     def __init__(self):
