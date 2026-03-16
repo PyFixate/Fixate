@@ -1,4 +1,3 @@
-from _typeshed import SupportsDunderGE
 import inspect
 from abc import ABCMeta, abstractmethod
 from typing import Callable, Union
