@@ -26,11 +26,6 @@ class MSO_X_3000(DSO):
         self.instrument.query_delay = 0.2
         self.instrument.timeout = 1000
 
-        # If, for example this does not have 4 channels, we can do:
-        # We would actually call some function like not_availalbe() that would raise a better error
-        self.ch3 = lambda: 1 / 0
-        self.ch4 = lambda: 1 / 0
-
     def single(self) -> None:
         """
         Specific implementation of the single trigger setup for Agilent MSO-X
@@ -77,9 +72,6 @@ class MSO_X_3000(DSO):
         self._mode = "STOP"
         self._wave_acquired = False
 
-    def _write(self, value):
-        self.instrument.write(value)
-
     def acquire(self, acquire_type="normal", averaging_samples=0):
         """
         :param channel
@@ -107,7 +99,7 @@ class MSO_X_3000(DSO):
             raise ValueError("Invalid acquire type {}".format(acquire_type))
 
     def waveform_preamble(self):
-        values = self.query_ascii_values(":WAV:PRE?")
+        values = self.instrument.query_ascii_values(":WAV:PRE?")
         wav_form_dict = {"0": "BYTE", "1": "WORD", "4": "ASCii"}
         acq_type_dict = {
             "0": "NORMAL",
@@ -197,7 +189,7 @@ class MSO_X_3000(DSO):
         self.instrument.write(":WAVeform:POINts:MODE " + points_mode)
 
         # Check if there is actually data to acquire:
-        data_available = int(self.query(":WAVeform:POINTs?"))
+        data_available = int(self.instrument.query(":WAVeform:POINTs?"))
         if data_available == 0:
             # No data is available
             # Setting a channel to be a waveform source turns it on, so we need to turn it off now:
@@ -258,27 +250,6 @@ class MSO_X_3000(DSO):
             raise NotImplementedError("Binary Output not implemented")
         return x, y
 
-    def digitize(self, signals):
-        signals = [self.validate_signal(sig) for sig in signals]
-        self.write(":DIG {}".format(",".join(signals)))
-        return signals
-
-    def validate_signal(self, signal):
-        """
-        :param signal: String ie. "1", "2", "3", "4", "func", "math"
-        :return:
-        """
-        try:
-            if not (1 <= int(signal) <= 4):
-                raise ValueError("Invalid source channel {}".format(signal))
-            else:
-                signal = "CHAN{}".format(int(signal))
-        except ValueError:
-            if signal.lower() not in ["func", "math"]:
-                raise ValueError("Invalid source channel {}".format(signal))
-            signal = signal.lower()
-        return signal
-
     def reset(self):
         self.instrument.write("*CLS;*RST;:STOP")
         time.sleep(0.15)
@@ -291,7 +262,7 @@ class MSO_X_3000(DSO):
         self.instrument.timeout = 5000
         try:
             with open(file_name, "w") as f:
-                setup = self.query(":SYSTem:SETup?")
+                setup = self.instrument.query(":SYSTem:SETup?")
                 f.write(setup)
         finally:
             self.instrument.timeout = 1000
@@ -304,43 +275,6 @@ class MSO_X_3000(DSO):
             self.write(":SYSTem:SETup {}".format(setup))
         finally:
             self.instrument.timeout = 1000
-
-    def query(self, value):
-        try:
-            response = self.instrument.query(value)
-        finally:
-            self._raise_if_error()
-        return response
-
-    def query_bool(self, value):
-        return bool(self.query_ascii_value(value))
-
-    def query_binary_values(self, value):
-        response = self.instrument.query_binary_values(value)
-        self._raise_if_error()
-        return response
-
-    def query_ascii_values(self, value):
-        response = self.instrument.query_ascii_values(value)
-        self._raise_if_error()
-        return response
-
-    def query_ascii_value(self, value):
-        return self.query_ascii_values(value)[0]
-
-    def query_value(self, base_str, *args, **kwargs):
-        formatted_string = self._format_string(base_str, **kwargs)
-        return self.query_ascii_value(formatted_string)
-
-    def query_after_acquire(self, base_str, *args, **kwargs):
-        self.wait_for_acquire()
-        try:
-            formatted_string = self._format_string(base_str, **kwargs)
-            return self.instrument.query_ascii_values(formatted_string)[0]
-        except:
-            self.instrument.close()
-            self.instrument.open()
-            raise
 
     def wait_for_trigger(self, timeout):
         """
@@ -407,34 +341,13 @@ class MSO_X_3000(DSO):
                 "Cannot acquire waveform in this mode: {}".format(self._mode)
             )
 
-    def read_raw(self):
-        data = self.instrument.read_raw()
-        self._raise_if_error()
-        return data
-
-    def _check_errors(self):
+    def _check_errors(self) -> tuple[int, str]:
         time.sleep(0.1)
         resp = self.instrument.query("SYST:ERR?")
         code, msg = resp.strip("\n").split(",")
         code = int(code)
         msg = msg.strip('"')
         return code, msg
-
-    def _raise_if_error(self):
-        errors = []
-        while True:
-            code, msg = self._check_errors()
-            if code != 0:
-                errors.append((code, msg))
-            else:
-                break
-        if errors:
-            raise InstrumentError(
-                "Error(s) Returned from DSO\n"
-                + "\n".join(
-                    ["Code: {}\nMessage:{}".format(code, msg) for code, msg in errors]
-                )
-            )
 
     def write(self, base_str, *args, **kwargs):
         formatted_string = self._format_string(base_str, **kwargs)
@@ -449,27 +362,6 @@ class MSO_X_3000(DSO):
                 break
             prev_string = cur_string
         return cur_string
-
-    def store(self, store_dict, *args, **kwargs):
-        """
-        Store a dictionary of values in TestClass
-        :param kwargs:
-        Dictionary containing the parameters to store
-        :return:
-        """
-        new_dict = store_dict.copy()
-        for k, v in store_dict.items():
-            # I want the same function from write to set up the string before putting it in new_dict
-            try:
-                new_dict[k] = v.format(**kwargs)
-            except:
-                pass
-        self._store.update(new_dict)
-
-    def store_and_write(self, params, *args, **kwargs):
-        base_str, store_dict = params
-        self.store(store_dict)
-        self.write(base_str, *args, **kwargs)
 
     def get_identity(self) -> str:
         """

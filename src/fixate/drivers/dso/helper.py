@@ -1,8 +1,8 @@
 import inspect
 from abc import ABCMeta, abstractmethod
-from typing import Callable, Union
+from typing import Callable, Literal, Union
 
-from fixate.core.exceptions import InstrumentError, InstrumentFeatureUnavailable
+from fixate.core.exceptions import InstrumentFeatureUnavailable, InstrumentError
 
 number = Union[float, int]
 
@@ -15,49 +15,12 @@ the scope and the PC. This has the benefit of being able to mock the interface.
 ie we can create a mock DSO that inherts the base and redefines functions.
 """
 WriteCallback = Callable[[str], None]
-QueryCallback = Callable[[str], str]
+QueryAsciiValuesCallback = Callable[[str], float]
 
 # Prompt that a featrue is not available:
 def unavailable(name: str | None = None):
     label = name or inspect.stack()[1].function
     return InstrumentFeatureUnavailable(f"{label} not available on this device")
-
-
-class SourceSelector:
-    """
-    Retain compatibility of source selection from the old API
-    dso.source1.ch1() for example will set the source1.source = "CHAN1"
-    This is then queried by the two source measurement functions like 'delay'
-    You must set the sources before calling a multi measurement function.
-    """
-
-    def __init__(self):
-        # Selected source (CHAN1, CHAN2, ... ,FUNC, MATH, WMEM1, WMEM2
-        self.source: str | None = None
-
-    def ch1(self) -> None:
-        self.source = "CHAN1"
-
-    def ch2(self) -> None:
-        self.source = "CHAN2"
-
-    def ch3(self) -> None:
-        self.source = "CHAN3"
-
-    def ch4(self) -> None:
-        self.source = "CHAN4"
-
-    def function(self) -> None:
-        self.source = "FUNC"
-
-    def math(self) -> None:
-        self.source = "MATH"
-
-    def wmemory1(self) -> None:
-        self.source = "WMEM1"
-
-    def wmemory2(self) -> None:
-        self.source = "WMEM2"
 
 
 class Channel:
@@ -245,18 +208,194 @@ class Acquire:
         self._write(f"ACQ:TYPE HRES")
 
 
-class Measurement:
-    """
-    Single channel measurement class
-    """
+# Yes this sucks...
+class MeasurementBase:
+    def __init__(self, query: QueryAsciiValuesCallback, command: str):
+        self._query = query
+        self._command = command
+
+    def ch1(self):
+        return self._query(self._command + " CHAN1")
+
+    def ch2(self):
+        return self._query(self._command + " CHAN2")
+
+    def ch3(self):
+        return self._query(self._command + " CHAN3")
+
+    def ch4(self):
+        return self._query(self._command + " CHAN4")
+
+    def function(self):
+        return self._query(self._command + " FUNC")
+
+    def math(self):
+        return self._query(self._command + " MATH")
 
 
-class MultiMeasurement:
+class VAverageMeasurement:
+    def __init__(self, query: QueryAsciiValuesCallback) -> None:
+        self.cycle = MeasurementBase(query, "MEAS:VAV? CYCL,")
+        self.display = MeasurementBase(query, "MEAS:VAV? DISP,")
+
+
+class VRmsModesMeasurement:
+    def __init__(self, query: QueryAsciiValuesCallback, mode: str) -> None:
+        self.cycle = MeasurementBase(query, f"MEAS:VRMS? CYCL,{mode},")
+        self.display = MeasurementBase(query, f"MEAS:VRMS? DISP,{mode},")
+
+
+class VRmsMeasurement:
+    def __init__(self, query: QueryAsciiValuesCallback) -> None:
+        self.dc = VRmsModesMeasurement(query, "DC")
+        self.ac = VRmsModesMeasurement(query, "AC")
+
+
+class SourceSelector:
     """
-    Mulitple source measurement class
+    Retain compatibility of source selection from the old API
+    dso.source1.ch1() for example will set the source1.source = "CHAN1"
+    This is then queried by the two source measurement functions like 'delay'
+    You must set the sources before calling a multi measurement function.
     """
 
-    # Need a way to mimmic the _store dict. Maybe just easiest to use the same method of a dict
+    def __init__(self, store: dict, source: Literal["source1"] | Literal["source2"]):
+        self._store = store
+        # Name of the source:
+        self.source = source
+
+    def ch1(self) -> None:
+        self._store[self.source] = "CHAN1"
+
+    def ch2(self) -> None:
+        self._store[self.source] = "CHAN2"
+
+    def ch3(self) -> None:
+        self._store[self.source] = "CHAN3"
+
+    def ch4(self) -> None:
+        self._store[self.source] = "CHAN4"
+
+    def function(self) -> None:
+        self._store[self.source] = "FUNC"
+
+    def math(self) -> None:
+        self._store[self.source] = "MATH"
+
+    def wmemory1(self) -> None:
+        self._store[self.source] = "WMEM1"
+
+    def wmemory2(self) -> None:
+        self._store[self.source] = "WMEM2"
+
+
+class DefineThreshold:
+    def __init__(self, write: WriteCallback) -> None:
+        self._write = write
+
+    def percent(self, upper, middle, lower) -> None:
+        self._write(f"MEAS:DEF THR,PERC,{upper},{middle},{lower}")
+
+    def absolute(self, upper, middle, lower) -> None:
+        self._write(f"MEAS:DEF THR,ABS,{upper},{middle},{lower}")
+
+
+class Define:
+    def __init__(self, write: WriteCallback) -> None:
+        self.threshold = DefineThreshold(write)
+
+
+class DelayEdges:
+    def __init__(self, write: WriteCallback) -> None:
+        self._write = write
+
+    def rising_rising(self) -> None:
+        self._write("MEAS:DEF DEL, +1, +1")
+
+    def rising_falling(self) -> None:
+        self._write("MEAS:DEF DEL, +1, -1")
+
+    def falling_rising(self) -> None:
+        self._write("MEAS:DEF DEL, -1, +1")
+
+    def falling_falling(self) -> None:
+        self._write("MEAS:DEF DEL, -1, -1")
+
+
+class DelayMeasurement:
+    def __init__(
+        self, write: WriteCallback, query: QueryAsciiValuesCallback, store: dict
+    ) -> None:
+        self._write = write
+        self._query = query
+        self._store = store
+        self.edges = DelayEdges(write)
+
+    def __call__(self) -> float:
+        return self._query(
+            f"MEAS:DEL? {self._store['source1']},{self._store['source2']}"
+        )
+
+
+class VRatioMeasurement:
+    def __init__(self, query: QueryAsciiValuesCallback, store: dict) -> None:
+        self._query = query
+        self._store = store
+
+    def cycle(self) -> float:
+        return self._query(
+            f"MEAS:VRAT? CYCL,{self._store['source1']},{self._store['source2']}"
+        )
+
+    def display(self) -> float:
+        return self._query(
+            f"MEAS:VRAT? DISP,{self._store['source1']},{self._store['source2']}"
+        )
+
+
+class PhaseMeasurement:
+    def __init__(self, query: QueryAsciiValuesCallback, store: dict) -> None:
+        self._query = query
+        self._store = store
+
+    def __call__(self) -> float:
+        return self._query(
+            f"MEAS:PHAS? {self._store['source1']},{self._store['source2']}"
+        )
+
+
+class Measure:
+    def __init__(
+        self, write: WriteCallback, query: QueryAsciiValuesCallback, store: dict
+    ) -> None:
+        self.counter = MeasurementBase(query, "MEAS:COUN?")
+        self.duty = MeasurementBase(query, "MEAS:DUTY?")
+        self.fall_time = MeasurementBase(query, "MEAS:FALL?")
+        self.rise_time = MeasurementBase(query, "MEAS:RIS?")
+        self.frequency = MeasurementBase(query, "MEAS:FREQ?")
+        self.cnt_edge_rising = MeasurementBase(query, "MEAS:NEDG?")
+        self.cnt_edge_falling = MeasurementBase(query, "MEAS:PEDG?")
+        self.cnt_pulse_positive = MeasurementBase(query, "MEAS:NPUL?")
+        self.cnt_pulse_negative = MeasurementBase(query, "MEAS:PPUL?")
+        self.period = MeasurementBase(query, "MEAS:PER?")
+        self.pulse_width = MeasurementBase(query, "MEAS:PWID?")
+        self.vamplitude = MeasurementBase(query, "MEAS:VAMP?")
+        self.vbase = MeasurementBase(query, "MEAS:VBAS?")
+        self.vtop = MeasurementBase(query, "MEAS:VTOP?")
+        self.vmax = MeasurementBase(query, "MEAS:VMAX?")
+        self.vmin = MeasurementBase(query, "MEAS:VMIN?")
+        self.vpp = MeasurementBase(query, "MEAS:VPP?")
+        self.xmax = MeasurementBase(query, "MEAS:XMAX?")
+        self.xmin = MeasurementBase(query, "MEAS:XMIN?")
+        # These need a little more construction to match the old API:
+        self.vaverage = VAverageMeasurement(query)
+        self.vrms = VRmsMeasurement(query)
+
+        # Multi source measurements:
+        self.define = Define(write)
+        self.delay = DelayMeasurement(write, query, store)
+        self.phase = PhaseMeasurement(query, store)
+        self.vratio = VRatioMeasurement(query, store)
 
 
 class DSO(metaclass=ABCMeta):
@@ -287,8 +426,8 @@ class DSO(metaclass=ABCMeta):
         # -------------------------
         # Construct the API:
         # -------------------------
-        self.source1 = SourceSelector()
-        self.source2 = SourceSelector()
+        self.source1 = SourceSelector(self._store, "source1")
+        self.source2 = SourceSelector(self._store, "source2")
 
         self.ch1 = Channel("1", _write)
         self.ch2 = Channel("2", _write)
@@ -301,15 +440,41 @@ class DSO(metaclass=ABCMeta):
 
         self.acquire = Acquire(_write)
 
+        self.measure = Measure(_write, _query_after_acquire, self._store)
+
+    # Mandatory methods to implement per driver:
+    @abstractmethod
+    def single(self) -> None:
+        """Sets oscilliscope to take a single shot measurement"""
+
+    @abstractmethod
+    def run(self) -> None:
+        """Sets the oscilliscope to run mode"""
+
+    @abstractmethod
+    def stop(self) -> None:
+        """Puts the oscillicope in stop mode"""
+
+    @abstractmethod
+    def reset(self) -> None:
+        """Resets the oscilliscope"""
+
     @abstractmethod
     def wait_for_acquire(self) -> None:
         """Block until the current acquisition is complete."""
+
+    @abstractmethod
+    def get_identity(self) -> str:
+        """Return the IDN string of the device"""
+
+    @abstractmethod
+    def _check_errors(self) -> tuple[int, str]:
+        """Check the error buffer for errors"""
 
     # Query and write functions:
     def _write_cmd(self, cmd: str) -> None:
         """Write a SCPI command and raise on instrument error."""
         self.instrument.write(cmd)
-        self._raise_if_error()
 
     def _query_bool_cmd(self, cmd: str) -> bool:
         values = self.instrument.query_ascii_values(cmd)
@@ -327,9 +492,21 @@ class DSO(metaclass=ABCMeta):
             raise
         return result
 
-    @abstractmethod
-    def _raise_if_error(self) -> None:
-        """Clean error queue and raise InstrumentError if any exist."""
+    def _raise_if_error(self):
+        errors = []
+        while True:
+            code, msg = self._check_errors()
+            if code != 0:
+                errors.append((code, msg))
+            else:
+                break
+        if errors:
+            raise InstrumentError(
+                "Error(s) Returned from DSO\n"
+                + "\n".join(
+                    ["Code: {}\nMessage:{}".format(code, msg) for code, msg in errors]
+                )
+            )
 
     # Context management:
     def __enter__(self):
