@@ -162,7 +162,7 @@ class MpsseI2C(Mpsse):
                 if e.args[0] == "FT_IO_ERROR":
                     # this is a retriable error
                     if attempt < self._retries - 1:
-                        print(
+                        logger.warning(
                             f"Attempt {attempt + 1} failed with error {e.args[0]}. Retrying..."
                         )
                         continue
@@ -223,7 +223,7 @@ class MpsseI2C(Mpsse):
                 if e.args[0] in ["FT_IO_ERROR", "FT_FAILED_TO_WRITE_DEVICE"]:
                     # these are retriable errors
                     if attempt < self._retries - 1:
-                        print(
+                        logger.warning(
                             f"Attempt {attempt + 1} failed with error {e.args[0]}. Retrying..."
                         )
                         continue
@@ -299,7 +299,7 @@ class MpsseI2C(Mpsse):
                 if e.args[0] in ["FT_IO_ERROR", "FT_FAILED_TO_WRITE_DEVICE"]:
                     # these are retriable errors
                     if attempt < self._retries - 1:
-                        print(
+                        logger.warning(
                             f"Attempt {attempt + 1} failed with error {e.args[0]}. Retrying..."
                         )
                         continue
