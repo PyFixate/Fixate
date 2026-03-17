@@ -383,8 +383,9 @@ class MpsseI2CSimpleInterface:
         Raises:
             I2CError: Via FTD2XXError in check_return if the underlying library call fails.
         """
-
-        options = I2CTransferOptions.BREAK_ON_NACK
+        # default will be to NACK the last byte, which is a common convention for I2C reads
+        # and what is done in the pyftdi library.
+        options = I2CTransferOptions.NACK_LAST_BYTE
         if start:
             options |= I2CTransferOptions.START_BIT
         if stop:
@@ -419,7 +420,9 @@ class MpsseI2CSimpleInterface:
         """
         # default will be to break on NACK
         write_options = I2CTransferOptions.BREAK_ON_NACK
-        read_options = I2CTransferOptions.BREAK_ON_NACK
+        # default will be to NACK the last byte, which is a common convention for I2C reads
+        # and what is done in the pyftdi library.
+        read_options = I2CTransferOptions.NACK_LAST_BYTE
 
         if start:
             write_options |= I2CTransferOptions.START_BIT
