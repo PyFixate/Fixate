@@ -13,6 +13,7 @@ Major Changes
 
 New Features
 ############
+- FTDI MPSSE I2C functionality that replaces pyftdi with libmpsse.
 
 Improvements
 ############
