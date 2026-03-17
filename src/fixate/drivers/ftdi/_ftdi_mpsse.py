@@ -547,7 +547,8 @@ def open[MPSSE_TYPE](
             f"FTDI device with description '{ftdi_description}' not found."
         )
 
-    log_instrument_open(driver)
+    # ignore the below for now, it can be fixed as part of a future mypy targeted branch.
+    log_instrument_open(driver)  # type: ignore
     return driver
 
 
