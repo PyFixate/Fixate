@@ -96,9 +96,10 @@ class Mpsse:
 
 
 class MpsseI2C(Mpsse):
-    def __init__(self, ftdi_description: str):
+    def __init__(self, ftdi_description: str, retries: int = 3):
         super().__init__(ftdi_description)
         self._connect()
+        self._retries = retries
 
     def _connect(self):
         check_return(
@@ -137,31 +138,47 @@ class MpsseI2C(Mpsse):
                 FT_DEVICE_NOT_FOUND will occur if the device does not respond.
         """
         # libmpsse handles the conversion of the address and read/write bit, so we just need to pass the 7-bit address.
-        _addr = UCHAR(address)
-        _buffer = (UCHAR * length)()
-        _bytes_read = DWORD()
-        try:
-            check_return(
-                libmpsse.I2C_DeviceRead(
-                    self._handle,
-                    _addr,
-                    length,
-                    ctypes.byref(_buffer),
-                    ctypes.byref(_bytes_read),
-                    options.value if options is not None else 0,
+        addr = UCHAR(address)
+        buffer = (UCHAR * length)()
+        bytes_read = DWORD()
+        # the pyftdi library has in-built retry logic, it's not known if retries are done frequently in our usage,
+        # but we'll do a similar thing here.
+        for attempt in range(self._retries):
+            try:
+                check_return(
+                    libmpsse.I2C_DeviceRead(
+                        self._handle,
+                        addr,
+                        length,
+                        ctypes.byref(buffer),
+                        ctypes.byref(bytes_read),
+                        options.value,
+                    )
                 )
-            )
-        except FTD2XXError as e:
-            if e.args[0] == "FT_IO_ERROR":
-                raise I2CError(
-                    f"Expected to read {length} bytes, but only read {_bytes_read.value} bytes."
-                ) from e
-            elif e.args[0] == "FT_DEVICE_NOT_FOUND":
-                raise I2CError(f"Device with address {address:#02x} not found.") from e
-            else:
-                # Something else happened that isn't documented by the libmpsse library.
-                raise
-        return bytes(_buffer[: _bytes_read.value])
+                # break out to return. Having the return here upsets pylance.
+                break
+            except FTD2XXError as e:
+                if e.args[0] == "FT_IO_ERROR":
+                    # this is a retriable error
+                    if attempt < self._retries - 1:
+                        print(
+                            f"Attempt {attempt + 1} failed with error {e.args[0]}. Retrying..."
+                        )
+                        continue
+                    raise I2CError(
+                        f"Expected to read {length} bytes, but only read {bytes_read.value} bytes."
+                    ) from e
+                elif e.args[0] == "FT_DEVICE_NOT_FOUND":
+                    raise I2CError(
+                        f"Device with address {address:#02x} not found."
+                    ) from e
+                else:
+                    # Something else happened that isn't documented by the libmpsse library.
+                    raise I2CError(
+                        f"An unexpected error occurred while reading from device with address {address:#02x}."
+                    ) from e
+
+        return bytes(buffer[: bytes_read.value])
 
     def write(
         self,
@@ -183,34 +200,44 @@ class MpsseI2C(Mpsse):
                 FT_FAILED_TO_WRITE_DEVICE will occur if the device nACKs a byte and the BREAK_ON_NACK option is specified.
         """
         # libmpsse handles the conversion of the address and read/write bit, so we just need to pass the 7-bit address.
-        _addr = UCHAR(address)
-        _buffer = (UCHAR * len(data))(*data)
-        _bytes_written = DWORD()
-        try:
-            check_return(
-                libmpsse.I2C_DeviceWrite(
-                    self._handle,
-                    _addr,
-                    len(_buffer),
-                    ctypes.byref(_buffer),
-                    ctypes.byref(_bytes_written),
-                    options.value,
+        addr = UCHAR(address)
+        buffer = (UCHAR * len(data))(*data)
+        bytes_written = DWORD()
+        # the pyftdi library has in-built retry logic, it's not known if retries are done frequently in our usage,
+        # but we'll do a similar thing here.
+        for attempt in range(self._retries):
+            try:
+                check_return(
+                    libmpsse.I2C_DeviceWrite(
+                        self._handle,
+                        addr,
+                        len(buffer),
+                        ctypes.byref(buffer),
+                        ctypes.byref(bytes_written),
+                        options.value,
+                    )
                 )
-            )
-        except FTD2XXError as e:
-            if e.args[0] == "FT_IO_ERROR":
-                raise I2CError(
-                    f"Expected to write {len(data)} bytes, but only wrote {_bytes_written.value} bytes. Check device connection."
-                ) from e
-            elif e.args[0] == "FT_DEVICE_NOT_FOUND":
-                raise I2CError(f"Device with address {address:#02x} not found.") from e
-            elif e.args[0] == "FT_FAILED_TO_WRITE_DEVICE":
-                raise I2CError(
-                    f"Device with address {address:#02x} NACKed a byte."
-                ) from e
-            else:
-                # Something else happened that isn't documented by the libmpsse library.
-                raise
+                return
+            except FTD2XXError as e:
+                if e.args[0] in ["FT_IO_ERROR", "FT_FAILED_TO_WRITE_DEVICE"]:
+                    # these are retriable errors
+                    if attempt < self._retries - 1:
+                        print(
+                            f"Attempt {attempt + 1} failed with error {e.args[0]}. Retrying..."
+                        )
+                        continue
+                    raise I2CError(
+                        f"Expected to write {len(data)} bytes, but only wrote {bytes_written.value} bytes."
+                    ) from e
+                elif e.args[0] == "FT_DEVICE_NOT_FOUND":
+                    raise I2CError(
+                        f"Device with address {address:#02x} not found."
+                    ) from e
+                else:
+                    # Something else happened that isn't documented by the libmpsse library.
+                    raise I2CError(
+                        f"An unexpected error occurred while writing to device with address {address:#02x}."
+                    ) from e
 
     def exchange(
         self,
@@ -235,11 +262,60 @@ class MpsseI2C(Mpsse):
         Raises:
             I2CError: Via FTD2XXError in check_return if the underlying library call fails.
         """
+        addr = UCHAR(address)
+        write_buffer = (UCHAR * len(data))(*data)
+        bytes_written = DWORD()
+        read_buffer = (UCHAR * read_length)()
+        bytes_read = DWORD()
+        # can't use this class's read and write methods since they have retry logic that we don't want to use here,
+        # so we need to call the underlying library methods directly.
+        for attempt in range(self._retries):
+            try:
+                check_return(
+                    libmpsse.I2C_DeviceWrite(
+                        self._handle,
+                        addr,
+                        len(write_buffer),
+                        ctypes.byref(write_buffer),
+                        ctypes.byref(bytes_written),
+                        write_options.value,
+                    )
+                )
+                check_return(
+                    libmpsse.I2C_DeviceRead(
+                        self._handle,
+                        addr,
+                        read_length,
+                        ctypes.byref(read_buffer),
+                        ctypes.byref(bytes_read),
+                        read_options.value,
+                    )
+                )
+                # break out to return. Having the return here upsets pylance.
+                break
 
-        # First we write to the device with address and the data to write (e.g. register address), then we read from the device with the same address and the specified number of bytes to read.
-        # the options parameters will determine if start|stop|repeated-start bits are sent.
-        self.write(address, data, options=write_options)
-        return self.read(address, read_length, options=read_options)
+            except FTD2XXError as e:
+                if e.args[0] in ["FT_IO_ERROR", "FT_FAILED_TO_WRITE_DEVICE"]:
+                    # these are retriable errors
+                    if attempt < self._retries - 1:
+                        print(
+                            f"Attempt {attempt + 1} failed with error {e.args[0]}. Retrying..."
+                        )
+                        continue
+                    raise I2CError(
+                        f"Expected to write {len(data)} bytes and read {read_length} bytes, but wrote {len(data)} bytes and read {len(read_buffer)} bytes."
+                    ) from e
+                elif e.args[0] == "FT_DEVICE_NOT_FOUND":
+                    raise I2CError(
+                        f"Device with address {address:#02x} not found."
+                    ) from e
+                else:
+                    # Something else happened that isn't documented by the libmpsse library.
+                    raise I2CError(
+                        f"An unexpected error occurred while exchanging data with device with address {address:#02x}."
+                    ) from e
+
+        return bytes(read_buffer[: bytes_read.value])
 
     def write_gpio(self, direction: int, pin_values: int):
         """Set the state of the GPIO pins.
