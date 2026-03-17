@@ -356,6 +356,7 @@ class MpsseI2C(Mpsse):
 
     def close(self):
         check_return(libmpsse.I2C_CloseChannel(self._handle))
+        self._handle = FT_HANDLE()  # reset handle to default value
 
 
 class MpsseI2CSimpleInterface:
