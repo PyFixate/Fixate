@@ -1,829 +1,517 @@
 import inspect
 from abc import ABCMeta, abstractmethod
-from functools import update_wrapper
-from fixate.core.exceptions import InstrumentFeatureUnavailable
+from typing import Callable, Literal, Union
 
-import typing
+from fixate.core.exceptions import InstrumentFeatureUnavailable, InstrumentError
 
-number = typing.Union[float, int]
+number = Union[float, int]
+
+"""
+Callbacks
+Write and query callbacks get passed down the tree of class variables.
+
+They are then used to facilitate a single point of communication between 
+the scope and the PC. This has the benefit of being able to mock the interface.
+ie we can create a mock DSO that inherts the base and redefines functions.
+"""
+WriteCallback = Callable[[str], None]
+QueryAsciiValuesCallback = Callable[[str], float]
+
+# Prompt that a featrue is not available:
+def unavailable(name: str | None = None):
+    label = name or inspect.stack()[1].function
+    return InstrumentFeatureUnavailable(f"{label} not available on this device")
 
 
-class CallableNoArgs:
-    def __call__(self):
-        return self._call()
+class Channel:
+    """
+    DSO Channel implementation
+    """
 
-    def _call(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def __init__(
+        self, channel_name: str, write: WriteCallback, enabled: bool = True
+    ) -> None:
+        # Set enabled to false to note a device does not have this channel
+        self.enabled = enabled
+        self._ch_name = channel_name
+        self._write = write
+        self._ch_cmd = f"CHAN{self._ch_name}"
 
+        self.coupling = Coupling(write, self._ch_cmd)
+        self.probe = Probe(write, self._ch_cmd)
 
-class CallableBool:
+    def _check_en(self):
+        if not self.enabled:
+            raise unavailable(f"{self._ch_cmd} is not available on this device")
+
     def __call__(self, value: bool):
-        return self._call(value)
+        self._check_en()
+        self._write(f"CHAN1:DISP {int(value)}")
 
-    def _call(self, value: bool):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def scale(self, value: number) -> None:
+        self._check_en()
+        self._write(f"{self._ch_cmd}:SCAL {value}")
 
+    def offset(self, value: number) -> None:
+        self._check_en()
+        self._write(f"{self._ch_cmd}:OFFS {value}")
 
-class SourcesCh:
-    def ch1(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def ch2(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def ch3(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def ch4(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-
-class SourcesSpecial:
-    def function(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def math(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-
-class SourcesWMem:
-    def wmemory1(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def wmemory2(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-
-class SourcesExt:
-    def external(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-
-class SourcesDig:
-    def d0(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def d1(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def d2(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def d3(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def d4(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def d5(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def d6(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def d7(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def d8(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def d9(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def d10(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def d11(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def d12(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def d13(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def d14(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def d15(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-
-class MeasureAllSources(
-    SourcesCh, SourcesSpecial, SourcesWMem, SourcesDig, CallableNoArgs
-):
-    pass
-
-
-class TrigSources(SourcesCh, SourcesExt, SourcesDig):
-    pass
-
-
-class MultiMeasureSources(MeasureAllSources):
-    def __init__(self):
-        self.ch1 = MeasureAllSources()
-        self.ch1 = MeasureAllSources()
-        self.ch2 = MeasureAllSources()
-        self.ch3 = MeasureAllSources()
-        self.ch4 = MeasureAllSources()
-        self.function = MeasureAllSources()
-        self.math = MeasureAllSources()
-        self.wmemory1 = MeasureAllSources()
-        self.wmemory2 = MeasureAllSources()
-        self.external = MeasureAllSources()
-        self.d0 = MeasureAllSources()
-        self.d1 = MeasureAllSources()
-        self.d2 = MeasureAllSources()
-        self.d3 = MeasureAllSources()
-        self.d4 = MeasureAllSources()
-        self.d5 = MeasureAllSources()
-        self.d6 = MeasureAllSources()
-        self.d7 = MeasureAllSources()
-        self.d8 = MeasureAllSources()
-        self.d9 = MeasureAllSources()
-        self.d10 = MeasureAllSources()
-        self.d11 = MeasureAllSources()
-        self.d12 = MeasureAllSources()
-        self.d13 = MeasureAllSources()
-        self.d14 = MeasureAllSources()
-        self.d15 = MeasureAllSources()
+    def invert(self, value: bool) -> None:
+        self._check_en()
+        self._write(f"{self._ch_cmd}:INV {int(value)}")
 
 
 class Coupling:
-    def ac(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    """
+    Defines the coupling interface
+    """
 
-    def dc(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def __init__(self, write: WriteCallback, cmd_prefix: str):
+        self._write = write
+        self._cmd_prefix = cmd_prefix
 
-    def lf_reject(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def ac(self) -> None:
+        # AC Coupling
+        self._write(f"{self._cmd_prefix}:COUP AC")
 
-    def tv(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def dc(self) -> None:
+        # DC Coupling
+        self._write(f"{self._cmd_prefix}:COUP DC")
 
 
 class Probe:
-    def attenuation(self, value: number):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def __init__(self, write: WriteCallback, cmd_prefix: str):
+        self._write = write
+        self._cmd_prefix = cmd_prefix
+
+    def attenuation(self, attenuation: number) -> None:
+        self._write(f"{self._cmd_prefix}:PROB {attenuation}")
 
 
-class VerticalUnits:
-    def volts(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+class TimeBase:
+    def __init__(self, write: WriteCallback):
+        self._write = write
 
-    def amps(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def scale(self, value: number) -> None:
+        self._write(f"TIM:SCAL {value}")
+
+    def position(self, value: number) -> None:
+        self._write(f"TIM:POS {value}")
 
 
-class ChannelBase(CallableBool):
-    def __init__(self, channel_name: str):
-        self._ch_name = channel_name
-        # self.waveform = Waveform()
-        # self.modulate = Modulate()
-        # self.burst = Burst()
-        # self.load = Load()
-        self.coupling = Coupling()
-        self.probe = Probe()
-        self.units = VerticalUnits()
+class TriggerCoupling(Coupling):
+    """
+    Extends the Coupling interface with extra functions that the trigger has
+    """
 
-    def bandwidth(self, value: number):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def lf_reject(self) -> None:
+        self._write(f"{self._cmd_prefix}:COUP LFR")
 
-    def bandwidth_limit(self, value: bool):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
 
-    def impedance(self, value: number):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+class TriggerSweep:
+    def __init__(self, write: WriteCallback) -> None:
+        self._write = write
 
-    def invert(self, value: bool):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def auto(self) -> None:
+        self._write("TRIG:SWE AUTO")
 
-    def offset(self, value: number):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def normal(self) -> None:
+        self._write("TRIG:SWE NORM")
 
-    def scale(self, value: number):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+
+class TriggerMode:
+    """
+    Define the trigger mode interface
+    """
+
+    def __init__(self, write: WriteCallback):
+        self.edge = TriggerEdge(write)
+
+
+class TriggerSlopes:
+    def __init__(self, write: WriteCallback) -> None:
+        self._write = write
+
+    def rising(self) -> None:
+        self._write("TRIG:EDGE:SLOPE POS")
+
+    def falling(self) -> None:
+        self._write("TRIG:EDGE:SLOPE NEG")
+
+    def either(self) -> None:
+        self._write("TRIG:EDGE:SLOPE EITH")
+
+    def alternating(self) -> None:
+        self._write("TRIG:EDGE:SLOPE ALT")
+
+
+class TriggerSources:
+    def __init__(self, write: WriteCallback) -> None:
+        self._write = write
+
+    def ch1(self) -> None:
+        self._write("TRIG:EDGE:SOUR CHAN1")
+
+    def ch2(self) -> None:
+        self._write("TRIG:EDGE:SOUR CHAN2")
+
+    def ch3(self) -> None:
+        self._write("TRIG:EDGE:SOUR CHAN3")
+
+    def ch4(self) -> None:
+        self._write("TRIG:EDGE:SOUR CHAN4")
+
+
+class TriggerEdge:
+    def __init__(self, write: WriteCallback) -> None:
+        self._write = write
+        self.source = TriggerSources(write)
+        self.slope = TriggerSlopes(write)
+
+    def __call__(self) -> None:
+        self._write("TRIG:MODE EDGE")
+
+    def level(self, value: number) -> None:
+        self._write(f"TRIG:EDGE:LEVEL {value}")
 
 
 class Trigger:
-    def __init__(self):
-        self.mode = TrigMode()
-        self.delay = None
-        self.eburst = None
-        self.coupling = Coupling()
-        self.sweep = TrigSweep()
+    """
+    Trigger base class
+    """
 
-    def force(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def __init__(self, write: WriteCallback):
+        self._write = write
 
-    def hf_reject(self, value: bool):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+        self.mode = TriggerMode(write)
+        self.sweep = TriggerSweep(write)
+        self.coupling = TriggerCoupling(write, "TRIG")
 
-    def hold_off(self, value: number):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def n_reject(self, value: bool):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-
-class TrigSweep:
-    def auto(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def normal(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-
-class TrigLevel:
-    def high(self, value: number):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def low(self, value: number):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-
-class TrigMode:
-    def __init__(self):
-        self.edge = TrigEdge()
-
-
-class TrigEdge(CallableNoArgs):
-    def __init__(self):
-        self.source = TrigSources()
-        self.slope = Slopes()
-
-    def level(self, value: number):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-
-class TrigReject:
-    def off(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def lf(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def hf(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-
-class Slopes:
-    def rising(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def falling(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def alternating(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def either(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def hf_reject(self, value: bool) -> None:
+        self._write(f"TRIG:HFR {int(value)}")
 
 
 class Acquire:
-    def __init__(self):
-        self.mode = AcquireMode()
+    def __init__(self, write: WriteCallback):
+        self._write = write
 
-    def normal(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def normal(self) -> None:
+        self._write(f"ACQ:TYPE NORM")
 
-    def peak_detect(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def peak_detect(self) -> None:
+        self._write(f"ACQ:TYPE PEAK")
 
-    def averaging(self, value: number):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def averaging(self, value) -> None:
+        self._write(f"ACQ:TYPE AVER;:ACQ:COUN {value}")
 
-    def high_resolution(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def high_resolution(self) -> None:
+        self._write(f"ACQ:TYPE HRES")
 
 
-class AcquireMode:
-    def rtim(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+# Yes this sucks...
+class MeasurementBase:
+    def __init__(self, query: QueryAsciiValuesCallback, command: str):
+        self._query = query
+        self._command = command
 
-    def segm(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def ch1(self):
+        return self._query(self._command + " CHAN1")
 
+    def ch2(self):
+        return self._query(self._command + " CHAN2")
 
-class Timebase:
-    def __init__(self):
-        self.mode = TimebaseMode()
+    def ch3(self):
+        return self._query(self._command + " CHAN3")
 
-    def position(self, value: number):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def ch4(self):
+        return self._query(self._command + " CHAN4")
 
-    def scale(self, value: number):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def function(self):
+        return self._query(self._command + " FUNC")
+
+    def math(self):
+        return self._query(self._command + " MATH")
 
 
-class TimebaseMode:
-    def main(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def window(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def xy(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def roll(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+class VAverageMeasurement:
+    def __init__(self, query: QueryAsciiValuesCallback) -> None:
+        self.cycle = MeasurementBase(query, "MEAS:VAV? CYCL,")
+        self.display = MeasurementBase(query, "MEAS:VAV? DISP,")
 
 
-class Events:
-    def trigger(self):
-        """
-        Indicates if a trigger event has occurred.
-        Calls to this will clear the existing trigger events
-        :return:
-        """
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+class VRmsModesMeasurement:
+    def __init__(self, query: QueryAsciiValuesCallback, mode: str) -> None:
+        self.cycle = MeasurementBase(query, f"MEAS:VRMS? CYCL,{mode},")
+        self.display = MeasurementBase(query, f"MEAS:VRMS? DISP,{mode},")
 
 
-class MeasureInterval:
-    def __init__(self):
-        self.cycle = MeasureAllSources()
-        self.display = MeasureAllSources()
+class VRmsMeasurement:
+    def __init__(self, query: QueryAsciiValuesCallback) -> None:
+        self.dc = VRmsModesMeasurement(query, "DC")
+        self.ac = VRmsModesMeasurement(query, "AC")
 
 
-class MeasureIntervalMultipleSources:
-    def __init__(self):
-        self.cycle = MultiMeasureSources()
-        self.display = MultiMeasureSources()
+class SourceSelector:
+    """
+    Retain compatibility of source selection from the old API
+    dso.source1.ch1() for example will set the source1.source = "CHAN1"
+    This is then queried by the two source measurement functions like 'delay'
+    You must set the sources before calling a multi measurement function.
+    """
+
+    def __init__(self, store: dict, source: Literal["source1"] | Literal["source2"]):
+        self._store = store
+        # Name of the source:
+        self.source = source
+
+    def ch1(self) -> None:
+        self._store[self.source] = "CHAN1"
+
+    def ch2(self) -> None:
+        self._store[self.source] = "CHAN2"
+
+    def ch3(self) -> None:
+        self._store[self.source] = "CHAN3"
+
+    def ch4(self) -> None:
+        self._store[self.source] = "CHAN4"
+
+    def function(self) -> None:
+        self._store[self.source] = "FUNC"
+
+    def math(self) -> None:
+        self._store[self.source] = "MATH"
+
+    def wmemory1(self) -> None:
+        self._store[self.source] = "WMEM1"
+
+    def wmemory2(self) -> None:
+        self._store[self.source] = "WMEM2"
 
 
-class MeasureRMS:
-    def __init__(self):
-        self.dc = MeasureInterval()
-        self.ac = MeasureInterval()
+class DefineThreshold:
+    def __init__(self, write: WriteCallback) -> None:
+        self._write = write
 
+    def percent(self, upper, middle, lower) -> None:
+        self._write(f"MEAS:DEF THR,PERC,{upper},{middle},{lower}")
 
-class Threshold:
-    def percent(self, upper: number, middle: number, lower: number):
-        """
-        :param upper: Upper Threshold
-        :param middle: Middle Threshold
-        :param lower: Lower Threshold
-        :return:
-        """
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def absolute(self, upper: number, middle: number, lower: number):
-        """
-        :param upper: Upper Threshold
-        :param middle: Middle Threshold
-        :param lower: Lower Threshold
-        :return:
-        """
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    def absolute(self, upper, middle, lower) -> None:
+        self._write(f"MEAS:DEF THR,ABS,{upper},{middle},{lower}")
 
 
 class Define:
-    def __init__(self):
-        super().__init__()
-        self.threshold = Threshold()
+    def __init__(self, write: WriteCallback) -> None:
+        self.threshold = DefineThreshold(write)
 
 
-class Delay(CallableNoArgs):
-    def __init__(self):
-        super().__init__()
-        self.edges = MultiSlopes()
+class DelayEdges:
+    def __init__(self, write: WriteCallback) -> None:
+        self._write = write
+
+    def rising_rising(self) -> None:
+        self._write("MEAS:DEF DEL, +1, +1")
+
+    def rising_falling(self) -> None:
+        self._write("MEAS:DEF DEL, +1, -1")
+
+    def falling_rising(self) -> None:
+        self._write("MEAS:DEF DEL, -1, +1")
+
+    def falling_falling(self) -> None:
+        self._write("MEAS:DEF DEL, -1, -1")
+
+
+class DelayMeasurement:
+    def __init__(
+        self, write: WriteCallback, query: QueryAsciiValuesCallback, store: dict
+    ) -> None:
+        self._write = write
+        self._query = query
+        self._store = store
+        self.edges = DelayEdges(write)
+
+    def __call__(self) -> float:
+        return self._query(
+            f"MEAS:DEL? {self._store['source1']},{self._store['source2']}"
+        )
+
+
+class VRatioMeasurement:
+    def __init__(self, query: QueryAsciiValuesCallback, store: dict) -> None:
+        self._query = query
+        self._store = store
+
+    def cycle(self) -> float:
+        return self._query(
+            f"MEAS:VRAT? CYCL,{self._store['source1']},{self._store['source2']}"
+        )
+
+    def display(self) -> float:
+        return self._query(
+            f"MEAS:VRAT? DISP,{self._store['source1']},{self._store['source2']}"
+        )
+
+
+class PhaseMeasurement:
+    def __init__(self, query: QueryAsciiValuesCallback, store: dict) -> None:
+        self._query = query
+        self._store = store
+
+    def __call__(self) -> float:
+        return self._query(
+            f"MEAS:PHAS? {self._store['source1']},{self._store['source2']}"
+        )
 
 
 class Measure:
-    def __init__(self):
-        self.counter = MeasureAllSources()
-        self.define = Define()
-        self.delay = Delay()
-        self.duty = MeasureAllSources()
-        self.fall_time = MeasureAllSources()
-        self.rise_time = MeasureAllSources()
-        self.frequency = MeasureAllSources()
-        self.cnt_edge_rising = MeasureAllSources()
-        self.cnt_edge_falling = MeasureAllSources()
-        self.cnt_pulse_positive = MeasureAllSources()
-        self.cnt_pulse_negative = MeasureAllSources()
-        self.period = MeasureAllSources()
-        self.phase = MultiMeasureSources()
-        self.pulse_width = MeasureAllSources()
-        self.vamplitude = MeasureAllSources()
-        self.vaverage = MeasureInterval()
-        self.vbase = MeasureAllSources()
-        self.vtop = MeasureAllSources()
-        self.vmax = MeasureAllSources()
-        self.vmin = MeasureAllSources()
-        self.vpp = MeasureAllSources()
-        self.vratio = MeasureIntervalMultipleSources()
-        self.vrms = MeasureRMS()
-        self.xmax = MeasureAllSources()
-        self.xmin = MeasureAllSources()
+    def __init__(
+        self, write: WriteCallback, query: QueryAsciiValuesCallback, store: dict
+    ) -> None:
+        self.counter = MeasurementBase(query, "MEAS:COUN?")
+        self.duty = MeasurementBase(query, "MEAS:DUTY?")
+        self.fall_time = MeasurementBase(query, "MEAS:FALL?")
+        self.rise_time = MeasurementBase(query, "MEAS:RIS?")
+        self.frequency = MeasurementBase(query, "MEAS:FREQ?")
+        self.cnt_edge_rising = MeasurementBase(query, "MEAS:NEDG?")
+        self.cnt_edge_falling = MeasurementBase(query, "MEAS:PEDG?")
+        self.cnt_pulse_positive = MeasurementBase(query, "MEAS:NPUL?")
+        self.cnt_pulse_negative = MeasurementBase(query, "MEAS:PPUL?")
+        self.period = MeasurementBase(query, "MEAS:PER?")
+        self.pulse_width = MeasurementBase(query, "MEAS:PWID?")
+        self.vamplitude = MeasurementBase(query, "MEAS:VAMP?")
+        self.vbase = MeasurementBase(query, "MEAS:VBAS?")
+        self.vtop = MeasurementBase(query, "MEAS:VTOP?")
+        self.vmax = MeasurementBase(query, "MEAS:VMAX?")
+        self.vmin = MeasurementBase(query, "MEAS:VMIN?")
+        self.vpp = MeasurementBase(query, "MEAS:VPP?")
+        self.xmax = MeasurementBase(query, "MEAS:XMAX?")
+        self.xmin = MeasurementBase(query, "MEAS:XMIN?")
+        # These need a little more construction to match the old API:
+        self.vaverage = VAverageMeasurement(query)
+        self.vrms = VRmsMeasurement(query)
 
-
-class MultiSlopes(CallableNoArgs):
-    def __init__(self):
-        super().__init__()
-        self.rising = Slopes()
-        self.falling = Slopes()
-        self.alternating = Slopes()
-        self.either = Slopes()
+        # Multi source measurements:
+        self.define = Define(write)
+        self.delay = DelayMeasurement(write, query, store)
+        self.phase = PhaseMeasurement(query, store)
+        self.vratio = VRatioMeasurement(query, store)
 
 
 class DSO(metaclass=ABCMeta):
-    REGEX_ID = "DSO"
+    """
+    DSO Base class.
+    You don't know what version of the scope you will get until run time.
+    The regex id is going to be the defining factor as to how many channels the DSO has.
+
+    We can assume for the helper class however that all the functionality is available.
+    On runtime, the correct instrument is then selected and will error if its not implemented.
+    """
+
+    REGEX_ID: str = "DSO"
+    INSTR_TYPE: str = "VISA"
 
     def __init__(self, instrument):
         self.instrument = instrument
         self.samples = 1
-        self.api = []
-        self.ch1 = ChannelBase("1")
-        self.ch2 = ChannelBase("2")
-        self.ch3 = ChannelBase("3")
-        self.ch4 = ChannelBase("4")
-        self.chmath = ChannelBase("math")
-        self.chfunc = ChannelBase("func")
-        self.coupling = Coupling()
-        self.probe = Probe()
-        self.source1 = MultiMeasureSources()
-        self.source2 = MultiMeasureSources()
-        self.trigger = Trigger()
-        self.time_base = Timebase()
-        self.acquire = Acquire()
-        self.measure = Measure()
-        self.events = Events()
+
+        # Callbacks:
+        _write = self._write_cmd
+        _query_after_acquire = self._query_after_acquire_cmd
+        _query_bool = self._query_bool_cmd
+
+        # Retain for compatibility:
+        self._store: dict = {}
+
+        # -------------------------
+        # Construct the API:
+        # -------------------------
+        self.source1 = SourceSelector(self._store, "source1")
+        self.source2 = SourceSelector(self._store, "source2")
+
+        self.ch1 = Channel("1", _write)
+        self.ch2 = Channel("2", _write)
+        self.ch3 = Channel("3", _write)
+        self.ch4 = Channel("4", _write)
+
+        self.time_base = TimeBase(_write)
+
+        self.trigger = Trigger(_write)
+
+        self.acquire = Acquire(_write)
+
+        self.measure = Measure(_write, _query_after_acquire, self._store)
+
+    # Mandatory methods to implement per driver:
+    @abstractmethod
+    def single(self) -> None:
+        """Sets oscilliscope to take a single shot measurement"""
 
     @abstractmethod
-    def acquire(self, acquire_type, averaging_samples):
-        pass
+    def run(self) -> None:
+        """Sets the oscilliscope to run mode"""
 
     @abstractmethod
-    def waveform_values(self, source, filename):
-        pass
+    def stop(self) -> None:
+        """Puts the oscillicope in stop mode"""
 
     @abstractmethod
-    def reset(self):
-        pass
+    def reset(self) -> None:
+        """Resets the oscilliscope"""
 
     @abstractmethod
-    def auto_scale(self):
-        pass
+    def wait_for_acquire(self) -> None:
+        """Block until the current acquisition is complete."""
 
     @abstractmethod
-    def save_setup(self, file_name):
-        pass
+    def get_identity(self) -> str:
+        """Return the IDN string of the device"""
 
     @abstractmethod
-    def load_setup(self, file_name):
-        pass
+    def _check_errors(self) -> tuple[int, str]:
+        """Check the error buffer for errors"""
 
-    @abstractmethod
-    def get_identity(self):
-        pass
+    # Query and write functions:
+    def _write_cmd(self, cmd: str) -> None:
+        """Write a SCPI command and raise on instrument error."""
+        self.instrument.write(cmd)
 
-    def run(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
+    def _query_bool_cmd(self, cmd: str) -> bool:
+        values = self.instrument.query_ascii_values(cmd)
+        self._raise_if_error()
+        return bool(values[0])
+
+    def _query_after_acquire_cmd(self, cmd: str) -> float:
+        """Wait for a complete acquisition then query."""
+        self.wait_for_acquire()
+        try:
+            result = self.instrument.query_ascii_values(cmd)[0]
+        except Exception:
+            self.instrument.close()
+            self.instrument.open()
+            raise
+        return result
+
+    def _raise_if_error(self):
+        errors = []
+        while True:
+            code, msg = self._check_errors()
+            if code != 0:
+                errors.append((code, msg))
+            else:
+                break
+        if errors:
+            raise InstrumentError(
+                "Error(s) Returned from DSO\n"
+                + "\n".join(
+                    ["Code: {}\nMessage:{}".format(code, msg) for code, msg in errors]
+                )
             )
-        )
 
-    def single(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
+    # Context management:
+    def __enter__(self):
+        return self
 
-    def stop(self):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def scale(self, value: number):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def offset(self, value: number):
-        raise InstrumentFeatureUnavailable(
-            "{} not available on this device".format(
-                inspect.currentframe().f_code.co_name
-            )
-        )
-
-    def init_api(self):
-        for func_str, handler, base_str in self.api:
-            *parents, func = func_str.split(".")
-            parent_obj = self
-            for parent in parents:
-                parent_obj = getattr(parent_obj, parent)
-            func_obc = getattr(parent_obj, func)
-            setattr(parent_obj, func, self.prepare_string(func_obc, handler, base_str))
-
-    def prepare_string(self, func, handler, base_str, *args, **kwargs):
-        def temp_func(*nargs, **nkwargs):
-            """
-            Only formats using **nkwargs
-            New Temp
-            :param nargs:
-            :param nkwargs:
-            :return:
-            """
-            sig = inspect.signature(func)
-            keys = [itm[0] for itm in sig.parameters.items()]
-            for index, param in enumerate(nargs):
-                nkwargs[keys[index]] = param
-            # new_str = base_str.format(**nkwargs)
-            # handler(self, new_str)
-            return handler(base_str, **nkwargs)
-
-        return update_wrapper(temp_func, func)
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.instrument.close()
+        self.is_connected = False
