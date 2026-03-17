@@ -1,4 +1,4 @@
-""" Private wrapper for ftdi libmpsse driver. DLL on Windows, .so shared library on *nix.
+"""Private wrapper for ftdi libmpsse driver. DLL on Windows, .so shared library on *nix.
 This is wrapped privately so it can be ommitted from the documentation build.
 """
 
