@@ -448,3 +448,13 @@ def open(ftdi_description="") -> FTDI2xx:
     raise InstrumentNotConnected(
         f"No valid ftdi found by description '{ftdi_description}'"
     )
+
+
+from fixate.drivers.ftdi._ftdi_mpsse import (  # noqa: I001 - we don't want these imports to be split up
+    I2CTransferOptions as I2CTransferOptions,
+    I2CClockRate as I2CClockRate,
+    I2CChannelConfig as I2CChannelConfig,
+    MpsseI2C as MpsseI2C,
+    MpsseI2CSimpleInterface as MpsseI2CSimpleInterface,
+    open as open_mpsse,  # explicitly named to avoid conflict with open() at ftdi level.  # noqa: F401
+)
