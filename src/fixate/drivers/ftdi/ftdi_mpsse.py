@@ -11,6 +11,7 @@ from fixate.drivers.ftdi._libmpsse import libmpsse
 
 # For more information see https://ftdichip.com/wp-content/uploads/2020/08/AN_177_User_Guide_For_LibMPSSE-I2C-1.pdf
 # Additionally, the source code for libMPSSE is available as part of this download: https://ftdichip.com/wp-content/uploads/2025/08/libmpsse-windows-1.0.8.zip
+# This source code has been edited to include an method to open by description, which didn't come in the box.
 
 DWORD = ctypes.c_ulong
 UCHAR = ctypes.c_ubyte
