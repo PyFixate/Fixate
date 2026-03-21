@@ -130,11 +130,11 @@ def pubsub_logs():
     return PubSubSnooper()
 
 
-def abort_on_prompt(msg, q, choices=None, target=None, attempts=5, kwargs=None):
+def abort_on_prompt(msg, q, choices):
     q.put(("ABORT"))
 
 
-def fail_on_prompt(msg, q, choices=None, target=None, attempts=5, kwargs=None):
+def fail_on_prompt(msg, q, choices):
     q.put(("FAIL"))
 
 
@@ -151,7 +151,10 @@ def sequencer():
     pub.unsubscribe(abort_on_prompt, "UI_req_choices")
 
     fixate.config.RESOURCES["SEQUENCER"] = seq
-    return fixate.config.RESOURCES["SEQUENCER"]
+    yield fixate.config.RESOURCES["SEQUENCER"]
+
+    # clean things up for other tests.
+    pub.unsubscribe(fail_on_prompt, "UI_req_choices")
 
 
 @pytest.fixture
