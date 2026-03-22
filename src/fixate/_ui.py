@@ -4,7 +4,7 @@ actual implementation of the UI and provides a standard set of functions used
 to obtain or display information from/to the user.
 """
 
-from typing import Callable, Any, Literal
+from typing import Callable, Literal, TypeVar, Generic
 from queue import Queue, Empty
 from enum import StrEnum
 import time
@@ -16,12 +16,15 @@ from fixate.core.exceptions import UserInputError
 from collections import OrderedDict
 
 
-class Validator:
+T = TypeVar("T")
+
+
+class Validator(Generic[T]):
     """
     Defines a validator object that can be used to validate user input.
     """
 
-    def __init__(self, func: Callable[[Any], bool], errror_msg: str = "Invalid input"):
+    def __init__(self, func: Callable[[T], bool], errror_msg: str = "Invalid input"):
         """
         Args:
             func (function): The function to validate the input
@@ -30,7 +33,7 @@ class Validator:
         self.func = func
         self.error_msg = errror_msg
 
-    def __call__(self, resp: Any) -> bool:
+    def __call__(self, resp: T) -> bool:
         """
         Args:
             resp (Any): The response to validate
@@ -56,7 +59,7 @@ class UiColour(StrEnum):
     GREY = "grey"
 
 
-def _user_request_input(msg: str):
+def _user_request_input(msg: str) -> str:
     q: Queue[str] = Queue()
     pub.sendMessage("UI_block_start")
     pub.sendMessage("UI_req_input", msg=msg, q=q)
@@ -141,10 +144,8 @@ def user_serial(
     raise UserInputError("User failed to enter the correct format serial number")
 
 
-def _user_req_choices(msg: str, choices: tuple):
-    # TODO - do we really need this check since this is a private function and any callers should be calling correctly
-    if len(choices) < 2:
-        raise ValueError(f"Requires at least two choices to work, {choices} provided")
+def _user_req_choices(msg: str, choices: tuple[str, ...]) -> str:
+    assert len(choices) >= 2, "There must be at least 2 choices"
     q: Queue[str] = Queue()
     pub.sendMessage("UI_block_start")
     pub.sendMessage("UI_req_choices", msg=msg, q=q, choices=choices)
@@ -153,14 +154,14 @@ def _user_req_choices(msg: str, choices: tuple):
     return resp
 
 
-def _choice_from_response(choices: tuple, resp: str) -> str | Literal[False]:
+def _choice_from_response(choices: tuple[str, ...], resp: str) -> str | Literal[False]:
     for choice in choices:
         if resp.startswith(choice[0]):
             return choice
     return False
 
 
-def _user_choices(msg: str, choices: tuple, attempts: int = 5) -> str:
+def _user_choices(msg: str, choices: tuple[str, ...], attempts: int = 5) -> str:
     resp = _user_req_choices(msg, choices).upper()
     for _ in range(attempts):
         choice = _choice_from_response(choices, resp)

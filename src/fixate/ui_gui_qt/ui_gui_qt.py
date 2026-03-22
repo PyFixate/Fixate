@@ -692,14 +692,19 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
     """UI Callables, called from the sequencer thread"""
 
-    def reformat_text(self, text_str, first_line_fill="", subsequent_line_fill=""):
+    def _reformat_text(self, text_str, first_line_fill="", subsequent_line_fill=""):
         lines = []
+        _wrapper_initial_indent = wrapper.initial_indent
+        _wrapper_subsequent_indent = wrapper.subsequent_indent
         wrapper.initial_indent = first_line_fill
         wrapper.subsequent_indent = subsequent_line_fill
         for ind, line in enumerate(text_str.splitlines()):
             if ind != 0:
                 wrapper.initial_indent = subsequent_line_fill
             lines.append(wrapper.fill(line))
+        # now that we've created the lines, put the original wrapper settings back
+        wrapper.initial_indent = _wrapper_initial_indent
+        wrapper.subsequent_indent = _wrapper_subsequent_indent
         return "\n".join(lines)
 
     def _topic_UI_action(self, msg, callback_obj):
@@ -746,9 +751,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
     def _topic_UI_req_choices(self, msg, q, choices):
         if self.closing:
-            # I don't think the result of this code ever gets used, nothing looking for "ABORT_FORCE"
-            # unpacks from a tuple. This can probably be deleted.
-            q.put(("Result", "ABORT_FORCE"))
+            q.put(("ABORT_FORCE"))
             return
 
         ret_val = self._gui_user_input(msg, choices)
@@ -756,12 +759,10 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
     def _topic_UI_req_input(self, msg, q):
         if self.closing:
-            # I don't think the result of this code ever gets used, nothing looking for "ABORT_FORCE"
-            # unpacks from a tuple. This can probably be deleted.
-            q.put(("Result", "ABORT_FORCE"))
+            q.put(("ABORT_FORCE"))
             return
 
-        msg = self.reformat_text(msg)
+        msg = self._reformat_text(msg)
         ret_val = self._gui_user_input(msg, None)
         q.put(ret_val)
 
@@ -772,8 +773,8 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         """
         if self.closing:
             return
-        self.sig_active_update.emit(self.reformat_text(msg))
-        self.sig_history_update.emit(self.reformat_text(msg))
+        self.sig_active_update.emit(self._reformat_text(msg))
+        self.sig_history_update.emit(self._reformat_text(msg))
 
     def _topic_UI_display_important(self, msg, colour="red", bg_colour="white"):
         """
@@ -785,11 +786,11 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         txt_fill = "!" * wrapper.width
 
-        # Hisotry window
+        # History window
         self.sig_history_update.emit("")
         self.sig_history_update.emit(txt_fill)
         self.sig_history_update.emit("")
-        self.sig_history_update.emit(self.reformat_text(msg))
+        self.sig_history_update.emit(self._reformat_text(msg))
         self.sig_history_update.emit("")
         self.sig_history_update.emit(txt_fill)
 
@@ -797,7 +798,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_active_update.emit(
             f"<span style='color:{colour};background-color:{bg_colour}'>{txt_fill}</span>"
         )
-        self.sig_active_update.emit(self.reformat_text(msg))
+        self.sig_active_update.emit(self._reformat_text(msg))
         self.sig_active_update.emit(
             f"<span style='color:{colour};background-color:{bg_colour}'>{txt_fill}</span>"
         )
@@ -820,15 +821,15 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             for msg, state in post_sequence_info.items():
                 if status == "PASSED":
                     if state == "PASSED" or state == "ALL":
-                        self.sig_history_update.emit(self.reformat_text(msg))
-                        self.sig_active_update.emit(self.reformat_text(msg))
+                        self.sig_history_update.emit(self._reformat_text(msg))
+                        self.sig_active_update.emit(self._reformat_text(msg))
                 elif state != "PASSED":
-                    self.sig_history_update.emit(self.reformat_text(msg))
-                    self.sig_active_update.emit(self.reformat_text(msg))
+                    self.sig_history_update.emit(self._reformat_text(msg))
+                    self.sig_active_update.emit(self._reformat_text(msg))
 
         self.sig_history_update.emit("-" * wrapper.width)
-        self.sig_history_update.emit(self.reformat_text("Status: {}".format(status)))
-        self.sig_active_update.emit(self.reformat_text("Status: {}".format(status)))
+        self.sig_history_update.emit(self._reformat_text("Status: {}".format(status)))
+        self.sig_active_update.emit(self._reformat_text("Status: {}".format(status)))
         self.sig_history_update.emit("#" * wrapper.width)
 
     def _print_test_start(self, data, test_index):
@@ -838,7 +839,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_progress.emit()
         self.sig_history_update.emit("*" * wrapper.width)
         self.sig_history_update.emit(
-            self.reformat_text("Test {}: {}".format(test_index, data.test_desc))
+            self._reformat_text("Test {}: {}".format(test_index, data.test_desc))
         )
         self.sig_history_update.emit("-" * wrapper.width)
         self.sig_label_update.emit(test_index, data.test_desc)
@@ -860,14 +861,14 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         sequencer = RESOURCES["SEQUENCER"]
         self.sig_history_update.emit("-" * wrapper.width)
         self.sig_history_update.emit(
-            self.reformat_text(
+            self._reformat_text(
                 "Checks passed: {}, Checks failed: {}".format(
                     sequencer.chk_pass, sequencer.chk_fail
                 )
             )
         )
         self.sig_history_update.emit(
-            self.reformat_text("Test {}: {}".format(test_index, status.upper()))
+            self._reformat_text("Test {}: {}".format(test_index, status.upper()))
         )
         self.sig_history_update.emit("-" * wrapper.width)
 
@@ -891,7 +892,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             return
 
         self.sig_history_update.emit(
-            self.reformat_text("\nTest {}: Retry".format(test_index))
+            self._reformat_text("\nTest {}: Retry".format(test_index))
         )
 
     def _topic_Test_Exception(self, exception, test_index):
@@ -906,14 +907,14 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_history_update.emit("!" * wrapper.width)
         self.sig_active_update.emit("!" * wrapper.width)
         self.sig_history_update.emit(
-            self.reformat_text(
+            self._reformat_text(
                 "Test {}: Exception Occurred, {} {}".format(
                     test_index, type(exception), exception
                 )
             )
         )
         self.sig_active_update.emit(
-            self.reformat_text(
+            self._reformat_text(
                 "Test {}: Exception Occurred, {} {}".format(
                     test_index, type(exception), exception
                 )
@@ -926,7 +927,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             traceback.print_tb(exception.__traceback__, file=sys.stderr)
 
     def _topic_Check(self, passes: bool, chk: CheckResult, chk_cnt: int, context: str):
-        msg = self.reformat_text(f"\nCheck {chk_cnt}: " + chk.check_string)
+        msg = self._reformat_text(f"\nCheck {chk_cnt}: " + chk.check_string)
         self.sig_history_update.emit(msg)
         if not chk.result:
             self.sig_active_update.emit(msg)

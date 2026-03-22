@@ -50,7 +50,7 @@ def _user_req_input(msg, target=None, attempts=5, **kwargs):
     )
 
 
-def _user_req_choices(msg, choices, target=None, attempts=5):
+def _user_req_choices(msg, choices, target, attempts=5):
     """
     A blocking function that waits for the user returned values
     :param msg:

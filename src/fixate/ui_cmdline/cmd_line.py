@@ -225,7 +225,7 @@ def _print_sequence_end(status, passed, failed, error, skipped, sequence_status)
                 print(_reformat_text(msg))
 
     print("-" * wrapper.width)
-    print(_reformat_text(f"Status: {state}"))
+    print(_reformat_text(f"Status: {status}"))
     print("#" * wrapper.width)
     print("\a")
 
