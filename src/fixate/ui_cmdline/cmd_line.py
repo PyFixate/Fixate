@@ -5,7 +5,6 @@ import textwrap
 from pubsub import pub
 from fixate.ui_cmdline.kbhit import KBHit
 from queue import Queue
-from fixate.core.exceptions import UserInputError
 from fixate.core.common import ExcThread
 from fixate.core.checks import CheckResult
 from fixate.config import RESOURCES
