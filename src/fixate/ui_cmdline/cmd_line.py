@@ -166,7 +166,7 @@ def _user_input(msg, q):
     Get raw user input and put in on the queue.
     """
     initial_indent = ">>> "
-    subsequent_indent = "    "  # TODO - determine is this is needed
+    subsequent_indent = "    "  # TODO - determine if this is needed
     print("\a")
     resp = input(_reformat_text(msg, initial_indent, subsequent_indent) + "\n>>> ")
     q.put(resp)
@@ -210,8 +210,7 @@ def _user_image_or_gif(path, caller):
 
 def _print_sequence_end(status, passed, failed, error, skipped, sequence_status):
     print("#" * wrapper.width)
-    print(_reformat_text("Sequence {}".format(sequence_status)))
-    # print("Sequence {}".format(sequence_status))
+    print(_reformat_text(f"Sequence {sequence_status}"))
     post_sequence_info = RESOURCES["SEQUENCER"].context_data.get(
         "_post_sequence_info", {}
     )
@@ -226,17 +225,14 @@ def _print_sequence_end(status, passed, failed, error, skipped, sequence_status)
                 print(_reformat_text(msg))
 
     print("-" * wrapper.width)
-    # reformat_text
-    print(_reformat_text("Status: {}".format(status)))
-    # print("Status: {}".format(status))
+    print(_reformat_text(f"Status: {state}"))
     print("#" * wrapper.width)
     print("\a")
 
 
 def _print_test_start(data, test_index):
     print("*" * wrapper.width)
-    print(_reformat_text("Test {}: {}".format(test_index, data.test_desc)))
-    # print("Test {}: {}".format(test_index, data.test_desc))
+    print(_reformat_text(f"Test {test_index}: {data.test_desc}"))
     print("-" * wrapper.width)
 
 
@@ -245,14 +241,10 @@ def _print_test_complete(data, test_index, status):
     print("-" * wrapper.width)
     print(
         _reformat_text(
-            "Checks passed: {}, Checks failed: {}".format(
-                sequencer.chk_pass, sequencer.chk_fail
-            )
+            f"Checks passed: {sequencer.chk_pass}, Checks failed: {sequencer.chk_fail}"
         )
     )
-    # print("Checks passed: {}, Checks failed: {}".format(sequencer.chk_pass, sequencer.chk_fail))
-    print(_reformat_text("Test {}: {}".format(test_index, status.upper())))
-    # print("Test {}: {}".format(test_index, status.upper()))
+    print(_reformat_text(f"Test {test_index}: {status.upper()}"))
     print("-" * wrapper.width)
 
 
@@ -261,7 +253,7 @@ def _print_test_skip(data, test_index):
 
 
 def _print_test_retry(data, test_index):
-    print(_reformat_text("\nTest {}: Retry".format(test_index)))
+    print(_reformat_text(f"\nTest {test_index}: Retry"))
 
 
 def _print_errors(exception, test_index):
@@ -269,12 +261,9 @@ def _print_errors(exception, test_index):
     print("!" * wrapper.width)
     print(
         _reformat_text(
-            "Test {}: Exception Occurred, {} {}".format(
-                test_index, type(exception), exception
-            )
+            f"Test {test_index}: Exception Occurred, {type(exception)} {exception}"
         )
     )
-    # print("Test {}: Exception Occurred, {} {}".format(test_index, type(exception), exception))
     print("!" * wrapper.width)
     # TODO print traceback into a debug log file
     if fixate.config.DEBUG:
