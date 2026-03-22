@@ -12,7 +12,7 @@ from pubsub import pub
 import fixate.config
 from fixate.config import RESOURCES
 from fixate.core.checks import CheckResult
-from fixate.core.exceptions import UserInputError, SequenceAbort
+from fixate.core.exceptions import SequenceAbort
 from . import layout
 
 logger = logging.getLogger(__name__)
