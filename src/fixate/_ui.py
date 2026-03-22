@@ -4,7 +4,7 @@ actual implementation of the UI and provides a standard set of functions used
 to obtain or display information from/to the user.
 """
 
-from typing import Callable, Any
+from typing import Callable, Any, Literal
 from queue import Queue, Empty
 from enum import StrEnum
 import time
@@ -57,7 +57,7 @@ class UiColour(StrEnum):
 
 
 def _user_request_input(msg: str):
-    q = Queue()
+    q: Queue[str] = Queue()
     pub.sendMessage("UI_block_start")
     pub.sendMessage("UI_req_input", msg=msg, q=q)
     resp = q.get()
@@ -116,9 +116,9 @@ _ten_digit_int_serial_v = Validator(
 def user_serial(
     msg: str,
     validator: Validator = _ten_digit_int_serial_v,
-    return_type: int | str = int,
+    return_type: type[int] | type[str] = int,
     attempts: int = 5,
-) -> Any:
+) -> int | str:
     """
     A blocking function that asks the UI to ask the user for a serial number.
 
@@ -145,7 +145,7 @@ def _user_req_choices(msg: str, choices: tuple):
     # TODO - do we really need this check since this is a private function and any callers should be calling correctly
     if len(choices) < 2:
         raise ValueError(f"Requires at least two choices to work, {choices} provided")
-    q = Queue()
+    q: Queue[str] = Queue()
     pub.sendMessage("UI_block_start")
     pub.sendMessage("UI_req_choices", msg=msg, q=q, choices=choices)
     resp = q.get()
@@ -153,7 +153,7 @@ def _user_req_choices(msg: str, choices: tuple):
     return resp
 
 
-def _choice_from_response(choices: tuple, resp: str) -> str | bool:
+def _choice_from_response(choices: tuple, resp: str) -> str | Literal[False]:
     for choice in choices:
         if resp.startswith(choice[0]):
             return choice
@@ -164,6 +164,8 @@ def _user_choices(msg: str, choices: tuple, attempts: int = 5) -> str:
     resp = _user_req_choices(msg, choices).upper()
     for _ in range(attempts):
         choice = _choice_from_response(choices, resp)
+        # because of how _choice_from_response works, choice will only be False if the user provided an invalid response
+        # which is only possible in the command line UI, otherwise choice will be one of the responses.
         if choice:
             return choice
         pub.sendMessage(
