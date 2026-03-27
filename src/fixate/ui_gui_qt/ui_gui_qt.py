@@ -784,7 +784,9 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.closing:
             return
 
-        txt_fill = "!" * wrapper.width
+        # include a factor because the width of the ! is less than most characters.
+        # this does slightly mess up how it displays in the history tab though...
+        txt_fill = "!" * int(wrapper.width * 1.3)
 
         # History window
         self.sig_history_update.emit("")
