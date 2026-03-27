@@ -25,6 +25,8 @@ Improvements
 - Created a new FixateError base class for all exceptions raised by fixate to use. It inherits from Exception instead of BaseExcepetion to improve error handling.
 - DSO Driver function 'waveform_values' now returns a single channels x and y data as two separate lists, without re-acquiring the signal. This function should
   now be called after performing signal acquisition.
+- UI has been revamped a little. User input methods will no longer return ("Resp", value) but will return just the value - see Issue #177. To use these, from fixate import user_info etc.
+- Fixed a bug where falsy values such as 0 or 0.0 were not accepted as valid user input - see Issue #213
 
 *************
 Version 0.6.4
