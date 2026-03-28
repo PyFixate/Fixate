@@ -27,6 +27,7 @@ Improvements
   now be called after performing signal acquisition.
 - UI has been revamped a little. User input methods will no longer return ("Resp", value) but will return just the value - see Issue #177. To use these, from fixate import user_info etc.
 - Fixed a bug where falsy values such as 0 or 0.0 were not accepted as valid user input - see Issue #213
+- Invert channel and vtime funcitons implemented in the DSO driver.
 
 *************
 Version 0.6.4
