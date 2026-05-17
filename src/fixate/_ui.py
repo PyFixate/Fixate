@@ -4,7 +4,7 @@ actual implementation of the UI and provides a standard set of functions used
 to obtain or display information from/to the user.
 """
 
-from typing import Callable, Literal, TypeVar, Generic
+from typing import Callable, Literal
 from queue import Queue, Empty
 from enum import StrEnum
 import time
@@ -16,22 +16,19 @@ from fixate.core.exceptions import UserInputError
 from collections import OrderedDict
 
 
-T = TypeVar("T")
-
-
-class Validator(Generic[T]):
+class Validator[T]:
     """
     Defines a validator object that can be used to validate user input.
     """
 
-    def __init__(self, func: Callable[[T], bool], errror_msg: str = "Invalid input"):
+    def __init__(self, func: Callable[[T], bool], error_msg: str = "Invalid input"):
         """
         Args:
             func (function): The function to validate the input
             error_msg (str): The message to display if the input is invalid
         """
         self.func = func
-        self.error_msg = errror_msg
+        self.error_msg = error_msg
 
     def __call__(self, resp: T) -> bool:
         """
@@ -95,15 +92,14 @@ def user_input_float(msg: str, attempts: int = 5) -> float:
     Raises:
         UserInputError: If the user fails to enter a number after the specified number of attempts
     """
-    resp = _user_request_input(msg)
     for _ in range(attempts):
+        resp = _user_request_input(msg)
         try:
             return float(resp)
         except ValueError:
             pub.sendMessage(
                 "UI_display_important", msg="Invalid input, please enter a number"
             )
-            resp = _user_request_input(msg)
     raise UserInputError("User failed to enter a number")
 
 
@@ -135,12 +131,11 @@ def user_serial(
     Returns:
         resp (str): The user response from the UI
     """
-    resp = _user_request_input(msg)
     for _ in range(attempts):
+        resp = _user_request_input(msg)
         if validator(resp):
             return return_type(resp)
         pub.sendMessage("UI_display_important", msg=f"Invalid input: {validator}")
-        resp = _user_request_input(msg)
     raise UserInputError("User failed to enter the correct format serial number")
 
 
@@ -156,14 +151,14 @@ def _user_req_choices(msg: str, choices: tuple[str, ...]) -> str:
 
 def _choice_from_response(choices: tuple[str, ...], resp: str) -> str | Literal[False]:
     for choice in choices:
-        if resp.startswith(choice[0]):
+        if choice.startswith(resp):
             return choice
     return False
 
 
 def _user_choices(msg: str, choices: tuple[str, ...], attempts: int = 5) -> str:
-    resp = _user_req_choices(msg, choices).upper()
     for _ in range(attempts):
+        resp = _user_req_choices(msg, choices).upper()
         choice = _choice_from_response(choices, resp)
         # because of how _choice_from_response works, choice will only be False if the user provided an invalid response
         # which is only possible in the command line UI, otherwise choice will be one of the responses.
@@ -173,7 +168,6 @@ def _user_choices(msg: str, choices: tuple[str, ...], attempts: int = 5) -> str:
             "UI_display_important",
             msg="Invalid input, please enter a valid choice; first letter or full word",
         )
-        resp = _user_req_choices(msg, choices).upper()
     raise UserInputError("User failed to enter a valid response")
 
 
@@ -191,7 +185,8 @@ def user_yes_no(msg: str, attempts: int = 1) -> str:
     return _user_choices(msg, CHOICES, attempts)
 
 
-def _user_retry_abort_fail(msg: str, attempts: int = 1) -> str:
+def user_retry_abort_fail(msg: str, attempts: int = 1) -> str:
+    """This should only ever be used by the sequencer, as such is should never be included in the public API via src/fixate/__init__.py"""
     CHOICES = ("RETRY", "ABORT", "FAIL")
     return _user_choices(msg, CHOICES, attempts)
 
@@ -228,29 +223,35 @@ def user_action(msg: str, action_monitor: Callable[[], bool]) -> bool:
     Returns:
         bool: True if the action is finished, False otherwise
     """
+
     # UserActionCallback is used to handle the cancellation of the action either by the user or by the action itself
     class UserActionCallback:
         def __init__(self):
             # The UI implementation must provide queue.Queue object. We
             # monitor that object. If it is non-empty, we get the message
             # in the q and cancel the target call.
-            self.user_cancel_queue = None
+            self.user_cancel_queue: Queue | None = None
 
             # In the case that the target exits the user action instead
             # of the user, we need to tell the UI to do any clean up that
             # might be required. (e.g. return GUI buttons to the default state
             # Does not need to be implemented by the UI.
             # Function takes no args and should return None.
-            self.target_finished_callback = lambda: None
+            self.target_finished_callback: Callable[[], None] = lambda: None
 
-        def set_user_cancel_queue(self, cancel_queue):
+        def set_user_cancel_queue(self, cancel_queue: Queue):
             self.user_cancel_queue = cancel_queue
 
-        def set_target_finished_callback(self, callback):
+        def set_target_finished_callback(self, callback: Callable[[], None]):
             self.target_finished_callback = callback
 
     callback_obj = UserActionCallback()
     pub.sendMessage("UI_action", msg=msg, callback_obj=callback_obj)
+    # at this point we should have a cancel queue and a target finished callback, if not, the developer has not implemented the UI_action topic correctly.
+    assert (
+        callback_obj.user_cancel_queue is not None
+        and callback_obj.target_finished_callback is not None
+    ), "user_cancel_queue and target_finished_callback must be set in the UI call for UI_action topic"
     try:
         while True:
             try:

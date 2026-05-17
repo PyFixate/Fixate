@@ -721,7 +721,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         monitoring failure.
         :param msg: Information for the user
         :param callback_obj:
-         callback_obj used to communicate back to the user_action call in ui.py.
+         The callback object to handle user canncellation or target completion. This is a UserActionCallback object as defined in fixate._ui.user_action.
         :return: None
         """
 

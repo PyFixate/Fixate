@@ -131,10 +131,8 @@ def _user_action(msg, callback_obj):
     system is automatically monitoring for success but has no way of monitoring failure.
     :param msg:
      Information for the user
-    :param q:
-     The queue object to put false if the user fails the test
-    :param abort:
-     The queue object to abort this monitoring as the test has already passed.
+    :param callback_obj:
+     The callback object to handle user canncellation or target completion. This is a UserActionCallback object as defined in fixate._ui.user_action.
     :return:
     None
     """

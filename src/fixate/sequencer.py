@@ -4,7 +4,7 @@ import re
 from pubsub import pub
 from fixate.core.common import TestList, TestClass
 from fixate.core.exceptions import SequenceAbort, CheckFail
-from fixate._ui import _user_retry_abort_fail
+from fixate._ui import user_retry_abort_fail
 from fixate.core.checks import CheckResult
 from fixate.reporting import CSVWriter
 import logging
@@ -404,7 +404,7 @@ class Sequencer:
 
         if self.non_interactive:
             return False
-        resp = _user_retry_abort_fail(msg="")
+        resp = user_retry_abort_fail(msg="")
         if resp == "ABORT":
             raise SequenceAbort("Sequence Aborted By User")
         else:
