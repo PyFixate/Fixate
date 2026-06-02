@@ -6,15 +6,18 @@ import time
 
 load_config()  # Load fixate config file
 
+
 @pytest.mark.drivertest
 def test_open_dcload():
     opened = fixate.drivers.dcload.open()
     assert opened, "Could not open DCLoad"
 
+
 @pytest.mark.drivertest
 def test_get_identity(dcload):
     iden = dcload.get_identity()
     assert "DL3021" in iden
+
 
 @pytest.mark.drivertest
 def test_enable_load(dcload):
@@ -25,13 +28,17 @@ def test_enable_load(dcload):
     dcload.set_enabled(False)
     assert dcload.get_enabled() is False, "Load should be OFF"
 
+
 @pytest.mark.drivertest
-@pytest.mark.parametrize("mode, expected", [
-    (Mode.CONSTANT_CURRENT, "CC"),
-    (Mode.CONSTANT_VOLTAGE, "CV"),
-    (Mode.CONSTANT_RESISTANCE, "CR"),
-    (Mode.CONSTANT_POWER, "CP"),
-])
+@pytest.mark.parametrize(
+    "mode, expected",
+    [
+        (Mode.CONSTANT_CURRENT, "CC"),
+        (Mode.CONSTANT_VOLTAGE, "CV"),
+        (Mode.CONSTANT_RESISTANCE, "CR"),
+        (Mode.CONSTANT_POWER, "CP"),
+    ],
+)
 def test_set_mode(dcload, mode, expected):
     """
     Verify that set_mode correctly sets the instrument mode.
@@ -39,16 +46,17 @@ def test_set_mode(dcload, mode, expected):
     dcload.set_mode(mode)
     actual = dcload.get_mode()
 
-    assert actual == expected, \
-        f"Expected {expected}, got {actual}"
-    
+    assert actual == expected, f"Expected {expected}, got {actual}"
+
     dcload.set_enabled(False)
 
 
 @pytest.mark.drivertest
 @pytest.mark.parametrize(
     "min_current, max_current, num_steps, duration",
-    [(0.0, 1.0, 6, 2),]
+    [
+        (0.0, 1.0, 6, 2),
+    ],
 )
 def test_set_current(dcload, min_current, max_current, num_steps, duration):
     # Generate evenly spaced current values (inclusive)
@@ -69,10 +77,10 @@ def test_set_current(dcload, min_current, max_current, num_steps, duration):
         time.sleep(duration)
         setpoint = float(dcload.get_current())
 
-        assert abs(setpoint - current) < 1e-3, \
-            f"Expected {current}A, got {setpoint}A"
+        assert abs(setpoint - current) < 1e-3, f"Expected {current}A, got {setpoint}A"
 
     dcload.set_enabled(False)
+
 
 @pytest.mark.drivertest
 def test_reset(dcload):

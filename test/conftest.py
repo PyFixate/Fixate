@@ -45,6 +45,7 @@ def dmm():
 
     yield dmm
 
+
 @pytest.fixture()
 def dcload():
     from drivers.J413 import dm
@@ -55,6 +56,7 @@ def dcload():
         assert False, "Could not open DCLoad."
 
     yield dcload
+
 
 @pytest.fixture()
 def pps():

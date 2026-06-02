@@ -34,7 +34,7 @@ class DriverManager:
             self._dmm = dmm.open()
             self._dmm.instrument.timeout = 7000
         return self._dmm
-    
+
     @property
     def dcload(self):
         if self._dcload is None:

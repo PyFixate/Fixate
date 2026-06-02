@@ -5,6 +5,7 @@ Abstract class for DC electronic load drivers.
 Aims to be reusable so that if new electronic load p/n's are added, they can be used with minimal effort. 
 """
 
+
 class DCLoad(Protocol):
     REGEX_ID: str
 
