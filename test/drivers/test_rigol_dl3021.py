@@ -1,26 +1,28 @@
+import time
 import pytest
 from fixate.config import load_config
 import fixate.drivers.dcload
-from fixate.drivers.dcload.rigol_dl3021 import Mode
-import time
 
 load_config()  # Load fixate config file
 
 
 @pytest.mark.drivertest
 def test_open_dcload():
+    """Test that we can open a connection to the DC load."""
     opened = fixate.drivers.dcload.open()
     assert opened, "Could not open DCLoad"
 
 
 @pytest.mark.drivertest
 def test_get_identity(dcload):
+    """Test that we can get the identity string from the DC load."""
     iden = dcload.get_identity()
     assert "DL3021" in iden
 
 
 @pytest.mark.drivertest
 def test_enable_load(dcload):
+    """Test that we can enable and disable the load."""
     # Turn load ON
     dcload.set_enabled(True)
     assert dcload.get_enabled() is True, "Load should be ON"
@@ -33,16 +35,14 @@ def test_enable_load(dcload):
 @pytest.mark.parametrize(
     "mode, expected",
     [
-        (Mode.CONSTANT_CURRENT, "CC"),
-        (Mode.CONSTANT_VOLTAGE, "CV"),
-        (Mode.CONSTANT_RESISTANCE, "CR"),
-        (Mode.CONSTANT_POWER, "CP"),
+        ("CONSTANT_CURRENT", "CC"),
+        ("CONSTANT_VOLTAGE", "CV"),
+        ("CONSTANT_RESISTANCE", "CR"),
+        ("CONSTANT_POWER", "CP"),
     ],
 )
 def test_set_mode(dcload, mode, expected):
-    """
-    Verify that set_mode correctly sets the instrument mode.
-    """
+    """Verify that set_mode correctly sets the instrument mode."""
     dcload.set_mode(mode)
     actual = dcload.get_mode()
 
@@ -59,6 +59,7 @@ def test_set_mode(dcload, mode, expected):
     ],
 )
 def test_set_current(dcload, min_current, max_current, num_steps, duration):
+    """Test setting the current on the DC load."""
     # Generate evenly spaced current values (inclusive)
     if num_steps == 1:
         currents = [min_current]
@@ -67,7 +68,7 @@ def test_set_current(dcload, min_current, max_current, num_steps, duration):
         currents = [min_current + i * step for i in range(num_steps)]
 
     # Set mode and range
-    dcload.set_mode(Mode.CONSTANT_CURRENT)
+    dcload.set_mode("CONSTANT_CURRENT")
     max_current_val = max(currents)
     dcload.set_current_range(max_current_val + 0.5)
     dcload.set_enabled(True)
@@ -84,6 +85,7 @@ def test_set_current(dcload, min_current, max_current, num_steps, duration):
 
 @pytest.mark.drivertest
 def test_reset(dcload):
+    """Test that resetting the instrument clears errors."""
     dcload.reset()
     query = dcload.query("SYST:ERR?")
     assert '0,"No error"' == query.strip()
