@@ -13,7 +13,7 @@ class DCLoad(Protocol):
         ...
 
     def reset(self) -> None:
-        # Reset the instrument to a known state. For example, this might be called in a fixture finalizer to ensure the instrument is left in a safe state.
+        # Reset the instrument to a known state.
         ...
 
     def get_identity(self) -> str:
