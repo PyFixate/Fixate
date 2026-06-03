@@ -12,16 +12,16 @@ class RigolDL3021(DCLoad):
     def __init__(self, instrument: Any) -> None:
         self.instrument = instrument
         self.instrument.timeout = 1000
-        self._set_current_range = None
+        self._set_current_range: float | None = None
 
-    def write(self, command: str) -> None:
+    def _write(self, command: str) -> None:
         """Write a command to the instrument."""
         try:
             self.instrument.write(command)
         except Exception as e:
             raise InstrumentError(f"Error writing to instrument: {e}") from e
 
-    def query(self, command: str) -> str:
+    def _query(self, command: str) -> str:
         """Query the instrument and return the response."""
         try:
             return self.instrument.query(command)
@@ -30,44 +30,44 @@ class RigolDL3021(DCLoad):
 
     def reset(self) -> None:
         """Reset the instrument to default factory settings."""
-        self.write("*RST")
+        self._write("*RST")
 
     def get_identity(self) -> str:
         """Finds the instrument's manufacturer, model number, serial number, and firmware version."""
-        return self.query("*IDN?").strip()
+        return self._query("*IDN?").strip()
 
     def set_mode(self, mode: Mode) -> None:
         """Set the mode of the load (for example, constant current, constant voltage, etc.)."""
-        if mode == "CONSTANT_CURRENT":
+        if mode == "constant_current":
             scpi_mode = "CURR"
-        elif mode == "CONSTANT_VOLTAGE":
+        elif mode == "constant_voltage":
             scpi_mode = "VOLT"
-        elif mode == "CONSTANT_RESISTANCE":
+        elif mode == "constant_resistance":
             scpi_mode = "RES"
-        elif mode == "CONSTANT_POWER":
+        elif mode == "constant_power":
             scpi_mode = "POW"
         else:
             raise ParameterError(f"Invalid mode: {mode}")
 
-        return self.write(f":SOUR:FUNC {scpi_mode}")
+        return self._write(f":SOUR:FUNC {scpi_mode}")
 
-    def get_mode(self) -> str:
+    def _get_mode(self) -> str:
         """Get the mode of the load."""
-        return self.query(":SOUR:FUNC?").strip()
+        return self._query(":SOUR:FUNC?").strip()
 
     def set_enabled(self, enable: bool) -> None:
-        """Enable or disable the load."""
+        """Enable (TRUE) or disable (FALSE) the load."""
         value = "ON" if enable else "OFF"
-        return self.write(f":SOUR:INP:STAT {value}")
+        return self._write(f":SOUR:INP:STAT {value}")
 
-    def get_enabled(self) -> bool:
+    def _get_enabled(self) -> bool:
         """Get the enabled state of the load."""
-        state = self.query(":SOUR:INP:STAT?").strip()
+        state = self._query(":SOUR:INP:STAT?").strip()
         return state == "1"
 
-    def get_current(self) -> float:
+    def _get_current(self) -> float:
         """Get the current value in Amps."""
-        return float(self.query(":SOUR:CURR:LEV:IMM?").strip())
+        return float(self._query(":SOUR:CURR:LEV:IMM?").strip())
 
     def set_current_range(self, current_range: float) -> None:
         """Set the current range to the specified value in Amps."""
@@ -82,11 +82,11 @@ class RigolDL3021(DCLoad):
             )
 
         self._set_current_range = current_range
-        return self.write(f":SOUR:CURR:RANG {current_range}")
+        return self._write(f":SOUR:CURR:RANG {current_range}")
 
-    def get_current_range(self) -> float:
+    def _get_current_range(self) -> float:
         """Get the current range in Amps."""
-        return float(self.query(":SOUR:CURR:RANG?").strip())
+        return float(self._query(":SOUR:CURR:RANG?").strip())
 
     def set_current(self, current: float) -> None:
         """Set the current to the specified value in Amps."""
@@ -98,4 +98,4 @@ class RigolDL3021(DCLoad):
                 f"Current {current}A exceeds set current range of {self._set_current_range}A"
             )
 
-        return self.write(f":SOUR:CURR:LEV:IMM {current}")
+        return self._write(f":SOUR:CURR:LEV:IMM {current}")

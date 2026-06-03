@@ -2,6 +2,7 @@ import time
 import pytest
 from fixate.config import load_config
 import fixate.drivers.dcload
+from fixate.drivers.dcload.rigol_dl3021 import RigolDL3021
 
 load_config()  # Load fixate config file
 
@@ -14,37 +15,37 @@ def test_open_dcload():
 
 
 @pytest.mark.drivertest
-def test_get_identity(dcload):
+def test_get_identity(dcload: RigolDL3021):
     """Test that we can get the identity string from the DC load."""
     iden = dcload.get_identity()
     assert "DL3021" in iden
 
 
 @pytest.mark.drivertest
-def test_enable_load(dcload):
+def test_enable_load(dcload: RigolDL3021):
     """Test that we can enable and disable the load."""
     # Turn load ON
     dcload.set_enabled(True)
-    assert dcload.get_enabled() is True, "Load should be ON"
+    assert dcload._get_enabled() is True, "Load should be ON"
     # Turn load OFF
     dcload.set_enabled(False)
-    assert dcload.get_enabled() is False, "Load should be OFF"
+    assert dcload._get_enabled() is False, "Load should be OFF"
 
 
 @pytest.mark.drivertest
 @pytest.mark.parametrize(
     "mode, expected",
     [
-        ("CONSTANT_CURRENT", "CC"),
-        ("CONSTANT_VOLTAGE", "CV"),
-        ("CONSTANT_RESISTANCE", "CR"),
-        ("CONSTANT_POWER", "CP"),
+        ("constant_current", "CC"),
+        ("constant_voltage", "CV"),
+        ("constant_resistance", "CR"),
+        ("constant_power", "CP"),
     ],
 )
-def test_set_mode(dcload, mode, expected):
+def test_set_mode(dcload: RigolDL3021, mode, expected):
     """Verify that set_mode correctly sets the instrument mode."""
     dcload.set_mode(mode)
-    actual = dcload.get_mode()
+    actual = dcload._get_mode()
 
     assert actual == expected, f"Expected {expected}, got {actual}"
 
@@ -58,7 +59,9 @@ def test_set_mode(dcload, mode, expected):
         (0.0, 1.0, 6, 2),
     ],
 )
-def test_set_current(dcload, min_current, max_current, num_steps, duration):
+def test_set_current(
+    dcload: RigolDL3021, min_current, max_current, num_steps, duration
+):
     """Test setting the current on the DC load."""
     # Generate evenly spaced current values (inclusive)
     if num_steps == 1:
@@ -68,7 +71,7 @@ def test_set_current(dcload, min_current, max_current, num_steps, duration):
         currents = [min_current + i * step for i in range(num_steps)]
 
     # Set mode and range
-    dcload.set_mode("CONSTANT_CURRENT")
+    dcload.set_mode("constant_current")
     max_current_val = max(currents)
     dcload.set_current_range(max_current_val + 0.5)
     dcload.set_enabled(True)
@@ -76,7 +79,7 @@ def test_set_current(dcload, min_current, max_current, num_steps, duration):
     for current in currents:
         dcload.set_current(current)
         time.sleep(duration)
-        setpoint = float(dcload.get_current())
+        setpoint = float(dcload._get_current())
 
         assert abs(setpoint - current) < 1e-3, f"Expected {current}A, got {setpoint}A"
 
@@ -84,8 +87,8 @@ def test_set_current(dcload, min_current, max_current, num_steps, duration):
 
 
 @pytest.mark.drivertest
-def test_reset(dcload):
+def test_reset(dcload: RigolDL3021):
     """Test that resetting the instrument clears errors."""
     dcload.reset()
-    query = dcload.query("SYST:ERR?")
+    query = dcload._query("SYST:ERR?")
     assert '0,"No error"' == query.strip()

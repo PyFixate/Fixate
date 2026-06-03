@@ -1,15 +1,16 @@
 from typing import Protocol, Literal
+from fixate.drivers import DriverProtocol
 
 # List of modes that an electronic load can be set to
 Mode = Literal[
-    "CONSTANT_CURRENT",
-    "CONSTANT_VOLTAGE",
-    "CONSTANT_RESISTANCE",
-    "CONSTANT_POWER",
+    "constant_current",
+    "constant_voltage",
+    "constant_resistance",
+    "constant_power",
 ]
 
 
-class DCLoad(Protocol):
+class DCLoad(DriverProtocol, Protocol):
     """Abstract class for DC electronic load drivers."""
 
     REGEX_ID: str
@@ -30,7 +31,7 @@ class DCLoad(Protocol):
         ...
 
     def set_enabled(self, enable: bool) -> None:
-        """Enable (1) or disable (0) the load."""
+        """Enable (TRUE) or disable (FALSE) the load."""
         ...
 
     def set_current(self, current: float) -> None:
