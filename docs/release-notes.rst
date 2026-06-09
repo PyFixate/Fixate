@@ -5,7 +5,7 @@ Release Notes
 *************
 Version 0.6.5
 *************
-Release Date 03/06/2026
+Release Date XX/XX/XXXX
 
 Major Changes
 ################

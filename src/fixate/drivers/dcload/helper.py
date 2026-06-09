@@ -9,6 +9,12 @@ Mode = Literal[
     "constant_power",
 ]
 
+CurrentRange = Literal[
+    "low",
+    "high",
+    "default",
+]
+
 
 class DCLoad(DriverProtocol, Protocol):
     """Abstract class for DC electronic load drivers."""
@@ -38,6 +44,6 @@ class DCLoad(DriverProtocol, Protocol):
         """Set the load current to the specified value in Amps."""
         ...
 
-    def set_current_range(self, current_range: float) -> None:
+    def set_current_range(self, current_range: CurrentRange) -> None:
         """Set the current range to the specified value in Amps."""
         ...

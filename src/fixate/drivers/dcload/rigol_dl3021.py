@@ -1,6 +1,6 @@
 from typing import Any
 from fixate.core.exceptions import InstrumentError, ParameterError
-from fixate.drivers.dcload.helper import DCLoad, Mode
+from fixate.drivers.dcload.helper import DCLoad, Mode, CurrentRange
 
 
 class RigolDL3021(DCLoad):
@@ -69,23 +69,24 @@ class RigolDL3021(DCLoad):
         """Get the current value in Amps."""
         return float(self._query(":SOUR:CURR:LEV:IMM?").strip())
 
-    def set_current_range(self, current_range: float) -> None:
-        """Set the current range to the specified value in Amps."""
-        if current_range > 60:
-            raise ParameterError(
-                f"Current range {current_range}A exceeds maximum of 60A for DL3021"
-            )
+    def set_current_range(self, current_range: CurrentRange) -> None:
+        """Set the current range to low (4A) or high (40A) or default (40A)."""
+        if current_range == "low":
+            scpi_mode = "MIN"
+            self._set_current_range = 4.0
+        elif current_range == "high":
+            scpi_mode = "MAX"
+            self._set_current_range = 40.0
+        elif current_range == "default":
+            self._set_current_range = 40.0
+            scpi_mode = "DEF"
+        else:
+            raise ParameterError(f"Invalid current range: {current_range}")
 
-        if current_range < 0:
-            raise ParameterError(
-                f"Current range must be positive. Got {current_range}A"
-            )
-
-        self._set_current_range = current_range
-        return self._write(f":SOUR:CURR:RANG {current_range}")
+        return self._write(f":SOUR:CURR:RANG {scpi_mode}")
 
     def _get_current_range(self) -> float:
-        """Get the current range in Amps."""
+        """Get the current range in Amps. 4 or 40 for the DL3021."""
         return float(self._query(":SOUR:CURR:RANG?").strip())
 
     def set_current(self, current: float) -> None:

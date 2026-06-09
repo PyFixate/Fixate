@@ -1,4 +1,5 @@
 import time
+from typing import Literal
 import pytest
 from fixate.config import load_config
 import fixate.drivers.dcload
@@ -42,7 +43,14 @@ def test_enable_load(dcload: RigolDL3021):
         ("constant_power", "CP"),
     ],
 )
-def test_set_mode(dcload: RigolDL3021, mode, expected):
+def test_set_mode(
+    dcload: RigolDL3021,
+    mode: Literal["constant_current"]
+    | Literal["constant_voltage"]
+    | Literal["constant_resistance"]
+    | Literal["constant_power"],
+    expected: Literal["CC"] | Literal["CV"] | Literal["CR"] | Literal["CP"],
+):
     """Verify that set_mode correctly sets the instrument mode."""
     dcload.set_mode(mode)
     actual = dcload._get_mode()
@@ -60,7 +68,11 @@ def test_set_mode(dcload: RigolDL3021, mode, expected):
     ],
 )
 def test_set_current(
-    dcload: RigolDL3021, min_current, max_current, num_steps, duration
+    dcload: RigolDL3021,
+    min_current: float,
+    max_current: float,
+    num_steps: Literal[6],
+    duration: Literal[2],
 ):
     """Test setting the current on the DC load."""
     # Generate evenly spaced current values (inclusive)
@@ -72,8 +84,7 @@ def test_set_current(
 
     # Set mode and range
     dcload.set_mode("constant_current")
-    max_current_val = max(currents)
-    dcload.set_current_range(max_current_val + 0.5)
+    dcload.set_current_range("high")
     dcload.set_enabled(True)
 
     for current in currents:
