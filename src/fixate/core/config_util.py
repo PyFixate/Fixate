@@ -1,5 +1,4 @@
 import cmd2
-import argparse
 import pyvisa
 import json
 import copy
@@ -36,13 +35,13 @@ fx> new <path>                              # like open, but creates a new file 
 
 choices = ["existing", "updated", "visa"]
 # create the top-level parser for the base command
-list_parser = argparse.ArgumentParser(prog="list")
+list_parser = cmd2.Cmd2ArgumentParser(prog="list")
 list_parser.add_argument("type", choices=choices)
 
-test_parser = argparse.ArgumentParser(prog="test")
+test_parser = cmd2.Cmd2ArgumentParser(prog="test")
 test_parser.add_argument("type", choices=choices)
 
-add_parser = argparse.ArgumentParser(prog="add")
+add_parser = cmd2.Cmd2ArgumentParser(prog="add")
 add_subparsers = add_parser.add_subparsers(title="add command")
 
 add_visa_parser = add_subparsers.add_parser("visa")
