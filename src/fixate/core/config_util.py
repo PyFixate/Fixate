@@ -214,7 +214,7 @@ class FxConfigCmd(cmd2.Cmd):
                     )
             except Exception as e:
                 self.perror(e)
-                if backup_file:
+                if backup_path:
                     backup_path.replace(config_file_path)
                 raise
 
