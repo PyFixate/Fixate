@@ -26,6 +26,7 @@ Improvements
 - DSO Driver function 'waveform_values' now returns a single channels x and y data as two separate lists, without re-acquiring the signal. This function should
   now be called after performing signal acquisition.
 - Invert channel and vtime funcitons implemented in the DSO driver.
+- Fxconfig fixes for cmd2 4.0.0
 
 *************
 Version 0.6.4
