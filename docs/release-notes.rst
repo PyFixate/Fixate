@@ -5,7 +5,7 @@ Release Notes
 *************
 Version 0.6.5
 *************
-Release Date xx-xx-xxxx
+Release Date XX/XX/XXXX
 
 Major Changes
 ################
@@ -13,6 +13,7 @@ Major Changes
 
 New Features
 ############
+- New DCLoad driver added for the Rigol DL3021 DC electronic load.
 
 Improvements
 ############
@@ -25,7 +26,7 @@ Improvements
 - Created a new FixateError base class for all exceptions raised by fixate to use. It inherits from Exception instead of BaseExcepetion to improve error handling.
 - DSO Driver function 'waveform_values' now returns a single channels x and y data as two separate lists, without re-acquiring the signal. This function should
   now be called after performing signal acquisition.
-- Invert channel and vtime funcitons implemented in the DSO driver.
+- Invert channel and vtime functions implemented in the DSO driver.
 - Fxconfig fixes for cmd2 4.0.0
 
 *************
