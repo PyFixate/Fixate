@@ -21,8 +21,7 @@ class DCLoad(DriverProtocol, Protocol):
 
     REGEX_ID: str
 
-    def __init__(self, instrument) -> None:
-        ...
+    def __init__(self, instrument) -> None: ...
 
     def reset(self) -> None:
         """Reset the instrument to a known state."""

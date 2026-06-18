@@ -515,9 +515,7 @@ def test_measure_vrms_dc_cycle(dso, funcgen, rm):
     dso.stop()
     funcgen.channel1(False)
 
-    assert measured_vrms_cycle == pytest.approx(
-        (vrms**2 + offset**2) ** 0.5, abs=0.05
-    )
+    assert measured_vrms_cycle == pytest.approx((vrms**2 + offset**2) ** 0.5, abs=0.05)
 
 
 @pytest.mark.drivertest

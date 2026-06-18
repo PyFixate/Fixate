@@ -15,7 +15,6 @@ from fixate.core.ui import user_info_important, user_serial, user_ok
 from fixate.ui_cmdline import register_cmd_line, unregister_cmd_line
 import fixate.sequencer
 
-
 logger = logging.getLogger(__name__)
 
 
