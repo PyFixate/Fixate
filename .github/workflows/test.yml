@@ -32,8 +32,9 @@ jobs:
     - name: Run tests with tox
       run: |
         tox -e py
+    - name: Check formatting
+      run: |
+        tox -e black
     - name: Run mypy with tox
       run: |
         tox -e mypy
-    - name: pre-commit
-      uses: pre-commit/action@v3.0.1
