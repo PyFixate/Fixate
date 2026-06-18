@@ -166,3 +166,7 @@ def test_do_save_same_path_backup_created(test_app, open_config_file, tmp_path):
     test_app.do_save(tmp_path / "instruments.json")
     # ensure backup file is created
     assert (tmp_path / "instruments.json.bak").exists()
+
+
+def test_do_exit(test_app):
+    assert test_app.do_exit("") is True
