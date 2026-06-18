@@ -5,7 +5,7 @@ Release Notes
 *************
 Version 0.6.5
 *************
-Release Date xx-xx-xxxx
+Release Date XX/XX/XXXX
 
 Major Changes
 ################
@@ -13,6 +13,7 @@ Major Changes
 
 New Features
 ############
+- New DCLoad driver added for the Rigol DL3021 DC electronic load.
 
 Improvements
 ############
@@ -28,6 +29,7 @@ Improvements
 - UI has been revamped a little. User input methods will no longer return ("Resp", value) but will return just the value - see Issue #177. To use these, from fixate import user_info etc.
 - Fixed a bug where falsy values such as 0 or 0.0 were not accepted as valid user input - see Issue #213
 - Invert channel and vtime funcitons implemented in the DSO driver.
+- Fxconfig fixes for cmd2 4.0.0
 
 *************
 Version 0.6.4
