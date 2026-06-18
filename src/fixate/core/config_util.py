@@ -1,14 +1,14 @@
 import cmd2
-import argparse
 import pyvisa
 import json
 import copy
 from shutil import copy2
 from pathlib import Path
-from cmd2.ansi import style, Fg
 from fixate.drivers.pps.bk_178x import BK178X
 from pyvisa.errors import VisaIOError
 import fixate.config
+from cmd2.string_utils import stylize
+from cmd2.colors import Color
 
 """
 fxconfig is a configuration utility that helps find connected instruments and add them to fixate's driver
@@ -35,13 +35,13 @@ fx> new <path>                              # like open, but creates a new file 
 
 choices = ["existing", "updated", "visa"]
 # create the top-level parser for the base command
-list_parser = argparse.ArgumentParser(prog="list")
+list_parser = cmd2.Cmd2ArgumentParser(prog="list")
 list_parser.add_argument("type", choices=choices)
 
-test_parser = argparse.ArgumentParser(prog="test")
+test_parser = cmd2.Cmd2ArgumentParser(prog="test")
 test_parser.add_argument("type", choices=choices)
 
-add_parser = argparse.ArgumentParser(prog="add")
+add_parser = cmd2.Cmd2ArgumentParser(prog="add")
 add_subparsers = add_parser.add_subparsers(title="add command")
 
 add_visa_parser = add_subparsers.add_parser("visa")
@@ -66,8 +66,6 @@ class FxConfigError(Exception):
 
 
 class FxConfigCmd(cmd2.Cmd):
-    prompt = "fx>"
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.config_file_path = None
@@ -77,6 +75,8 @@ class FxConfigCmd(cmd2.Cmd):
         # Enable file-system path completion for the save and open commands
         self.complete_save = self.path_complete
         self.complete_open = self.path_complete
+
+        self.prompt = "fx>"
 
     def postloop(self):
         """Print a new line so the shell prompt get printed on its own line after we exit"""
@@ -214,7 +214,7 @@ class FxConfigCmd(cmd2.Cmd):
                     )
             except Exception as e:
                 self.perror(e)
-                if backup_file:
+                if backup_path:
                     backup_path.replace(config_file_path)
                 raise
 
@@ -303,13 +303,13 @@ class FxConfigCmd(cmd2.Cmd):
             self.poutput("SERIAL || " + com_port + " || " + str(parameters))
 
     def _test_print_error(self, name, msg):
-        self.poutput(style("ERROR: ", fg=Fg.RED), end="")
-        self.poutput(style(str(name), fg=Fg.CYAN), end="")
+        self.poutput(stylize("ERROR: ", style=f"bold {Color.RED}"), end="")
+        self.poutput(stylize(str(name), style=Color.CYAN), end="")
         self.poutput(f" - {msg}")
 
     def _test_print_ok(self, name, msg):
-        self.poutput(style("OK: ", fg=Fg.GREEN), end="")
-        self.poutput(style(str(name), fg=Fg.CYAN), end="")
+        self.poutput(stylize("OK: ", style=f"bold {Color.GREEN}"), end="")
+        self.poutput(stylize(str(name), style=Color.CYAN), end="")
         self.poutput(f" - {msg}")
 
     def _test_config_dict(self, config_dict):
