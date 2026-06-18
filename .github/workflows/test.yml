@@ -35,3 +35,5 @@ jobs:
     - name: Run mypy with tox
       run: |
         tox -e mypy
+    - name: pre-commit
+      uses: pre-commit/action@v3.0.1
