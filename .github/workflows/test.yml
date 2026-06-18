@@ -33,7 +33,8 @@ jobs:
       run: |
         tox -e py
     - name: Check formatting with pre-commit
-      uses: pre-commit/action@v3.0.1
+      run: |
+        tox -e pre-commit
     - name: Run mypy with tox
       run: |
         tox -e mypy
