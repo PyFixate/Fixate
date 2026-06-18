@@ -32,6 +32,10 @@ def test_open_fxconfig_no_file(test_app, monkeypatch):
     test_app.do_open("")
     assert test_app.config_file_path is None
     assert test_app.updated_config_dict is None
+    # ensure the alias also works.
+    test_app.do_load("")
+    assert test_app.config_file_path is None
+    assert test_app.updated_config_dict is None
 
 
 def test_new_config_file_default(test_app, monkeypatch, tmp_path):
@@ -59,6 +63,32 @@ def test_new_config_file_exists(test_app, tmp_path):
 
 def test_open_fxconfig(test_app):
     test_app.do_open("test/config/instruments.json")
+    assert test_app.config_file_path == "test/config/instruments.json"
+    assert test_app.updated_config_dict == {
+        "INSTRUMENTS": {
+            "visa": [
+                [
+                    "RIGOL TECHNOLOGIES,DG1022 ,DG1D144904270,,00.03.00.09.00.02.11\n",
+                    "USB0::0x09C4::0x0400::DG1D144904270::INSTR",
+                ],
+                ["FLUKE,8846A,3821015,08/02/10-11:53\r\n", "ASRL38::INSTR"],
+                [
+                    "AGILENT TECHNOLOGIES,MSO-X 3014A,MY52160892,02.41.2015102200",
+                    "USB0::0x0957::0x17A8::MY52160892::INSTR",
+                ],
+            ],
+            "serial": {
+                "COM37": [
+                    "address: 0,checksum: 28,command: 49,model: 6823,serial_number: 3697210019,software_version: 29440,start: 170,",
+                    9600,
+                ]
+            },
+        }
+    }
+
+
+def test_load_fxconfig(test_app):
+    test_app.do_load("test/config/instruments.json")
     assert test_app.config_file_path == "test/config/instruments.json"
     assert test_app.updated_config_dict == {
         "INSTRUMENTS": {
