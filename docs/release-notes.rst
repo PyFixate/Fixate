@@ -28,6 +28,7 @@ Improvements
   now be called after performing signal acquisition.
 - Invert channel and vtime functions implemented in the DSO driver.
 - Fxconfig fixes for cmd2 4.0.0
+- Added aliases for "quit" and "open" commands in fxconfig.
 
 *************
 Version 0.6.4
