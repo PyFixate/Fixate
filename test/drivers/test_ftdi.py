@@ -5,7 +5,6 @@ import time
 from fixate.core.exceptions import *
 from fixate.config import load_config
 
-
 load_config()  # Load fixate config file
 
 

@@ -32,9 +32,9 @@ jobs:
     - name: Run tests with tox
       run: |
         tox -e py
-    - name: Check formatting
+    - name: Check formatting with pre-commit
       run: |
-        tox -e black
+        tox -e pre-commit
     - name: Run mypy with tox
       run: |
         tox -e mypy

@@ -45,10 +45,12 @@ def test_enable_load(dcload: RigolDL3021):
 )
 def test_set_mode(
     dcload: RigolDL3021,
-    mode: Literal["constant_current"]
-    | Literal["constant_voltage"]
-    | Literal["constant_resistance"]
-    | Literal["constant_power"],
+    mode: (
+        Literal["constant_current"]
+        | Literal["constant_voltage"]
+        | Literal["constant_resistance"]
+        | Literal["constant_power"]
+    ),
     expected: Literal["CC"] | Literal["CV"] | Literal["CR"] | Literal["CP"],
 ):
     """Verify that set_mode correctly sets the instrument mode."""
