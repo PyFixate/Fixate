@@ -15,6 +15,7 @@ from fixate import (
 from fixate.core.checks import chk_fails, chk_passes
 from fixate.core.common import TestClass
 
+
 # This manual test just uses one UI element after the other, ensure they display and take input as they should.
 # Logical checks on the data aren't required because these are tested in the unit tests, this is just to check the UI elements are working as expected.
 # The test sequence will need to be run twice per UI type to test the post sequence info elements, as they only show on pass

@@ -10,6 +10,7 @@ from fixate import (
     user_yes_no,
 )
 
+
 # Mock the UI interface
 class MockUserInterface:
     def execute_target(self, msg, q):
