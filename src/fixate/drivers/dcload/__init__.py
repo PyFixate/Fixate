@@ -1,6 +1,6 @@
 """
 DC ELectronic Load driver
-========================= 
+=========================
 
 Use `DCLoad.open()` to connect to a DC electronic load.
 Functions are dictated by the abstract superclass ``DCLoad`` in helper.py
