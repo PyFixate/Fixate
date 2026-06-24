@@ -1,4 +1,7 @@
+from typing import Collection, Sequence
+
 from fixate._switching import (
+    Pin,
     _generate_bit_sets,
     VirtualMux,
     _bit_generator,
@@ -592,3 +595,43 @@ def test_pin_update_or():
         2.0,
     )
     assert expected == a | b
+
+
+def test_jig_driver_reset_on_():
+    class Handler(AddressHandler):
+        def __init__(self, pins: Sequence[Pin]) -> None:
+            self.physical_pin_states = {pin: False for pin in pins}
+            super().__init__(pins)
+
+        def set_pins(self, pins: Collection[Pin]) -> None:
+            old_pins = self.physical_pin_states
+            self.physical_pin_states = {pin: (pin in pins) for pin in old_pins}
+
+    handler = Handler(("x0", "x1", "x2"))
+
+    class Mux(VirtualMux):
+        pin_list = ("x0", "x1", "x2")
+        map_list = ("sig1", "x1", "x2")
+
+    class Group(MuxGroup):
+        def __init__(self):
+            self.mux = Mux()
+
+    jig = JigDriver(Group, [handler])
+    # directly switch some pins in the handler, the jig won't know about this
+    handler.set_pins(("x0", "x1"))
+    assert handler.physical_pin_states == {
+        "x0": True,
+        "x1": True,
+        "x2": False,
+    }
+    # the jig doesn't know about the state of the pins if not switching using the mux
+    assert not jig.active_pins()
+
+    # resetting the jig should clear the pins regardless about what it thinks the state of the pins are
+    jig.reset()
+    assert handler.physical_pin_states == {
+        "x0": False,
+        "x1": False,
+        "x2": False,
+    }
