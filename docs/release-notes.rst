@@ -28,6 +28,7 @@ Improvements
   now be called after performing signal acquisition.
 - Invert channel and vtime functions implemented in the DSO driver.
 - Fxconfig fixes for cmd2 4.0.0
+- Jig switching fix to force sending the reset signal regardless of presumed jig state
 
 *************
 Version 0.6.4
