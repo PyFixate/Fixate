@@ -597,7 +597,16 @@ def test_pin_update_or():
     assert expected == a | b
 
 
-def test_jig_driver_reset_on_():
+def test_jig_driver_reset_when_desynced():
+    """
+    test that reset forces the physical of the jig back to default
+    we do this by directly switching using the address handler to force a desync
+    between the virtual_map and the handler
+
+    cases where this could happen in a real test are after force quitting a script
+    where the physical state of pins would not be cleared
+    """
+
     class Handler(AddressHandler):
         def __init__(self, pins: Sequence[Pin]) -> None:
             self.physical_pin_states = {pin: False for pin in pins}
