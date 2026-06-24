@@ -5,7 +5,7 @@ Release Notes
 *************
 Version 0.6.5
 *************
-Release Date xx-xx-xxxx
+Release Date XX/XX/XXXX
 
 Major Changes
 ################
@@ -13,13 +13,21 @@ Major Changes
 
 New Features
 ############
+- New DCLoad driver added for the Rigol DL3021 DC electronic load.
 
 Improvements
 ############
 
 - Sequencer logic now handles exceptions raised on sequence abort. GUI will no longer hang when a test raises an exception during a test abort. 
 - Fix bug where DSOX1202G appeared to hang both the program and scope
-- LCR Driver now supports instruments reporting as Keysight or Agilent. Newer models of the LCR meter report as Keysight, whereas older models report as Agilent. 
+- LCR Driver now supports instruments reporting as Keysight or Agilent. Newer models of the LCR meter report as Keysight, whereas older models report as Agilent.
+- Fixed a bug where the PPS would crash if it was polled too frequently.
+- Changed tolerances for PPS and DMM tests to more accurately match device accuracy.
+- Created a new FixateError base class for all exceptions raised by fixate to use. It inherits from Exception instead of BaseExcepetion to improve error handling.
+- DSO Driver function 'waveform_values' now returns a single channels x and y data as two separate lists, without re-acquiring the signal. This function should
+  now be called after performing signal acquisition.
+- Invert channel and vtime functions implemented in the DSO driver.
+- Fxconfig fixes for cmd2 4.0.0
 - Jig switching fix to force sending the reset signal regardless of presumed jig state
 
 *************

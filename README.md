@@ -10,7 +10,7 @@ While Fixate is fairly simple, it is already being used to test real electronics
 
 ## Getting Started
 
-Fixate runs on Python 3.8 or greater.
+Fixate runs on Python 3.12 or greater.
 
 ### Installing
 

@@ -1,4 +1,4 @@
-from fixate.drivers import pps, dmm, ftdi, dso, funcgen
+from fixate.drivers import pps, dmm, ftdi, dso, funcgen, dcload
 from fixate.core.jig_mapping import AddressHandler, JigDriver, RelayMatrixMux
 
 
@@ -6,6 +6,7 @@ class DriverManager:
     def __init__(self):
         self._funcgen = None
         self._dmm = None
+        self._dcload = None
         self._ftdi_J413 = None
         self._ftdi_mux = None
         self._dso = None
@@ -33,6 +34,12 @@ class DriverManager:
             self._dmm = dmm.open()
             self._dmm.instrument.timeout = 7000
         return self._dmm
+
+    @property
+    def dcload(self):
+        if self._dcload is None:
+            self._dcload = dcload.open()
+        return self._dcload
 
     @property
     def pps(self):

@@ -47,6 +47,18 @@ def dmm():
 
 
 @pytest.fixture()
+def dcload():
+    from drivers.J413 import dm
+
+    try:
+        dcload = dm.dcload
+    except VisaIOError:
+        assert False, "Could not open DCLoad."
+
+    yield dcload
+
+
+@pytest.fixture()
 def pps():
     from drivers.J413 import dm
 

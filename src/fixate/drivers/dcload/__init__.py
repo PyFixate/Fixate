@@ -1,14 +1,9 @@
 """
-Digital multimeter driver
+DC ELectronic Load driver
 =========================
 
-Use `dmm.open()` to connect to a digital multimeter.
-Functions are dictated by the abstract superclass ``DMM`` in helper.py
-
-::
-
-    dmm.measure(*mode, **mode_params)
-    dmm.reset()
+Use `DCLoad.open()` to connect to a DC electronic load.
+Functions are dictated by the abstract superclass ``DCLoad`` in helper.py
 """
 
 import pyvisa
@@ -16,22 +11,21 @@ import pyvisa
 import fixate.drivers
 from fixate.config import find_instrument_by_id
 from fixate.drivers import InstrumentNotFoundError, InstrumentOpenError
-from fixate.drivers.dmm.fluke_8846a import Fluke8846A
-from fixate.drivers.dmm.keithley_6500 import Keithley6500
-from fixate.drivers.dmm.helper import DMM
+from fixate.drivers.dcload.rigol_dl3021 import RigolDL3021
+from fixate.drivers.dcload.helper import DCLoad
 
 
-def open() -> DMM:
+def open() -> DCLoad:
     """
-    Connect to a digital multimeter.
+    Connect to a DC electronic load.
 
     Searches for a configured instrument and returns the first one found.
 
     Returns:
-        DMM: open connection to the DMM
+        DCLoad: open connection to the DCLoad
     """
-    for DMM in (Fluke8846A, Keithley6500):
-        instrument = find_instrument_by_id(DMM.REGEX_ID)
+    for DCLoad in (RigolDL3021,):
+        instrument = find_instrument_by_id(DCLoad.REGEX_ID)
         if instrument is not None:
             # We've found a configured instrument so try to open it
             rm = pyvisa.ResourceManager()
@@ -39,10 +33,10 @@ def open() -> DMM:
                 resource = rm.open_resource(instrument.address)
             except pyvisa.VisaIOError as e:
                 raise InstrumentOpenError(
-                    f"Unable to open DMM: {instrument.address}"
+                    f"Unable to open DCLoad: {instrument.address}"
                 ) from e
             # Instantiate driver with connected instrument
-            driver = DMM(resource)
+            driver = DCLoad(resource)
             fixate.drivers.log_instrument_open(driver)
             return driver
     raise InstrumentNotFoundError

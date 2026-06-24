@@ -1,20 +1,24 @@
-class SequenceAbort(BaseException):
+class FixateError(Exception):
     pass
 
 
-class ScriptError(BaseException):
+class SequenceAbort(FixateError):
     pass
 
 
-class TestRetryExceeded(BaseException):
+class ScriptError(FixateError):
     pass
 
 
-class TestAbort(BaseException):
+class TestRetryExceeded(FixateError):
     pass
 
 
-class InstrumentError(BaseException):
+class TestAbort(FixateError):
+    pass
+
+
+class InstrumentError(FixateError):
     pass
 
 
@@ -22,11 +26,11 @@ class InstrumentTimeOut(InstrumentError):
     pass
 
 
-class ParameterError(BaseException):
+class ParameterError(FixateError):
     pass
 
 
-class InvalidScalarQuantityError(BaseException):
+class InvalidScalarQuantityError(FixateError):
     pass
 
 
@@ -38,7 +42,7 @@ class InstrumentNotConnected(InstrumentError):
     pass
 
 
-class NotCompatible(BaseException):
+class NotCompatible(FixateError):
     pass
 
 
@@ -46,21 +50,21 @@ class MissingParameters(ParameterError):
     pass
 
 
-class UserInputError(BaseException):
+class UserInputError(FixateError):
     pass
 
 
-class TestClassError(BaseException):
+class TestClassError(FixateError):
     pass
 
 
-class TestError(BaseException):
+class TestError(FixateError):
     pass
 
 
-class DUTError(BaseException):
+class DUTError(FixateError):
     pass
 
 
-class CheckFail(BaseException):
+class CheckFail(FixateError):
     pass
