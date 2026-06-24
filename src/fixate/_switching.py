@@ -625,7 +625,7 @@ class VirtualAddressMap:
             raise ValueError(f"Can't switch unknown pin(s) {', '.join(unknown_pins)}.")
 
         new_active_pins = (self._active_pins | new_state.on) - new_state.off
-        if (new_active_pins != self._active_pins) | force:
+        if (new_active_pins != self._active_pins) or force:
             self._active_pins = new_active_pins
             for pin_set, handler in self._handler_pin_sets:
                 # Note that we might send an empty set here. We need to do that
