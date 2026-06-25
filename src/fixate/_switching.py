@@ -56,8 +56,8 @@ type EmptySignal = Literal[""]
 type Pin = str
 type PinList = Sequence[Pin]
 type PinSet = FrozenSet[Pin]
-type SignalMap = Dict[Signal, PinSet]
-type TreeDef = Sequence[Union[Signal, "TreeDef"]]
+type SignalMap[S: Signal] = Dict[S, PinSet]
+type TreeDef[S: Signal] = Sequence[Union[S, "TreeDef"]]
 
 
 def is_Signal(obj: Any) -> TypeGuard[Signal]:
@@ -103,7 +103,7 @@ PinUpdateCallback = Callable[[PinUpdate, bool], None]
 class VirtualMux[S: Signal]:
     # define the union of what the user supplied and the automatically created
     # signal here so we don't have to keep typing this union everywhere
-    type MuxSignal = S | EmptySignal
+    type MuxSignal[M: Signal] = M | EmptySignal
     pin_list: PinList = ()
     clearing_time: float = 0.0
 
@@ -125,9 +125,9 @@ class VirtualMux[S: Signal]:
         # we convert here and keep a reference to the set for future use.
         self._pin_set = frozenset(self.pin_list)
 
-        self._state = ""
+        self._state: VirtualMux.MuxSignal[S] = ""
 
-        self._signal_map: SignalMap = self._map_signals()
+        self._signal_map: SignalMap[VirtualMux.MuxSignal[S]] = self._map_signals()
 
         # Define the implicit signal "" which can be used to turn off all pins.
         # If the signal map already has this defined, raise an error. In the old
@@ -144,7 +144,7 @@ class VirtualMux[S: Signal]:
         if hasattr(self, "default_signal"):
             raise ValueError("'default_signal' should not be set on a VirtualMux")
 
-    def __call__(self, signal: MuxSignal, trigger_update: bool = True) -> None:
+    def __call__(self, signal: MuxSignal[S], trigger_update: bool = True) -> None:
         """
         Convenience to avoid having to type jig.mux.<MuxName>.multiplex.
 
@@ -153,7 +153,7 @@ class VirtualMux[S: Signal]:
         """
         self.multiplex(signal, trigger_update)
 
-    def multiplex(self, signal: MuxSignal, trigger_update: bool = True) -> None:
+    def multiplex(self, signal: MuxSignal[S], trigger_update: bool = True) -> None:
         """
         Update the multiplexer state to signal.
 
@@ -178,7 +178,7 @@ class VirtualMux[S: Signal]:
             self._last_update_time = time.monotonic()
         self._state = signal
 
-    def all_signals(self) -> tuple[MuxSignal, ...]:
+    def all_signals(self) -> tuple[MuxSignal[S], ...]:
         return tuple(self._signal_map.keys())
 
     def reset(self, trigger_update: bool = True) -> None:
@@ -206,7 +206,7 @@ class VirtualMux[S: Signal]:
     # The following methods are potential candidates to override in a subclass
 
     def _calculate_pins(
-        self, old_signal: MuxSignal, new_signal: MuxSignal
+        self, old_signal: MuxSignal[S], new_signal: MuxSignal[S]
     ) -> tuple[PinSetState, PinSetState]:
         """
         Calculate the pin sets for the two-step state change.
@@ -233,7 +233,7 @@ class VirtualMux[S: Signal]:
     # The following methods are intended as implementation detail and
     # subclasses should avoid overriding.
 
-    def _map_signals(self) -> SignalMap:
+    def _map_signals(self) -> SignalMap[VirtualMux.MuxSignal[S]]:
         """
         Default implementation of the signal mapping
 
@@ -254,7 +254,9 @@ class VirtualMux[S: Signal]:
                 "VirtualMux subclass must define either map_tree or map_list"
             )
 
-    def _map_tree(self, tree: TreeDef, pins: PinList, fixed_pins: PinSet) -> SignalMap:
+    def _map_tree(
+        self, tree: TreeDef[S], pins: PinList, fixed_pins: PinSet
+    ) -> SignalMap[VirtualMux.MuxSignal[S]]:
         """recursively add nested signal lists to the signal map.
         tree: is the current sub-branch to be added. At the first call
         level, this would be initialised with self.map_tree. It can be
@@ -501,7 +503,7 @@ class RelayMatrixMux[S: Signal](VirtualMux[S]):
     clearing_time = 0.01
 
     def _calculate_pins(
-        self, old_signal: Signal, new_signal: Signal
+        self, old_signal: VirtualMux.MuxSignal[S], new_signal: VirtualMux.MuxSignal[S]
     ) -> tuple[PinSetState, PinSetState]:
         """
         Override of _calculate_pins to implement break-before-make switching.
