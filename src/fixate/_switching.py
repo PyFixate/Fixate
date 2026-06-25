@@ -43,17 +43,29 @@ from typing import (
     Dict,
     FrozenSet,
     Iterable,
+    TypeGuard,
+    Any,
+    Literal,
 )
 from dataclasses import dataclass
 from functools import reduce
 from operator import or_
 
 type Signal = str
+type EmptySignal = Literal[""]
 type Pin = str
 type PinList = Sequence[Pin]
 type PinSet = FrozenSet[Pin]
 type SignalMap = Dict[Signal, PinSet]
 type TreeDef = Sequence[Union[Signal, "TreeDef"]]
+
+
+def is_Signal(obj: Any) -> TypeGuard[Signal]:
+    """
+    like isinstance but using types
+    """
+    # in python 3.14 this can be updated to use .evaluate_value()
+    return isinstance(obj, Signal.__value__)
 
 
 @dataclass(frozen=True)
@@ -88,7 +100,10 @@ class PinUpdate:
 PinUpdateCallback = Callable[[PinUpdate, bool], None]
 
 
-class VirtualMux:
+class VirtualMux[S: Signal]:
+    # define the union of what the user supplied and the automatically created
+    # signal here so we don't have to keep typing this union everywhere
+    type MuxSignal = S | EmptySignal
     pin_list: PinList = ()
     clearing_time: float = 0.0
 
@@ -129,7 +144,7 @@ class VirtualMux:
         if hasattr(self, "default_signal"):
             raise ValueError("'default_signal' should not be set on a VirtualMux")
 
-    def __call__(self, signal: Signal, trigger_update: bool = True) -> None:
+    def __call__(self, signal: MuxSignal, trigger_update: bool = True) -> None:
         """
         Convenience to avoid having to type jig.mux.<MuxName>.multiplex.
 
@@ -138,7 +153,7 @@ class VirtualMux:
         """
         self.multiplex(signal, trigger_update)
 
-    def multiplex(self, signal: Signal, trigger_update: bool = True) -> None:
+    def multiplex(self, signal: MuxSignal, trigger_update: bool = True) -> None:
         """
         Update the multiplexer state to signal.
 
@@ -163,7 +178,7 @@ class VirtualMux:
             self._last_update_time = time.monotonic()
         self._state = signal
 
-    def all_signals(self) -> tuple[Signal, ...]:
+    def all_signals(self) -> tuple[MuxSignal, ...]:
         return tuple(self._signal_map.keys())
 
     def reset(self, trigger_update: bool = True) -> None:
@@ -191,7 +206,7 @@ class VirtualMux:
     # The following methods are potential candidates to override in a subclass
 
     def _calculate_pins(
-        self, old_signal: Signal, new_signal: Signal
+        self, old_signal: MuxSignal, new_signal: MuxSignal
     ) -> tuple[PinSetState, PinSetState]:
         """
         Calculate the pin sets for the two-step state change.
@@ -409,7 +424,7 @@ class VirtualMux:
         ):
             if signal_or_tree is None:
                 continue
-            if isinstance(signal_or_tree, Signal):
+            if is_Signal(signal_or_tree):
                 signal_map[signal_or_tree] = frozenset(pins_for_signal) | fixed_pins
             else:
                 signal_map.update(
@@ -482,7 +497,7 @@ class VirtualSwitch(VirtualMux):
         super().__init__(update_pins)
 
 
-class RelayMatrixMux(VirtualMux):
+class RelayMatrixMux[S: Signal](VirtualMux[S]):
     clearing_time = 0.01
 
     def _calculate_pins(
