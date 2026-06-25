@@ -38,7 +38,6 @@ from typing import (
     Sequence,
     TypeVar,
     Generator,
-    Union,
     Collection,
     Dict,
     FrozenSet,
@@ -58,7 +57,7 @@ type Pin = str
 type PinList = Sequence[Pin]
 type PinSet = FrozenSet[Pin]
 type SignalMap[S: Signal] = Dict[S, PinSet]
-type TreeDef[S: Signal] = Sequence[Union[S, "TreeDef"]]
+type TreeDef[S: Signal] = Sequence[S | "TreeDef"]
 
 
 def is_Signal(obj: Any) -> TypeGuard[Signal]:
@@ -473,9 +472,7 @@ class VirtualSwitch(VirtualMux):
     pin_name: Pin = ""
     map_tree = ("Off", "On")
 
-    def multiplex(
-        self, signal: Union[Signal, bool], trigger_update: bool = True
-    ) -> None:
+    def multiplex(self, signal: Signal | bool, trigger_update: bool = True) -> None:
         if signal is True:
             converted_signal = "On"
         elif signal is False:
@@ -484,9 +481,7 @@ class VirtualSwitch(VirtualMux):
             converted_signal = signal
         super().multiplex(converted_signal, trigger_update=trigger_update)
 
-    def __call__(
-        self, signal: Union[Signal, bool], trigger_update: bool = True
-    ) -> None:
+    def __call__(self, signal: Signal | bool, trigger_update: bool = True) -> None:
         """Override call to set the type on signal_output correctly."""
         self.multiplex(signal, trigger_update)
 
