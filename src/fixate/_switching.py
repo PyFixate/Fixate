@@ -48,12 +48,12 @@ from dataclasses import dataclass
 from functools import reduce
 from operator import or_
 
-Signal = str
-Pin = str
-PinList = Sequence[Pin]
-PinSet = FrozenSet[Pin]
-SignalMap = Dict[Signal, PinSet]
-TreeDef = Sequence[Union[Signal, "TreeDef"]]
+type Signal = str
+type Pin = str
+type PinList = Sequence[Pin]
+type PinSet = FrozenSet[Pin]
+type SignalMap = Dict[Signal, PinSet]
+type TreeDef = Sequence[Union[Signal, "TreeDef"]]
 
 
 @dataclass(frozen=True)
