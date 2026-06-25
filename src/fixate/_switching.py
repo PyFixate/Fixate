@@ -32,7 +32,6 @@ from __future__ import annotations
 import itertools
 import time
 from typing import (
-    Generic,
     Callable,
     Sequence,
     TypeVar,
@@ -693,10 +692,7 @@ class MuxGroup:
         return [str(mux) for mux in self.get_multiplexers()]
 
 
-JigSpecificMuxGroup = TypeVar("JigSpecificMuxGroup", bound=MuxGroup)
-
-
-class JigDriver(Generic[JigSpecificMuxGroup]):
+class JigDriver[M: MuxGroup]():
     """
     Combine multiple VirtualMux's and multiple AddressHandler's.
 
@@ -705,7 +701,7 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
 
     def __init__(
         self,
-        mux_group_factory: Callable[[], JigSpecificMuxGroup],
+        mux_group_factory: Callable[[], M],
         handlers: Sequence[AddressHandler],
     ):
         # keep a reference to handlers so that we can close them if required.
