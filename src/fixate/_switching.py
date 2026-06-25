@@ -34,11 +34,8 @@ import time
 from typing import (
     Callable,
     Sequence,
-    TypeVar,
     Generator,
     Collection,
-    Dict,
-    FrozenSet,
     Iterable,
     TypeGuard,
     Any,
@@ -53,8 +50,8 @@ type EmptySignal = Literal[""]
 type MuxSignal[M: Signal] = M | EmptySignal
 type Pin = str
 type PinList = Sequence[Pin]
-type PinSet = FrozenSet[Pin]
-type SignalMap[S: Signal] = Dict[S, PinSet]
+type PinSet = frozenset[Pin]
+type SignalMap[S: Signal] = dict[S, PinSet]
 type TreeDef[S: Signal] = Sequence[S | "TreeDef"]
 type PinUpdateCallback = Callable[[PinUpdate, bool], None]
 
@@ -779,10 +776,7 @@ class JigDriver[M: MuxGroup]():
             )
 
 
-_T = TypeVar("_T")
-
-
-def _generate_bit_sets(bits: Sequence[_T]) -> Generator[set[_T], None, None]:
+def _generate_bit_sets[_T](bits: Sequence[_T]) -> Generator[set[_T], None, None]:
     """
     Create subsets of bits, representing bits of a list of integers
 
