@@ -33,7 +33,6 @@ import itertools
 import time
 from typing import (
     Generic,
-    Optional,
     Callable,
     Sequence,
     TypeVar,
@@ -58,6 +57,7 @@ type PinList = Sequence[Pin]
 type PinSet = FrozenSet[Pin]
 type SignalMap[S: Signal] = Dict[S, PinSet]
 type TreeDef[S: Signal] = Sequence[S | "TreeDef"]
+type PinUpdateCallback = Callable[[PinUpdate, bool], None]
 
 
 def is_Signal(obj: Any) -> TypeGuard[Signal]:
@@ -97,9 +97,6 @@ class PinUpdate:
         return NotImplemented
 
 
-PinUpdateCallback = Callable[[PinUpdate, bool], None]
-
-
 class VirtualMux[S: Signal]:
     # define the union of what the user supplied and the automatically created
     # signal here so we don't have to keep typing this union everywhere
@@ -109,7 +106,7 @@ class VirtualMux[S: Signal]:
     ###########################################################################
     # These methods are the public API for the class
 
-    def __init__(self, update_pins: Optional[PinUpdateCallback] = None):
+    def __init__(self, update_pins: PinUpdateCallback | None = None):
         self._last_update_time = time.monotonic()
 
         self._update_pins: PinUpdateCallback
@@ -487,7 +484,7 @@ class VirtualSwitch(VirtualMux):
 
     def __init__(
         self,
-        update_pins: Optional[PinUpdateCallback] = None,
+        update_pins: PinUpdateCallback | None = None,
     ):
         if not self.pin_list:
             self.pin_list = [self.pin_name]
