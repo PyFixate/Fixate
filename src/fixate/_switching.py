@@ -53,6 +53,7 @@ from operator import or_
 
 type Signal = str
 type EmptySignal = Literal[""]
+type MuxSignal[M: Signal] = M | EmptySignal
 type Pin = str
 type PinList = Sequence[Pin]
 type PinSet = FrozenSet[Pin]
@@ -103,7 +104,6 @@ PinUpdateCallback = Callable[[PinUpdate, bool], None]
 class VirtualMux[S: Signal]:
     # define the union of what the user supplied and the automatically created
     # signal here so we don't have to keep typing this union everywhere
-    type MuxSignal[M: Signal] = M | EmptySignal
     pin_list: PinList = ()
     clearing_time: float = 0.0
 
@@ -125,9 +125,9 @@ class VirtualMux[S: Signal]:
         # we convert here and keep a reference to the set for future use.
         self._pin_set = frozenset(self.pin_list)
 
-        self._state: VirtualMux.MuxSignal[S] = ""
+        self._state: MuxSignal[S] = ""
 
-        self._signal_map: SignalMap[VirtualMux.MuxSignal[S]] = self._map_signals()
+        self._signal_map: SignalMap[MuxSignal[S]] = self._map_signals()
 
         # Define the implicit signal "" which can be used to turn off all pins.
         # If the signal map already has this defined, raise an error. In the old
@@ -233,7 +233,7 @@ class VirtualMux[S: Signal]:
     # The following methods are intended as implementation detail and
     # subclasses should avoid overriding.
 
-    def _map_signals(self) -> SignalMap[VirtualMux.MuxSignal[S]]:
+    def _map_signals(self) -> SignalMap[MuxSignal[S]]:
         """
         Default implementation of the signal mapping
 
@@ -256,7 +256,7 @@ class VirtualMux[S: Signal]:
 
     def _map_tree(
         self, tree: TreeDef[S], pins: PinList, fixed_pins: PinSet
-    ) -> SignalMap[VirtualMux.MuxSignal[S]]:
+    ) -> SignalMap[MuxSignal[S]]:
         """recursively add nested signal lists to the signal map.
         tree: is the current sub-branch to be added. At the first call
         level, this would be initialised with self.map_tree. It can be
@@ -503,7 +503,7 @@ class RelayMatrixMux[S: Signal](VirtualMux[S]):
     clearing_time = 0.01
 
     def _calculate_pins(
-        self, old_signal: VirtualMux.MuxSignal[S], new_signal: VirtualMux.MuxSignal[S]
+        self, old_signal: MuxSignal[S], new_signal: MuxSignal[S]
     ) -> tuple[PinSetState, PinSetState]:
         """
         Override of _calculate_pins to implement break-before-make switching.
