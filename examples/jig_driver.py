@@ -65,20 +65,20 @@ jig.mux.mux_three(False)
 # VirtualMuxes can be made generic
 from typing import Literal
 
-# the type keyword can be used to create reusable definitions
-# otherwise Literal can be used directly
-type Signals = Literal["signal_1", "signal_2"]
-
 # note: the type keyword can't be used inside functions!
 # generally we want to use type to avoid confusion around the type system
 # this makes it clear we are creating something for typehinting
 # e.g type MyInt = int - won't work in functions
 # variable = int - is not obvious what the intent is and can behave differently depending on its scope
 
+# the type keyword can be used to create reusable definitions
+# otherwise Literal can be used directly
+type MyTypedMuxSignals = Literal["signal_1", "signal_2"]
+
 
 def do_some_stuff():
     # otherwise the mux is created as normal
-    class MyTypedMux(VirtualMux[Signals]):
+    class MyTypedMux(VirtualMux[MyTypedMuxSignals]):
         pin_list = ("x0", "x1")
         map_list = (
             ("signal_1", "x0"),
@@ -98,7 +98,31 @@ def do_some_stuff():
     except ValueError as e:
         print(e)
 
-    class MyTypedRelay(RelayMatrixMux[Signals]):
+    # the annotations can also be used directly with Literal
+    class MyDirectlyTypedMux(VirtualMux[Literal["Sig_1", "Sig_2"]]):
+        pin_list = ("x0", "x1")
+        # Note this currently doesn't point out the incorrect signal mapping below!
+        # it is still up to the user to set up muxes correctly
+        map_list = (
+            ("signal_1", "x0"),
+            ("signal_2", "x1"),
+        )
+
+    # suggestions will work as normal
+    myothermux = MyDirectlyTypedMux()
+
+    myothermux.multiplex("")
+    myothermux.multiplex("Sig_1")
+    myothermux.multiplex("Sig_2")
+
+    try:
+        myothermux.multiplex("not_a_signal")
+    except ValueError as e:
+        print(e)
+
+    # general subclasses and RelayMatrixMux also work with this
+    # currently VirtualSwitch doesn't, it creates its own signal names doesn't really benefit from this
+    class MyTypedRelay(RelayMatrixMux[MyTypedMuxSignals]):
         pin_list = ("x3", "x4")
         map_list = (
             ("signal_1", "x3"),
