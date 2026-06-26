@@ -47,13 +47,13 @@ from operator import or_
 
 type Signal = str
 type EmptySignal = Literal[""]
-type MuxSignal[M: Signal = Signal] = M | EmptySignal
 type Pin = str
 type PinList = Sequence[Pin]
 type PinSet = frozenset[Pin]
-type SignalMap[S: Signal = Signal] = dict[S, PinSet]
-type TreeDef[S: Signal = Signal] = Sequence[S | "TreeDef"]
 type PinUpdateCallback = Callable[[PinUpdate, bool], None]
+type MuxSignal[M: Signal] = M | EmptySignal
+type SignalMap[S: Signal] = dict[S, PinSet]
+type TreeDef[S: Signal] = Sequence[S | "TreeDef"]
 
 
 @dataclass(frozen=True)
