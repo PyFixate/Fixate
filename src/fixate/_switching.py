@@ -56,14 +56,6 @@ type TreeDef[S: Signal = Signal] = Sequence[S | "TreeDef"]
 type PinUpdateCallback = Callable[[PinUpdate, bool], None]
 
 
-def is_Signal(obj: Any) -> TypeGuard[Signal]:
-    """
-    like isinstance but using types
-    """
-    # in python 3.14 this can be updated to use .evaluate_value()
-    return isinstance(obj, Signal.__value__)
-
-
 @dataclass(frozen=True)
 class PinSetState:
     off: PinSet = frozenset()
@@ -101,6 +93,13 @@ class VirtualMux[S: Signal]:
 
     ###########################################################################
     # These methods are the public API for the class
+
+    def isSignal(self, obj: Any) -> TypeGuard[S]:
+        # we can tell the typechecker about our user specified signals here
+        # at runtime we just check if this is a string
+        # in the future S can be inspected using get_origin, get_args
+        # resolve_bases and get_original_bases
+        return isinstance(obj, Signal.__value__)
 
     def __init__(self, update_pins: PinUpdateCallback | None = None):
         self._last_update_time = time.monotonic()
@@ -408,7 +407,7 @@ class VirtualMux[S: Signal]:
             mux_b = TreeMap(("a1_b0", "a1_b1", "a1_b2", None), ("x2", "x3"))
             map_tree = TreeMap(("a0", mux_b, "a2", mux_c), ("x1", "x0"))
         """
-        signal_map: SignalMap = dict()
+        signal_map: SignalMap[MuxSignal[S]] = dict()
 
         bits_at_this_level = (len(tree) - 1).bit_length()
         pins_at_this_level = pins[:bits_at_this_level]
@@ -418,7 +417,7 @@ class VirtualMux[S: Signal]:
         ):
             if signal_or_tree is None:
                 continue
-            if is_Signal(signal_or_tree):
+            if self.isSignal(signal_or_tree):
                 signal_map[signal_or_tree] = frozenset(pins_for_signal) | fixed_pins
             else:
                 signal_map.update(

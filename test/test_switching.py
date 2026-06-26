@@ -336,6 +336,26 @@ def test_virtual_mux_basic_typed():
     ]
 
 
+@pytest.mark.xfail(reason="Signal narrowowing not implemented")
+def test_virtual_mux_typed_isSignal():
+    mux_a = MuxATyped()
+
+    assert mux_a.isSignal("sig_a1")  # should pass
+    assert not mux_a.isSignal("")  # this shouldn't be supplied by the user
+    assert not mux_a.isSignal(1)  # wrong type
+    assert not mux_a.isSignal("1")  # not a signal for MuxATyped - not yet implemented
+
+
+def test_virtual_mux_isSignal():
+    mux_a = MuxA()
+    # this mux isn't type, so anything that is a string should pass this
+    # to check we don't accidentally break untyped muxes in the future
+    assert mux_a.isSignal("sig_a1")  # should pass
+    assert mux_a.isSignal("")  # should pass
+    assert not mux_a.isSignal(1)  # wrong type
+    assert mux_a.isSignal("1")  # should pass
+
+
 def test_virtual_mux_reset():
     """Check that reset sends an update that sets all pins off"""
 
