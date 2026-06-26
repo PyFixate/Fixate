@@ -101,7 +101,7 @@ def do_some_stuff():
     # the annotations can also be used directly with Literal
     class MyDirectlyTypedMux(VirtualMux[Literal["Sig_1", "Sig_2"]]):
         pin_list = ("x0", "x1")
-        # Note this currently doesn't point out the incorrect signal mapping below!
+        # Note neither definition currently point out the incorrect signal mapping below!
         # it is still up to the user to set up muxes correctly
         map_list = (
             ("signal_1", "x0"),
