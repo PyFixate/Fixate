@@ -112,13 +112,23 @@ def do_some_stuff():
     myothermux = MyDirectlyTypedMux()
 
     myothermux.multiplex("")
-    myothermux.multiplex("Sig_1")
-    myothermux.multiplex("Sig_2")
+    # the suggested signal names will match the supplied names, but will cause exceptions
+    try:
+        myothermux.multiplex("Sig_1")
+    except ValueError as e:
+        print(e)
+    try:
+        myothermux.multiplex("Sig_2")
+    except ValueError as e:
+        print(e)
 
     try:
         myothermux.multiplex("not_a_signal")
     except ValueError as e:
         print(e)
+    # the real signal names will work, but type checkers will complain they are incorrect!
+    myothermux.multiplex("signal_1")
+    myothermux.multiplex("signal_2")
 
     # general subclasses and RelayMatrixMux also work with this
     # currently VirtualSwitch doesn't, it creates its own signal names doesn't really benefit from this
