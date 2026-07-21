@@ -1,6 +1,17 @@
 ==================================
 Release Notes
 ==================================
+*************
+Version 0.7.0
+*************
+Release Date XX/XX/2026
+
+New Features
+############
+- Font size for buttons increased.
+- Image scene now shows "TEST PASS" or "TEST FAIL" on sequence end.
+
+
 
 *************
 Version 0.6.5
