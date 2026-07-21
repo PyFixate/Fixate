@@ -94,6 +94,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     sig_image_update = pyqtSignal(str)
     sig_gif_update = pyqtSignal(str)
     sig_image_clear = pyqtSignal()
+    sig_image_result = pyqtSignal(str, str)
 
     # Progress Signals
     sig_indicator_start = pyqtSignal()
@@ -181,6 +182,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_image_update.connect(self.on_image_update)
         self.sig_gif_update.connect(self.on_gif_update)
         self.sig_image_clear.connect(self.on_image_clear)
+        self.sig_image_result.connect(self._show_sequence_result)
         self.sig_button_reset.connect(self.on_button_reset)
         self.sig_progress_set_max.connect(self.on_progress_set_max)
 
@@ -264,6 +266,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         :param path: Relative path to image within the test scripts package
         :return: None
         """
+        self.ImageView.setBackgroundBrush(QtGui.QBrush())
         try:
             image_data = pkgutil.get_data("module.loaded_tests", path)
         except (FileNotFoundError, OSError):
@@ -300,6 +303,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         :param path: Relative path to gif within the test scripts package
         :return: None
         """
+        self.ImageView.setBackgroundBrush(QtGui.QBrush())
         try:
             image_data = pkgutil.get_data("module.loaded_tests", path)
         except (FileNotFoundError, OSError):
@@ -352,6 +356,29 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.image_scene = QtWidgets.QGraphicsScene()
         self.ImageView.set_scene(self.image_scene)
         self.ImageView.setScene(self.image_scene)
+
+    def _show_sequence_result(self, text, fill_colour):
+        self.on_image_clear()  # Clear the scene
+        # Set background
+        self.ImageView.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(fill_colour)))
+
+        viewport_rect = self.ImageView.viewport().rect()
+        scene_width = viewport_rect.width()
+        scene_height = viewport_rect.height()
+        text_item = self.image_scene.addText(
+            text, QtGui.QFont("Arial", 14, QtGui.QFont.Bold)
+        )
+        text_item.setDefaultTextColor(QtGui.QColor("white"))
+
+        text_bounds = text_item.boundingRect()
+        text_item.setPos(
+            (scene_width - text_bounds.width()) / 2,
+            (scene_height - text_bounds.height()) / 2,
+        )
+
+        scene_rect = QRectF(0, 0, scene_width, scene_height)
+        self.image_scene.setSceneRect(scene_rect)
+        self.ImageView.fitInView(scene_rect, Qt.KeepAspectRatio)
 
     def file_not_found(self, path):
         """
@@ -833,6 +860,12 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_history_update.emit(self._reformat_text("Status: {}".format(status)))
         self.sig_active_update.emit(self._reformat_text("Status: {}".format(status)))
         self.sig_history_update.emit("#" * wrapper.width)
+
+        # Emit signal to update the image window:
+        if status == "PASSED":
+            self.sig_image_result.emit("TEST PASS", "#2ECC71")
+        elif status != "PASSED":
+            self.sig_image_result.emit("TEST FAIL", "#E74C3C")
 
     def _print_test_start(self, data, test_index):
         if self.closing:
