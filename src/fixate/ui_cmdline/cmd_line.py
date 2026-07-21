@@ -15,11 +15,10 @@ wrapper.break_long_words = False
 
 wrapper.drop_whitespace = True
 
-kb = KBHit()
-
 
 class KeyboardHook:
     def kb_hit_monitor(self):
+        kb = KBHit()
         while True:
             if self.stop_thread:
                 self.monitoring = False
