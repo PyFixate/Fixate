@@ -3,6 +3,16 @@ Release Notes
 ==================================
 
 *************
+Version 0.6.6
+*************
+Release Date xx/xx/xxxx
+
+Improvements
+############
+
+- Reduce the scope of the keyboard monitor object in the command line ui.
+
+*************
 Version 0.6.5
 *************
 Release Date 29/06/2026
@@ -28,7 +38,7 @@ Improvements
   now be called after performing signal acquisition.
 - UI has been revamped a little. User input methods will no longer return ("Resp", value) but will return just the value - see Issue #177. To use these, from fixate import user_info etc.
 - Fixed a bug where falsy values such as 0 or 0.0 were not accepted as valid user input - see Issue #213
-- Invert channel and vtime funcitons implemented in the DSO driver.
+- Invert channel and vtime functions implemented in the DSO driver.
 - Fxconfig fixes for cmd2 4.0.0
 - Jig switching fix to force sending the reset signal regardless of presumed jig state
 
