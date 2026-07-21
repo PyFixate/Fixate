@@ -266,7 +266,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         :param path: Relative path to image within the test scripts package
         :return: None
         """
-        self.ImageView.setBackgroundBrush(QtGui.QBrush())
         try:
             image_data = pkgutil.get_data("module.loaded_tests", path)
         except (FileNotFoundError, OSError):
@@ -303,7 +302,6 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         :param path: Relative path to gif within the test scripts package
         :return: None
         """
-        self.ImageView.setBackgroundBrush(QtGui.QBrush())
         try:
             image_data = pkgutil.get_data("module.loaded_tests", path)
         except (FileNotFoundError, OSError):
