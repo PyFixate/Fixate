@@ -51,4 +51,4 @@ from fixate._ui import (
 
 from fixate.main import run_main_program as run
 
-__version__ = "0.6.5"
+__version__ = "0.7.0"

@@ -212,6 +212,7 @@ class Ui_FixateUI(object):
         self.ButtonLayout.setSpacing(100)
         self.ButtonLayout.setObjectName("ButtonLayout")
         self.Button_1 = QtWidgets.QPushButton(self.MainWindow)
+        self.Button_1.setStyleSheet("font-size: 12pt;")
         self.Button_1.setEnabled(False)
         sizePolicy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
@@ -227,6 +228,7 @@ class Ui_FixateUI(object):
         self.Button_1.setObjectName("Button_1")
         self.ButtonLayout.addWidget(self.Button_1)
         self.Button_2 = QtWidgets.QPushButton(self.MainWindow)
+        self.Button_2.setStyleSheet("font-size: 12pt;")
         self.Button_2.setEnabled(False)
         sizePolicy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
@@ -239,6 +241,7 @@ class Ui_FixateUI(object):
         self.Button_2.setObjectName("Button_2")
         self.ButtonLayout.addWidget(self.Button_2)
         self.Button_3 = QtWidgets.QPushButton(self.MainWindow)
+        self.Button_3.setStyleSheet("font-size: 12pt;")
         self.Button_3.setEnabled(False)
         sizePolicy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding

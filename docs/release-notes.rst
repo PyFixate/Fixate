@@ -1,6 +1,22 @@
 ==================================
 Release Notes
 ==================================
+*************
+Version 0.7.0
+*************
+Release Date 24/07/2026
+
+Major Changes
+################
+- New major version! This should have been done in the last update when python 3.8 to 3.11 was dropped. Doing it here now.
+
+New Features
+############
+- Font size for buttons increased.
+- Image scene now shows "TEST PASS" or "TEST FAIL" on sequence end.
+- Added --user-id flag to be able to log which user ran a test. Defaults to 'None' if not provided.
+
+
 
 *************
 Version 0.6.5

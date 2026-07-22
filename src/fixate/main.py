@@ -117,6 +117,7 @@ def get_parser():
         action="store_true",
         help="The sequencer will not prompt for retries.",
     )
+    parser.add_argument("--user-id", help="ID of the user running the test")
     diagnostic_group = parser.add_mutually_exclusive_group()
     diagnostic_group.add_argument(
         "--disable-logs", action="store_true", help="Turn off diagnostic logs"
@@ -288,6 +289,9 @@ class FixateWorker:
 
             if self.args.non_interactive:
                 self.sequencer.non_interactive = True
+
+            if self.args.user_id:
+                self.sequencer.context_data["user_id"] = self.args.user_id
 
             # parse script params
             for param in self.args.script_params:
