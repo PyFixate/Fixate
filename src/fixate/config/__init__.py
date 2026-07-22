@@ -56,6 +56,7 @@ plg_csv = {
         "report-format={REPORT_FORMAT_VERSION}",
         "index_string={index}",
         "computername={COMPUTERNAME}",
+        "user_id={user_id}",
     ],
 }
 
