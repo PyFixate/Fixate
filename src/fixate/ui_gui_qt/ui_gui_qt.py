@@ -356,8 +356,11 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.ImageView.setScene(self.image_scene)
 
     def _show_sequence_result(self, text, fill_colour):
-        self.on_image_clear()  # Clear the scene
-        # Set background
+        """
+        Uses the image window to show overall sequence status.
+        Paints entire background with 'fill_colour', and centers 'text' on screen.
+        """
+        self.on_image_clear()
         self.ImageView.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(fill_colour)))
 
         viewport_rect = self.ImageView.viewport().rect()
