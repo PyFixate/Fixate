@@ -1,6 +1,7 @@
 """
 Examples on how to use the function generator driver
 """
+
 import time
 
 from fixate.core.common import TestClass, TestList

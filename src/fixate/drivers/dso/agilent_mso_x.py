@@ -3,7 +3,6 @@ from fixate.core.exceptions import InstrumentError
 from fixate.drivers.dso.helper import DSO
 import time
 
-
 # Example IDN Strings
 # KEYSIGHT TECHNOLOGIES,DSOX1202G,CN60074190,02.10.2019111333
 # KEYSIGHT TECHNOLOGIES,DSO-X 1102G,CN57096441,01.20.2019061038

@@ -2,7 +2,6 @@ import pytest
 from fixate.core import config_util
 from fixate import config
 
-
 # Ideally these tests would be done with the cmd2 test plugin (https://pypi.org/project/cmd2-ext-test/)
 # by the people who made CMD2, however it have proved to be more work than it is worth.
 # So the tests will focus on the internal methods of the FxConfigCmd class.

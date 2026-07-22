@@ -29,3 +29,4 @@ venv37
 .vscode/settings.json
 docs/_build/
 .DS_Store
+.env

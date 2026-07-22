@@ -2,6 +2,7 @@
 This module is used to allow for tests to test values against criteria.
 It should implement necessary logging functions and report success or failure.
 """
+
 from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable, Optional
 import logging

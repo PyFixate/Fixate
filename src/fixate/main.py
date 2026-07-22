@@ -11,10 +11,9 @@ from pubsub import pub
 from pathlib import Path
 import fixate.config
 from fixate.core.exceptions import SequenceAbort
-from fixate.core.ui import user_info_important, user_serial, user_ok
+from fixate import user_info_important, user_ok, user_serial
 from fixate.ui_cmdline import register_cmd_line, unregister_cmd_line
 import fixate.sequencer
-
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +117,7 @@ def get_parser():
         action="store_true",
         help="The sequencer will not prompt for retries.",
     )
+    parser.add_argument("--user-id", help="ID of the user running the test")
     diagnostic_group = parser.add_mutually_exclusive_group()
     diagnostic_group.add_argument(
         "--disable-logs", action="store_true", help="Turn off diagnostic logs"
@@ -275,13 +275,10 @@ class FixateWorker:
             if self.args.serial_number is None:
                 serial_response = user_serial("Please enter serial number")
                 if serial_response == "ABORT_FORCE":
+                    # ABORT_FORCE will only ever come from the GUI.
                     return ReturnCodes.ABORTED
-                elif serial_response[0] == "Exception":
-                    # Should be tuple: ("Exception", <Exception>)
-                    raise serial_response[1]
                 else:
-                    # Should be tuple: ("Result", serial_number)
-                    serial_number = serial_response[1]
+                    serial_number = serial_response
                     self.sequencer.context_data["serial_number"] = serial_number
             else:
                 serial_number = self.args.serial_number
@@ -292,6 +289,9 @@ class FixateWorker:
 
             if self.args.non_interactive:
                 self.sequencer.non_interactive = True
+
+            if self.args.user_id:
+                self.sequencer.context_data["user_id"] = self.args.user_id
 
             # parse script params
             for param in self.args.script_params:

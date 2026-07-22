@@ -12,7 +12,7 @@ from pubsub import pub
 import fixate.config
 from fixate.config import RESOURCES
 from fixate.core.checks import CheckResult
-from fixate.core.exceptions import UserInputError, SequenceAbort
+from fixate.core.exceptions import SequenceAbort
 from . import layout
 
 logger = logging.getLogger(__name__)
@@ -94,6 +94,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     sig_image_update = pyqtSignal(str)
     sig_gif_update = pyqtSignal(str)
     sig_image_clear = pyqtSignal()
+    sig_image_result = pyqtSignal(str, str)
 
     # Progress Signals
     sig_indicator_start = pyqtSignal()
@@ -181,6 +182,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_image_update.connect(self.on_image_update)
         self.sig_gif_update.connect(self.on_gif_update)
         self.sig_image_clear.connect(self.on_image_clear)
+        self.sig_image_result.connect(self._show_sequence_result)
         self.sig_button_reset.connect(self.on_button_reset)
         self.sig_progress_set_max.connect(self.on_progress_set_max)
 
@@ -269,7 +271,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         except (FileNotFoundError, OSError):
             # When running direct from the file system, if an image isn't found we
             # get FileNotFoundError. When running from a zip file, we get OSError
-            logger.exception("Image path specific in the test script was invalid")
+            logger.exception("Image path specified in the test script was invalid")
             # message dialog so the user knows the image didn't load
             self.file_not_found(path)
         else:
@@ -352,6 +354,32 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.image_scene = QtWidgets.QGraphicsScene()
         self.ImageView.set_scene(self.image_scene)
         self.ImageView.setScene(self.image_scene)
+
+    def _show_sequence_result(self, text, fill_colour):
+        """
+        Uses the image window to show overall sequence status.
+        Paints entire background with 'fill_colour', and centers 'text' on screen.
+        """
+        self.on_image_clear()
+        self.ImageView.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(fill_colour)))
+
+        viewport_rect = self.ImageView.viewport().rect()
+        scene_width = viewport_rect.width()
+        scene_height = viewport_rect.height()
+        text_item = self.image_scene.addText(
+            text, QtGui.QFont("Arial", 14, QtGui.QFont.Bold)
+        )
+        text_item.setDefaultTextColor(QtGui.QColor("white"))
+
+        text_bounds = text_item.boundingRect()
+        text_item.setPos(
+            (scene_width - text_bounds.width()) / 2,
+            (scene_height - text_bounds.height()) / 2,
+        )
+
+        scene_rect = QRectF(0, 0, scene_width, scene_height)
+        self.image_scene.setSceneRect(scene_rect)
+        self.ImageView.fitInView(scene_rect, Qt.KeepAspectRatio)
 
     def file_not_found(self, path):
         """
@@ -634,7 +662,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
     """User IO handlers, emit signals to trigger main thread updates via slots.
        These are run in the sequencer thread"""
 
-    def gui_user_input(self, message, choices=None):
+    def _gui_user_input(self, message, choices=None):
         if choices is not None:  # Button Prompt
             self.sig_choices_input.emit(message, choices)
         else:  # Text Prompt
@@ -692,14 +720,19 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
     """UI Callables, called from the sequencer thread"""
 
-    def reformat_text(self, text_str, first_line_fill="", subsequent_line_fill=""):
+    def _reformat_text(self, text_str, first_line_fill="", subsequent_line_fill=""):
         lines = []
+        _wrapper_initial_indent = wrapper.initial_indent
+        _wrapper_subsequent_indent = wrapper.subsequent_indent
         wrapper.initial_indent = first_line_fill
         wrapper.subsequent_indent = subsequent_line_fill
         for ind, line in enumerate(text_str.splitlines()):
             if ind != 0:
                 wrapper.initial_indent = subsequent_line_fill
             lines.append(wrapper.fill(line))
+        # now that we've created the lines, put the original wrapper settings back
+        wrapper.initial_indent = _wrapper_initial_indent
+        wrapper.subsequent_indent = _wrapper_subsequent_indent
         return "\n".join(lines)
 
     def _topic_UI_action(self, msg, callback_obj):
@@ -716,7 +749,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         monitoring failure.
         :param msg: Information for the user
         :param callback_obj:
-         callback_obj used to communicate back to the user_action call in ui.py.
+         The callback object to handle user cancellation or target completion. This is a UserActionCallback object as defined in fixate._ui.user_action.
         :return: None
         """
 
@@ -738,96 +771,28 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             callback_obj.set_target_finished_callback(self.sig_button_reset.emit)
             self.sig_choices_input.emit(msg, ("Fail",))
 
-    def _topic_UI_req(self, msg, q):
-        """
-        This can be replaced anywhere in the project that needs to implement the user driver
-        The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the
-        second part is the exception object or response object
-        :param msg:
-         Message for the user to understand what to do
-        :param q:
-         The result queue of type queue.Queue
-        :return:
-        """
+    def _topic_UI_req(self, msg):
         if self.closing:
-            q.put("Result", None)
-            return
-        self.gui_user_input(msg, ("Continue",))
-        q.put("Result", None)
-
-    def _topic_UI_req_choices(self, msg, q, choices, target, attempts=5):
-        """
-        This can be replaced anywhere in the project that needs to implement the user driver
-        Temporarily a simple input function.
-        The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the
-        second part is the exception object or response object
-        This needs to be compatible with forced exit. Look to user action for how it handles a forced exit
-        :param msg:
-         Message for the user to understand what to input
-        :param q:
-         The result queue of type queue.Queue
-        :param target:
-         Optional
-         Validation function to check if the user response is valid
-        :param attempts:
-        :return:
-        """
-        if self.closing:
-            q.put(("Result", "ABORT_FORCE"))
             return
 
-        for _ in range(attempts):
-            # This will change based on the interface
-            ret_val = self.gui_user_input(self.reformat_text(msg), choices)
-            ret_val = target(ret_val, choices)
-            if ret_val:
-                q.put(("Result", ret_val))
-                return
-        q.put(
-            "Exception",
-            UserInputError("Maximum number of attempts {} reached".format(attempts)),
-        )
+        self._gui_user_input(msg, ("Continue",))
 
-    def _topic_UI_req_input(self, msg, q, target=None, attempts=5, kwargs=None):
-        """
-        This can be replaced anywhere in the project that needs to implement the user driver
-        Temporarily a simple input function.
-        The result needs to be put in the queue with the first part of the tuple as 'Exception' or 'Result' and the
-        second part is the exception object or response object
-        This needs to be compatible with forced exit. Look to user action for how it handles a forced exit
-        :param msg:
-         Message for the user to understand what to input
-        :param q:
-         The result queue of type queue.Queue
-        :param target:
-         Optional
-         Validation function to check if the user response is valid
-        :param attempts:
-
-        :param kwargs:
-        :return:
-        """
+    def _topic_UI_req_choices(self, msg, q, choices):
         if self.closing:
-            q.put(("Result", "ABORT_FORCE"))
+            q.put(("ABORT_FORCE"))
             return
 
-        msg = self.reformat_text(msg)
-        wrapper.initial_indent = ""
-        wrapper.subsequent_indent = ""
-        for _ in range(attempts):
-            # This will change based on the interface
-            ret_val = self.gui_user_input(msg, None)
-            if target is None or ret_val == "ABORT_FORCE":
-                q.put(ret_val)
-                return
-            ret_val = target(ret_val, **kwargs)
-            if ret_val:
-                q.put(("Result", ret_val))
-                return
-        # Display failure of target and send exception
-        error_str = f"Maximum number of attempts {attempts} reached. {target.__doc__}"
-        self._topic_UI_display(error_str)
-        q.put(("Exception", UserInputError(error_str)))
+        ret_val = self._gui_user_input(msg, choices)
+        q.put(ret_val)
+
+    def _topic_UI_req_input(self, msg, q):
+        if self.closing:
+            q.put(("ABORT_FORCE"))
+            return
+
+        msg = self._reformat_text(msg)
+        ret_val = self._gui_user_input(msg, None)
+        q.put(ret_val)
 
     def _topic_UI_display(self, msg):
         """
@@ -836,10 +801,10 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         """
         if self.closing:
             return
-        self.sig_active_update.emit(self.reformat_text(msg))
-        self.sig_history_update.emit(self.reformat_text(msg))
+        self.sig_active_update.emit(self._reformat_text(msg))
+        self.sig_history_update.emit(self._reformat_text(msg))
 
-    def _topic_UI_display_important(self, msg):
+    def _topic_UI_display_important(self, msg, colour="red", bg_colour="white"):
         """
         :param msg:
         :return:
@@ -847,15 +812,26 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         if self.closing:
             return
 
+        # include a factor because the width of the ! is less than most characters.
+        # this does slightly mess up how it displays in the history tab though...
+        txt_fill = "!" * int(wrapper.width * 1.3)
+
+        # History window
         self.sig_history_update.emit("")
-        self.sig_history_update.emit("!" * wrapper.width)
-        self.sig_active_update.emit("!" * wrapper.width)
+        self.sig_history_update.emit(txt_fill)
         self.sig_history_update.emit("")
-        self.sig_history_update.emit(self.reformat_text(msg))
-        self.sig_active_update.emit(self.reformat_text(msg))
+        self.sig_history_update.emit(self._reformat_text(msg))
         self.sig_history_update.emit("")
-        self.sig_history_update.emit("!" * wrapper.width)
-        self.sig_active_update.emit("!" * wrapper.width)
+        self.sig_history_update.emit(txt_fill)
+
+        # Active window
+        self.sig_active_update.emit(
+            f"<span style='color:{colour};background-color:{bg_colour}'>{txt_fill}</span>"
+        )
+        self.sig_active_update.emit(self._reformat_text(msg))
+        self.sig_active_update.emit(
+            f"<span style='color:{colour};background-color:{bg_colour}'>{txt_fill}</span>"
+        )
 
     def _topic_Sequence_Complete(
         self, status, passed, failed, error, skipped, sequence_status
@@ -875,16 +851,22 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             for msg, state in post_sequence_info.items():
                 if status == "PASSED":
                     if state == "PASSED" or state == "ALL":
-                        self.sig_history_update.emit(self.reformat_text(msg))
-                        self.sig_active_update.emit(self.reformat_text(msg))
+                        self.sig_history_update.emit(self._reformat_text(msg))
+                        self.sig_active_update.emit(self._reformat_text(msg))
                 elif state != "PASSED":
-                    self.sig_history_update.emit(self.reformat_text(msg))
-                    self.sig_active_update.emit(self.reformat_text(msg))
+                    self.sig_history_update.emit(self._reformat_text(msg))
+                    self.sig_active_update.emit(self._reformat_text(msg))
 
         self.sig_history_update.emit("-" * wrapper.width)
-        self.sig_history_update.emit(self.reformat_text("Status: {}".format(status)))
-        self.sig_active_update.emit(self.reformat_text("Status: {}".format(status)))
+        self.sig_history_update.emit(self._reformat_text("Status: {}".format(status)))
+        self.sig_active_update.emit(self._reformat_text("Status: {}".format(status)))
         self.sig_history_update.emit("#" * wrapper.width)
+
+        # Emit signal to update the image window:
+        if status == "PASSED":
+            self.sig_image_result.emit("TEST PASS", "#2ECC71")
+        elif status != "PASSED":
+            self.sig_image_result.emit("TEST FAIL", "#E74C3C")
 
     def _print_test_start(self, data, test_index):
         if self.closing:
@@ -893,7 +875,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_progress.emit()
         self.sig_history_update.emit("*" * wrapper.width)
         self.sig_history_update.emit(
-            self.reformat_text("Test {}: {}".format(test_index, data.test_desc))
+            self._reformat_text("Test {}: {}".format(test_index, data.test_desc))
         )
         self.sig_history_update.emit("-" * wrapper.width)
         self.sig_label_update.emit(test_index, data.test_desc)
@@ -915,14 +897,14 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         sequencer = RESOURCES["SEQUENCER"]
         self.sig_history_update.emit("-" * wrapper.width)
         self.sig_history_update.emit(
-            self.reformat_text(
+            self._reformat_text(
                 "Checks passed: {}, Checks failed: {}".format(
                     sequencer.chk_pass, sequencer.chk_fail
                 )
             )
         )
         self.sig_history_update.emit(
-            self.reformat_text("Test {}: {}".format(test_index, status.upper()))
+            self._reformat_text("Test {}: {}".format(test_index, status.upper()))
         )
         self.sig_history_update.emit("-" * wrapper.width)
 
@@ -946,7 +928,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             return
 
         self.sig_history_update.emit(
-            self.reformat_text("\nTest {}: Retry".format(test_index))
+            self._reformat_text("\nTest {}: Retry".format(test_index))
         )
 
     def _topic_Test_Exception(self, exception, test_index):
@@ -961,14 +943,14 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         self.sig_history_update.emit("!" * wrapper.width)
         self.sig_active_update.emit("!" * wrapper.width)
         self.sig_history_update.emit(
-            self.reformat_text(
+            self._reformat_text(
                 "Test {}: Exception Occurred, {} {}".format(
                     test_index, type(exception), exception
                 )
             )
         )
         self.sig_active_update.emit(
-            self.reformat_text(
+            self._reformat_text(
                 "Test {}: Exception Occurred, {} {}".format(
                     test_index, type(exception), exception
                 )
@@ -981,7 +963,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
             traceback.print_tb(exception.__traceback__, file=sys.stderr)
 
     def _topic_Check(self, passes: bool, chk: CheckResult, chk_cnt: int, context: str):
-        msg = self.reformat_text(f"\nCheck {chk_cnt}: " + chk.check_string)
+        msg = self._reformat_text(f"\nCheck {chk_cnt}: " + chk.check_string)
         self.sig_history_update.emit(msg)
         if not chk.result:
             self.sig_active_update.emit(msg)

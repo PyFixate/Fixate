@@ -1,6 +1,7 @@
 """
 This is a test script that shows basic use case for the fixate library
 """
+
 from fixate.core.common import TestClass, TestList
 from fixate.core.checks import *
 from fixate.core.ui import *

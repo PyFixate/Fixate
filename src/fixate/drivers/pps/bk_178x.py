@@ -146,9 +146,9 @@ class PPSInterface(PPS):
         packet[2] = command
         packet_index = 3
         for data, num_bytes in data_tuples:
-            packet[
-                packet_index : packet_index + num_bytes
-            ] = self._little_endian_encode(data)[0:num_bytes]
+            packet[packet_index : packet_index + num_bytes] = (
+                self._little_endian_encode(data)[0:num_bytes]
+            )
             packet_index += num_bytes
             if packet_index >= self.PACKET_LENGTH:
                 raise ValueError("Too many bytes to pack into packet")

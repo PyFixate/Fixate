@@ -4,6 +4,7 @@ All available configuration is loaded into the module
 Drivers are hard coded into the config to prevent issues arising from auto discovery
 Must ensure driver imports are infallible to prevent program crash on start
 """
+
 from fixate.config.helper import (
     load_dict_config,
     load_yaml_config,
@@ -55,6 +56,7 @@ plg_csv = {
         "report-format={REPORT_FORMAT_VERSION}",
         "index_string={index}",
         "computername={COMPUTERNAME}",
+        "user_id={user_id}",
     ],
 }
 

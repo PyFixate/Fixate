@@ -2,6 +2,7 @@
 This module implements concrete AddressHandler type, that
 can be used to implement IO for the fixate.core.switching module.
 """
+
 from __future__ import annotations
 
 from typing import Sequence, Optional

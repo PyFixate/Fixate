@@ -22,6 +22,7 @@ output_ch2
 output_ch3
 output_ch4
 """
+
 import pyvisa
 
 import fixate.drivers
