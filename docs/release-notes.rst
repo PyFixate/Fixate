@@ -15,6 +15,7 @@ New Features
 - Font size for buttons increased.
 - Image scene now shows "TEST PASS" or "TEST FAIL" on sequence end.
 - Added --user-id flag to be able to log which user ran a test. Defaults to 'None' if not provided.
+- Added aliases for "quit" and "open" commands in fxconfig.
 
 
 

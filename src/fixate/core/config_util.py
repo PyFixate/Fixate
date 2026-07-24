@@ -347,6 +347,15 @@ class FxConfigCmd(cmd2.Cmd):
                     self.pfeedback(f"{new_id} || {idn}")
                     self._test_print_error(port, "ID query does not match")
 
+    def do_load(self, line):
+        """Alias for open command"""
+        self.do_open(line)
+
+    def do_exit(self, line):
+        """Exit the application."""
+        # cmd2 already has the 'quit' command built in, so this is mostly an alias.
+        return True
+
 
 # Stolen from discover.py. This should probably get consolidated back there,
 # but I want to avoid messing with the internals for now.
