@@ -32,28 +32,28 @@ from __future__ import annotations
 import itertools
 import time
 from typing import (
-    Generic,
-    Optional,
     Callable,
     Sequence,
-    TypeVar,
     Generator,
-    Union,
     Collection,
-    Dict,
-    FrozenSet,
     Iterable,
+    TypeGuard,
+    Any,
+    Literal,
 )
 from dataclasses import dataclass
 from functools import reduce
 from operator import or_
 
-Signal = str
-Pin = str
-PinList = Sequence[Pin]
-PinSet = FrozenSet[Pin]
-SignalMap = Dict[Signal, PinSet]
-TreeDef = Sequence[Union[Signal, "TreeDef"]]
+type Signal = str
+type EmptySignal = Literal[""]
+type Pin = str
+type PinList = Sequence[Pin]
+type PinSet = frozenset[Pin]
+type PinUpdateCallback = Callable[[PinUpdate, bool], None]
+type MuxSignal[M: Signal] = M | EmptySignal
+type SignalMap[S: Signal] = dict[S, PinSet]
+type TreeDef[S: Signal] = Sequence[S | "TreeDef"]
 
 
 @dataclass(frozen=True)
@@ -85,17 +85,23 @@ class PinUpdate:
         return NotImplemented
 
 
-PinUpdateCallback = Callable[[PinUpdate, bool], None]
-
-
-class VirtualMux:
+class VirtualMux[S: Signal]:
+    # define the union of what the user supplied and the automatically created
+    # signal here so we don't have to keep typing this union everywhere
     pin_list: PinList = ()
     clearing_time: float = 0.0
 
     ###########################################################################
     # These methods are the public API for the class
 
-    def __init__(self, update_pins: Optional[PinUpdateCallback] = None):
+    def isSignal(self, obj: Any) -> TypeGuard[S]:
+        # we can tell the typechecker about our user specified signals here
+        # at runtime we just check if this is a string
+        # in the future S can be inspected using get_origin, get_args
+        # resolve_bases and get_original_bases
+        return isinstance(obj, Signal.__value__)
+
+    def __init__(self, update_pins: PinUpdateCallback | None = None):
         self._last_update_time = time.monotonic()
 
         self._update_pins: PinUpdateCallback
@@ -110,9 +116,9 @@ class VirtualMux:
         # we convert here and keep a reference to the set for future use.
         self._pin_set = frozenset(self.pin_list)
 
-        self._state = ""
+        self._state: MuxSignal[S] = ""
 
-        self._signal_map: SignalMap = self._map_signals()
+        self._signal_map: SignalMap[MuxSignal[S]] = self._map_signals()
 
         # Define the implicit signal "" which can be used to turn off all pins.
         # If the signal map already has this defined, raise an error. In the old
@@ -129,7 +135,7 @@ class VirtualMux:
         if hasattr(self, "default_signal"):
             raise ValueError("'default_signal' should not be set on a VirtualMux")
 
-    def __call__(self, signal: Signal, trigger_update: bool = True) -> None:
+    def __call__(self, signal: MuxSignal[S], trigger_update: bool = True) -> None:
         """
         Convenience to avoid having to type jig.mux.<MuxName>.multiplex.
 
@@ -138,7 +144,7 @@ class VirtualMux:
         """
         self.multiplex(signal, trigger_update)
 
-    def multiplex(self, signal: Signal, trigger_update: bool = True) -> None:
+    def multiplex(self, signal: MuxSignal[S], trigger_update: bool = True) -> None:
         """
         Update the multiplexer state to signal.
 
@@ -163,7 +169,7 @@ class VirtualMux:
             self._last_update_time = time.monotonic()
         self._state = signal
 
-    def all_signals(self) -> tuple[Signal, ...]:
+    def all_signals(self) -> tuple[MuxSignal[S], ...]:
         return tuple(self._signal_map.keys())
 
     def reset(self, trigger_update: bool = True) -> None:
@@ -191,7 +197,7 @@ class VirtualMux:
     # The following methods are potential candidates to override in a subclass
 
     def _calculate_pins(
-        self, old_signal: Signal, new_signal: Signal
+        self, old_signal: MuxSignal[S], new_signal: MuxSignal[S]
     ) -> tuple[PinSetState, PinSetState]:
         """
         Calculate the pin sets for the two-step state change.
@@ -218,7 +224,7 @@ class VirtualMux:
     # The following methods are intended as implementation detail and
     # subclasses should avoid overriding.
 
-    def _map_signals(self) -> SignalMap:
+    def _map_signals(self) -> SignalMap[MuxSignal[S]]:
         """
         Default implementation of the signal mapping
 
@@ -239,7 +245,9 @@ class VirtualMux:
                 "VirtualMux subclass must define either map_tree or map_list"
             )
 
-    def _map_tree(self, tree: TreeDef, pins: PinList, fixed_pins: PinSet) -> SignalMap:
+    def _map_tree(
+        self, tree: TreeDef[S], pins: PinList, fixed_pins: PinSet
+    ) -> SignalMap[MuxSignal[S]]:
         """recursively add nested signal lists to the signal map.
         tree: is the current sub-branch to be added. At the first call
         level, this would be initialised with self.map_tree. It can be
@@ -399,7 +407,7 @@ class VirtualMux:
             mux_b = TreeMap(("a1_b0", "a1_b1", "a1_b2", None), ("x2", "x3"))
             map_tree = TreeMap(("a0", mux_b, "a2", mux_c), ("x1", "x0"))
         """
-        signal_map: SignalMap = dict()
+        signal_map: SignalMap[MuxSignal[S]] = dict()
 
         bits_at_this_level = (len(tree) - 1).bit_length()
         pins_at_this_level = pins[:bits_at_this_level]
@@ -409,7 +417,7 @@ class VirtualMux:
         ):
             if signal_or_tree is None:
                 continue
-            if isinstance(signal_or_tree, Signal):
+            if self.isSignal(signal_or_tree):
                 signal_map[signal_or_tree] = frozenset(pins_for_signal) | fixed_pins
             else:
                 signal_map.update(
@@ -456,9 +464,7 @@ class VirtualSwitch(VirtualMux):
     pin_name: Pin = ""
     map_tree = ("Off", "On")
 
-    def multiplex(
-        self, signal: Union[Signal, bool], trigger_update: bool = True
-    ) -> None:
+    def multiplex(self, signal: Signal | bool, trigger_update: bool = True) -> None:
         if signal is True:
             converted_signal = "On"
         elif signal is False:
@@ -467,26 +473,24 @@ class VirtualSwitch(VirtualMux):
             converted_signal = signal
         super().multiplex(converted_signal, trigger_update=trigger_update)
 
-    def __call__(
-        self, signal: Union[Signal, bool], trigger_update: bool = True
-    ) -> None:
+    def __call__(self, signal: Signal | bool, trigger_update: bool = True) -> None:
         """Override call to set the type on signal_output correctly."""
         self.multiplex(signal, trigger_update)
 
     def __init__(
         self,
-        update_pins: Optional[PinUpdateCallback] = None,
+        update_pins: PinUpdateCallback | None = None,
     ):
         if not self.pin_list:
             self.pin_list = [self.pin_name]
         super().__init__(update_pins)
 
 
-class RelayMatrixMux(VirtualMux):
+class RelayMatrixMux[S: Signal](VirtualMux[S]):
     clearing_time = 0.01
 
     def _calculate_pins(
-        self, old_signal: Signal, new_signal: Signal
+        self, old_signal: MuxSignal[S], new_signal: MuxSignal[S]
     ) -> tuple[PinSetState, PinSetState]:
         """
         Override of _calculate_pins to implement break-before-make switching.
@@ -684,10 +688,7 @@ class MuxGroup:
         return [str(mux) for mux in self.get_multiplexers()]
 
 
-JigSpecificMuxGroup = TypeVar("JigSpecificMuxGroup", bound=MuxGroup)
-
-
-class JigDriver(Generic[JigSpecificMuxGroup]):
+class JigDriver[M: MuxGroup]():
     """
     Combine multiple VirtualMux's and multiple AddressHandler's.
 
@@ -696,7 +697,7 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
 
     def __init__(
         self,
-        mux_group_factory: Callable[[], JigSpecificMuxGroup],
+        mux_group_factory: Callable[[], M],
         handlers: Sequence[AddressHandler],
     ):
         # keep a reference to handlers so that we can close them if required.
@@ -774,10 +775,7 @@ class JigDriver(Generic[JigSpecificMuxGroup]):
             )
 
 
-_T = TypeVar("_T")
-
-
-def _generate_bit_sets(bits: Sequence[_T]) -> Generator[set[_T], None, None]:
+def _generate_bit_sets[_T](bits: Sequence[_T]) -> Generator[set[_T], None, None]:
     """
     Create subsets of bits, representing bits of a list of integers
 

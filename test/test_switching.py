@@ -1,4 +1,4 @@
-from typing import Collection, Sequence
+from typing import Collection, Sequence, Literal
 
 from fixate._switching import (
     Pin,
@@ -289,6 +289,13 @@ class MuxA(VirtualMux):
     map_list = (("sig_a1", "a0", "a1"), ("sig_a2", "a1"))
 
 
+class MuxATyped(VirtualMux[Literal["sig_a1", "sig_a2"]]):
+    """A mux definition used by a few tests"""
+
+    pin_list = ("a0", "a1")
+    map_list = (("sig_a1", "a0", "a1"), ("sig_a2", "a1"))
+
+
 def test_virtual_mux_basic():
     updates = []
     mux_a = MuxA(lambda x, y: updates.append((x, y)))
@@ -307,6 +314,46 @@ def test_virtual_mux_basic():
         (PinUpdate(PinSetState(), a2), False),
         (PinUpdate(PinSetState(), clear), True),
     ]
+
+
+def test_virtual_mux_basic_typed():
+    updates = []
+    mux_a = MuxATyped(lambda x, y: updates.append((x, y)))
+
+    # test both the __call__ and multiplex methods trigger
+    # the appropriate update callback.
+    mux_a("sig_a1")
+    mux_a.multiplex("sig_a2", trigger_update=False)
+    mux_a("")
+
+    clear = PinSetState(off=frozenset({"a0", "a1"}))
+    a1 = PinSetState(on=frozenset({"a0", "a1"}))
+    a2 = PinSetState(on=frozenset({"a1"}), off=frozenset({"a0"}))
+    assert updates == [
+        (PinUpdate(PinSetState(), a1), True),
+        (PinUpdate(PinSetState(), a2), False),
+        (PinUpdate(PinSetState(), clear), True),
+    ]
+
+
+@pytest.mark.xfail(reason="Signal narrowowing not implemented")
+def test_virtual_mux_typed_isSignal():
+    mux_a = MuxATyped()
+
+    assert mux_a.isSignal("sig_a1")  # should pass
+    assert not mux_a.isSignal("")  # this shouldn't be supplied by the user
+    assert not mux_a.isSignal(1)  # wrong type
+    assert not mux_a.isSignal("1")  # not a signal for MuxATyped - not yet implemented
+
+
+def test_virtual_mux_isSignal():
+    mux_a = MuxA()
+    # this mux isn't type, so anything that is a string should pass this
+    # to check we don't accidentally break untyped muxes in the future
+    assert mux_a.isSignal("sig_a1")  # should pass
+    assert mux_a.isSignal("")  # should pass
+    assert not mux_a.isSignal(1)  # wrong type
+    assert mux_a.isSignal("1")  # should pass
 
 
 def test_virtual_mux_reset():
