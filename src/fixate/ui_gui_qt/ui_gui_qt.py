@@ -864,9 +864,17 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         # Emit signal to update the image window:
         if status == "PASSED":
-            self.sig_image_result.emit("TEST PASS", "#2ECC71")
+            # get the RGBA values for green used in other parts of the GUI, so that the image window uses the same colour
+            r, g, b, _ = QtGui.QColor(Qt.green).getRgb()
+            # convert to hex string
+            hex_colour = "#{:02X}{:02X}{:02X}".format(r, g, b)
+            self.sig_image_result.emit("TEST PASS", hex_colour)
         elif status != "PASSED":
-            self.sig_image_result.emit("TEST FAIL", "#E74C3C")
+            # get the RGBA values for red used in other parts of the GUI, so that the image window uses the same colour
+            r, g, b, _ = QtGui.QColor(Qt.red).getRgb()
+            # convert to hex string
+            hex_colour = "#{:02X}{:02X}{:02X}".format(r, g, b)
+            self.sig_image_result.emit("TEST FAIL", hex_colour)
 
     def _print_test_start(self, data, test_index):
         if self.closing:
