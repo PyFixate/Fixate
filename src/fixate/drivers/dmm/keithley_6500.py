@@ -53,6 +53,10 @@ class Keithley6500(DMM):
         self._nplc_default = 1
         self._init_string = ""  # Unchanging
 
+        # High and low current port definition. Each definition encodes the maximum current able to
+        # be measured by the port (in amps)
+        self._current_ports = {"HIGH": 10, "LOW": 3}
+
     # Adapted for different DMM behaviour
     @property
     def display(self):
@@ -303,10 +307,34 @@ class Keithley6500(DMM):
             command = "; :SENS:VOLT:DC:INP MOHM10"
         self._set_measurement_mode("voltage_dc", _range, suffix=command)
 
-    def current_ac(self, _range=None):
+    def current_ac(self, _range, port):
+        """
+        Set the measurement mode on the DMM to AC current.
+
+        If the range and port selection are not compatible, i.e. someone has requested to measure
+        1A on the low range port with a maximum capability of 400 mA, an exception is raised.
+
+        If the range requested can be measured by the low port, but the high port is selected, an
+        exception is raised.
+        """
+        # Check the port and range combination is compatible for the instrument:
+        self._check_current_port_range(_range, port)
+
         self._set_measurement_mode("current_ac", _range)
 
-    def current_dc(self, _range=None):
+    def current_dc(self, _range, port):
+        """
+        Set the measurement mode on the DMM to DC current.
+
+        If the range and port selection are not compatible, i.e. someone has requested to measure
+        1A on the low range port with a maximum capability of 400 mA, an exception is raised.
+
+        If the range requested can be measured by the low port, but the high port is selected, an
+        exception is raised.
+        """
+        # Check the port and range combination is compatible for the instrument:
+        self._check_current_port_range(_range, port)
+
         self._set_measurement_mode("current_dc", _range)
 
     def resistance(self, _range=None):

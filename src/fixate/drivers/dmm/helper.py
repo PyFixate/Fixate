@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Literal
 
 
 class DMM:
@@ -60,13 +61,23 @@ class DMM:
         """
         raise NotImplementedError
 
-    def current_ac(self, _range):
+    def current_ac(self, _range, port: Literal["HIGH", "LOW"]):
+        """
+        Sets the DMM in AC current measurement mode.
+
+        Args:
+            _range: The measurement range to set on the instrument.
+            port: Informs the driver what physical port on the DMM is intended to be used for the measurement
+        """
         raise NotImplementedError
 
-    def current_dc(self, _range):
+    def current_dc(self, _range, port: Literal["HIGH", "LOW"]):
         """
-        Sets the DMM in DC current measurement mode and puts it in the range given
-        by the argument _range. Signals expected to be measured must be < _range.
+        Sets the DMM in DC current measurement mode.
+
+        Args:
+            _range: The measurement range to set on the instrument.
+            port: Informs the driver what physical port on the DMM is intended to be used for the measurement
         """
         raise NotImplementedError
 
@@ -129,3 +140,23 @@ class DMM:
 
     def nplc(self, nplc=None):
         return self._nplc_context_manager(self, nplc)
+
+    def _check_current_port_range(self, range, port):
+        """
+        Checks that the requested port and range are going to be compatible for the instrument.
+        Raises:
+            ValueError
+        Returns:
+        None
+        """
+        # Check the requested range is not more than the port capability:
+        if range > self._current_ports[port]:
+            raise ValueError(
+                "The selected port and range combination is not available for this instrument. Consider using a different multimeter"
+            )
+
+        # Raise an error if the high port is selected when the low port should be used:
+        if range < self._current_ports["LOW"] and port == "HIGH":
+            raise ValueError(
+                "High range port selected when the low range port should be used! Consider using a different multimeter."
+            )
