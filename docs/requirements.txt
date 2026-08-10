@@ -72,7 +72,7 @@ sphinxcontrib-serializinghtml==1.1.10
     # via sphinx
 typing-extensions==4.12.2
     # via pyvisa
-urllib3==2.5.0
+urllib3==2.6.3
     # via requests
 wcwidth==0.2.13
     # via cmd2
