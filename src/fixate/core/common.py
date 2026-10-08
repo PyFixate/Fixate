@@ -5,6 +5,7 @@ import inspect
 import ctypes
 import logging
 import warnings
+from enum import Enum, unique
 from functools import wraps
 from collections import namedtuple
 from fixate.core.exceptions import ParameterError, InvalidScalarQuantityError
@@ -407,16 +408,22 @@ class TestClass:
     as the name of the test with the remaining lines stored as self.test_desc_long which will show in the test logs
     """
 
-    RT_ABORT = 1  # Abort the whole test sequence
-    RT_RETRY = 2  # Automatically retry up to "attempts"
-    RT_PROMPT = 3  # Prompt the user; Options are Abort the sequence, retry, or fail and continue
-    RT_FAIL = 4  # Automatically fail and move on
+    @unique
+    class RetryMode(Enum):
+        """
+        Enum class for the Retry Modes.
+        """
+
+        RT_ABORT = 1  # Abort the whole test sequence
+        RT_RETRY = 2  # Automatically retry up to "attempts"
+        RT_PROMPT = 3  # Prompt the user; Options are Abort the sequence, retry, or fail and continue
+        RT_FAIL = 4  # Automatically fail and move on
 
     test_desc = None
     test_desc_long = None
     attempts = 1
     tests = []
-    retry_type = RT_PROMPT
+    retry_type: RetryMode = RetryMode.RT_PROMPT
     retry_exceptions = [BaseException]  # Depreciated
     skip_exceptions = []
     abort_exceptions = [KeyboardInterrupt, AttributeError, NameError]

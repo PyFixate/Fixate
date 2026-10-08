@@ -277,7 +277,9 @@ class Sequencer:
                         if self.run_test():
                             top.index += 1
                         else:
-                            if not self.retry_prompt():
+                            if not self.retry_prompt(
+                                retry_type=top.current().retry_type
+                            ):
                                 # mark the test as failed and continue. else will loop and try again
                                 self.tests_failed += 1
                                 top.index += 1
@@ -371,7 +373,7 @@ class Sequencer:
                 )
                 attempts = 0
                 active_test_status = "ERROR"
-                if not self.retry_prompt():
+                if not self.retry_prompt(retry_type=active_test.retry_type):
                     self.tests_errored += 1
                     break
             # Retry logic for exceptions
@@ -395,15 +397,32 @@ class Sequencer:
         )
         return active_test_status == "PASS"
 
-    def retry_prompt(self):
+    def retry_prompt(self, *, retry_type: TestClass.RetryMode):
         """Prompt the user when something goes wrong.
 
         For retry return True, to fail return False and to abort raise and abort exception. Respect the
         non_interactive flag, which can be set by the command line option --non-interactive
         """
+        if not isinstance(retry_type, TestClass.RetryMode):
+            raise TypeError(
+                f"Invalid retry_type:{retry_type} retry_type must be valid{type(retry_type).__name__}"
+            )
 
         if self.non_interactive:
             return False
+        if retry_type == TestClass.RetryMode.RT_PROMPT:
+            # RT_PROMPT is the default behaviour and will prompt the user below.
+            pass
+        if retry_type == TestClass.RetryMode.RT_RETRY:
+            # RT_RETRY behaviour is determined by active_test.attempt,
+            # By default it is set to 1. For example if the value is set to 3 it will
+            # retry the test 3 times if all fails then it prompts the user.
+            pass
+        if retry_type == TestClass.RetryMode.RT_FAIL:
+            return False
+        if retry_type == TestClass.RetryMode.RT_ABORT:
+            raise SequenceAbort("Sequence Aborted By The Test")
+
         resp = user_retry_abort_fail(msg="")
         if resp == "ABORT":
             raise SequenceAbort("Sequence Aborted By User")
