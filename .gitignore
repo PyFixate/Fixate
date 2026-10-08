@@ -30,3 +30,4 @@ venv37
 docs/_build/
 .DS_Store
 .env
+*.lock
