@@ -38,13 +38,17 @@ QProgressBar::chunk{
     width: 1px;
 }"""
 
+# create some custom colours for the GUI
+MUTED_RED = QtGui.QColor(Qt.red).darker(120)
+MUTED_GREEN = QtGui.QColor(Qt.green).darker(125)
+
 STATUS_PRIORITY = OrderedDict(
     [
         ("In Progress", (QtGui.QBrush(Qt.yellow), QtGui.QBrush(Qt.black))),
         ("Error", (QtGui.QBrush(Qt.red), QtGui.QBrush(Qt.white))),
-        ("Failed", (QtGui.QBrush(Qt.red), QtGui.QBrush(Qt.black))),
+        ("Failed", (QtGui.QBrush(MUTED_RED), QtGui.QBrush(Qt.black))),
         ("Aborted", (QtGui.QBrush(Qt.gray), QtGui.QBrush(Qt.white))),
-        ("Passed", (QtGui.QBrush(Qt.green), QtGui.QBrush(Qt.black))),
+        ("Passed", (QtGui.QBrush(MUTED_GREEN), QtGui.QBrush(Qt.black))),
         ("Skipped", (QtGui.QBrush(Qt.cyan), QtGui.QBrush(Qt.black))),
     ]
 )
@@ -369,7 +373,7 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
         text_item = self.image_scene.addText(
             text, QtGui.QFont("Arial", 14, QtGui.QFont.Bold)
         )
-        text_item.setDefaultTextColor(QtGui.QColor("white"))
+        text_item.setDefaultTextColor(QtGui.QColor("black"))
 
         text_bounds = text_item.boundingRect()
         text_item.setPos(
@@ -864,9 +868,17 @@ class FixateGUI(QtWidgets.QMainWindow, layout.Ui_FixateUI):
 
         # Emit signal to update the image window:
         if status == "PASSED":
-            self.sig_image_result.emit("TEST PASS", "#2ECC71")
+            # get the RGBA values for green used in other parts of the GUI, so that the image window uses the same colour
+            r, g, b, _ = MUTED_GREEN.getRgb()
+            # convert to hex string
+            hex_colour = "#{:02X}{:02X}{:02X}".format(r, g, b)
+            self.sig_image_result.emit("TEST PASS", hex_colour)
         elif status != "PASSED":
-            self.sig_image_result.emit("TEST FAIL", "#E74C3C")
+            # get the RGBA values for red used in other parts of the GUI, so that the image window uses the same colour
+            r, g, b, _ = MUTED_RED.getRgb()
+            # convert to hex string
+            hex_colour = "#{:02X}{:02X}{:02X}".format(r, g, b)
+            self.sig_image_result.emit("TEST FAIL", hex_colour)
 
     def _print_test_start(self, data, test_index):
         if self.closing:

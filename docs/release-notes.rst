@@ -2,6 +2,23 @@
 Release Notes
 ==================================
 *************
+Version 0.7.5
+*************
+Release Date xx/10/2026
+
+Major Changes
+################
+- 
+
+New Features
+############
+- 
+
+Improvements
+############
+- Modified colours of the UI elements to be more consistent.
+
+*************
 Version 0.7.0
 *************
 Release Date 24/07/2026
